@@ -67,8 +67,10 @@ export default function ProjectPlans() {
         <button
           onClick={() => setIsAddPlanOpen(true)}
           className="inline-flex items-center px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors"
+          aria-label="Ajouter un nouveau plan"
+          title="Ajouter un plan"
         >
-          <Plus className="h-4 w-4 mr-2" />
+          <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
           Ajouter un plan
         </button>
       </div>
@@ -89,7 +91,11 @@ export default function ProjectPlans() {
                     Plan validé pour exécution
                   </span>
                 )}
-                <button className="text-gray-400 hover:text-gray-600">•••</button>
+                <button 
+                  className="text-gray-400 hover:text-gray-600"
+                  aria-label="Options du plan"
+                  title="Options"
+                >•••</button>
               </div>
             </div>
 
@@ -120,16 +126,18 @@ export default function ProjectPlans() {
       </div>
 
       {totalPages > 1 && (
-        <div className="flex justify-center gap-2 mt-6">
-          {[...Array(totalPages)].map((_, i) => (
+        <div className="flex items-center justify-center gap-2">
+          {Array.from({ length: totalPages }).map((_, i) => (
             <button
-              key={i + 1}
+              key={i}
               onClick={() => setCurrentPage(i + 1)}
               className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors
                 ${currentPage === i + 1 
                   ? 'bg-[#f26755] text-white' 
                   : 'text-gray-600 hover:bg-gray-100'
                 }`}
+              aria-label={`Page ${i + 1}`}
+              title={`Aller à la page ${i + 1}`}
             >
               {i + 1}
             </button>
@@ -143,7 +151,7 @@ export default function ProjectPlans() {
             <SheetTitle>Ajouter un plan</SheetTitle>
           </SheetHeader>
           
-          <div className="mt-6 space-y-6">
+          <form className="mt-6 space-y-6">
             <div>
               <label htmlFor="plan-title" className="block text-sm font-medium text-gray-700 mb-1">
                 Titre du plan
@@ -173,31 +181,33 @@ export default function ProjectPlans() {
               >
                 <option value="">Sélectionner...</option>
                 <option value="existant">Plan existant</option>
-                <option value="execution">Plan d'exécution</option>
+                <option value="execution">Plan d&apos;exécution</option>
               </select>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="plan-image" className="block text-sm font-medium text-gray-700 mb-2">
                 Image du plan
               </label>
               <button
                 type="button"
                 className="w-full border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#f26755]"
+                aria-label="Télécharger une image de plan"
+                title="Télécharger une image"
               >
-                <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                <Upload className="mx-auto h-12 w-12 text-gray-400" aria-hidden="true" />
                 <span className="mt-2 block text-sm font-medium text-gray-900">
                   Cliquez pour télécharger
                 </span>
                 <span className="mt-1 block text-sm text-gray-500">
-                  PNG, JPG jusqu'à 10MB
+                  PNG, JPG jusqu&apos;à 10MB
                 </span>
               </button>
             </div>
 
             <div className="border-t border-gray-200 pt-6">
               <div className="flex items-center gap-2 mb-3">
-                <Mail className="h-4 w-4 text-gray-500" />
+                <Mail className="h-4 w-4 text-gray-500" aria-hidden="true" />
                 <span className="text-sm font-medium text-gray-700">
                   Envoyer ce plan par mail
                 </span>
@@ -238,11 +248,13 @@ export default function ProjectPlans() {
               <button
                 type="submit"
                 className="px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors"
+                aria-label="Enregistrer le plan"
+                title="Enregistrer le plan"
               >
                 Enregistrer
               </button>
             </div>
-          </div>
+          </form>
         </SheetContent>
       </Sheet>
     </div>
