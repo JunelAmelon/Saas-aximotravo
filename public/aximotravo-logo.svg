@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?><svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="80" height="80" rx="20" fill="white"/>
+  <path d="M34.9 26.9L25 45H20L29.9 26.9H34.9Z" fill="#FF4D00"/>
+  <path d="M44.8 26.9L34.9 45H29.9L39.8 26.9H44.8Z" fill="#FF4D00"/>
+  <path d="M54.7 26.9L44.8 45H39.8L49.7 26.9H54.7Z" fill="#FF4D00"/>
+  <path d="M63.6 45H58.6L68.5 26.9H73.5L63.6 45Z" fill="#0F56B3"/>
+  <path d="M68.5 45H63.5L73.4 26.9H78.4L68.5 45Z" fill="#0F56B3"/>
+</svg>
