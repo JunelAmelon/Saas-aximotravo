@@ -81,8 +81,8 @@ export default function Sidebar({ userRole }: SidebarProps) {
             className={cn(
               "flex flex-col sm:flex-row items-center px-3 sm:px-8 py-3 text-xs sm:text-sm font-medium transition-colors border-b-2",
               item.current
-                ? "border-[#f21515] text-[#f21515]"
-                : "border-transparent text-gray-700 hover:text-[#f21515] hover:border-[#f21515]"
+                ? "border-[#f26755] text-[#f26755]"
+                : "border-transparent text-gray-700 hover:text-[#f26755] hover:border-[#f26755]"
             )}
             title={item.name}
           >
@@ -90,8 +90,8 @@ export default function Sidebar({ userRole }: SidebarProps) {
               className={cn(
                 "h-5 w-5 sm:mr-2",
                 item.current
-                  ? "text-[#f21515]"
-                  : "text-gray-400 group-hover:text-[#f21515]"
+                  ? "text-[#f26755]"
+                  : "text-gray-400 group-hover:text-[#f26755]"
               )}
               aria-hidden="true"
             />

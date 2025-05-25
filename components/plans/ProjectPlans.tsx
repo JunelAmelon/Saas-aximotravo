@@ -66,7 +66,7 @@ export default function ProjectPlans() {
         <h2 className="text-lg font-medium text-gray-900">Plans du projet</h2>
         <button
           onClick={() => setIsAddPlanOpen(true)}
-          className="inline-flex items-center px-4 py-2 bg-[#f21515] text-white rounded-md text-sm font-medium hover:bg-[#f21515]/90 transition-colors"
+          className="inline-flex items-center px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors"
         >
           <Plus className="h-4 w-4 mr-2" />
           Ajouter un plan
@@ -127,7 +127,7 @@ export default function ProjectPlans() {
               onClick={() => setCurrentPage(i + 1)}
               className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors
                 ${currentPage === i + 1 
-                  ? 'bg-[#f21515] text-white' 
+                  ? 'bg-[#f26755] text-white' 
                   : 'text-gray-600 hover:bg-gray-100'
                 }`}
             >
@@ -145,25 +145,31 @@ export default function ProjectPlans() {
           
           <div className="mt-6 space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="plan-title" className="block text-sm font-medium text-gray-700 mb-1">
                 Titre du plan
               </label>
               <input
+                id="plan-title"
                 type="text"
                 value={planForm.title}
                 onChange={(e) => setPlanForm({ ...planForm, title: e.target.value })}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-[#f21515] focus:border-[#f21515]"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-[#f26755] focus:border-[#f26755]"
+                placeholder="Entrez le titre du plan"
+                aria-label="Titre du plan"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="plan-type" className="block text-sm font-medium text-gray-700 mb-1">
                 Type de plan
               </label>
               <select
+                id="plan-type"
                 value={planForm.type}
                 onChange={(e) => setPlanForm({ ...planForm, type: e.target.value })}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-[#f21515] focus:border-[#f21515]"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-[#f26755] focus:border-[#f26755]"
+                title="Type de plan"
+                aria-label="Sélectionner le type de plan"
               >
                 <option value="">Sélectionner...</option>
                 <option value="existant">Plan existant</option>
@@ -177,7 +183,7 @@ export default function ProjectPlans() {
               </label>
               <button
                 type="button"
-                className="w-full border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#f21515]"
+                className="w-full border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#f26755]"
               >
                 <Upload className="mx-auto h-12 w-12 text-gray-400" />
                 <span className="mt-2 block text-sm font-medium text-gray-900">
@@ -201,6 +207,7 @@ export default function ProjectPlans() {
                 {Object.entries(planForm.notifications).map(([key, value]) => (
                   <div key={key} className="flex items-center gap-2">
                     <input
+                      id={`notify-${key}`}
                       type="checkbox"
                       checked={value.selected}
                       onChange={(e) => setPlanForm({
@@ -210,16 +217,18 @@ export default function ProjectPlans() {
                           [key]: { ...value, selected: e.target.checked }
                         }
                       })}
-                      className="rounded border-gray-300 text-[#f21515] focus:ring-[#f21515]"
+                      className="rounded border-gray-300 text-[#f26755] focus:ring-[#f26755]"
+                      title={`Notifier ${key}`}
+                      aria-label={`Notifier ${key} par email`}
                     />
-                    <div className="flex-1">
+                    <label htmlFor={`notify-${key}`} className="flex-1">
                       <span className="text-sm text-gray-700 capitalize">
                         {key}
                       </span>
                       <span className="text-sm text-gray-500 ml-2">
                         - {value.email}
                       </span>
-                    </div>
+                    </label>
                   </div>
                 ))}
               </div>
@@ -228,7 +237,7 @@ export default function ProjectPlans() {
             <div className="flex justify-end pt-4">
               <button
                 type="submit"
-                className="px-4 py-2 bg-[#f21515] text-white rounded-md text-sm font-medium hover:bg-[#f21515]/90 transition-colors"
+                className="px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors"
               >
                 Enregistrer
               </button>

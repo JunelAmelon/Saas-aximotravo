@@ -109,7 +109,7 @@ export default function ProjectsTable({ projects }: ProjectsTableProps) {
                 >
                   <div
                     className={cn(
-                      "bg-[#f21515] h-3 rounded-full transition-all duration-300 ease-in-out",
+                      "bg-[#f26755] h-3 rounded-full transition-all duration-300 ease-in-out",
                       project.progress === 0 ? "w-0" : 
                       project.progress <= 10 ? "w-[10%]" : 
                       project.progress <= 20 ? "w-[20%]" : 

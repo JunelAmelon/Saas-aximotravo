@@ -106,7 +106,7 @@ export default function ProjectEvents() {
         <h2 className="text-lg font-medium text-gray-900">Événements du Projet</h2>
         <button 
           onClick={() => setIsAddEventOpen(true)}
-          className="inline-flex items-center px-4 py-2 bg-[#f21515] text-white rounded-md text-sm font-medium hover:bg-[#f21515]/90 transition-colors"
+          className="inline-flex items-center px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors"
         >
           <Plus className="h-4 w-4 mr-2" />
           Ajouter un événement
@@ -121,7 +121,7 @@ export default function ProjectEvents() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Chercher les événements..."
-            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f21515] focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f26755] focus:border-transparent"
           />
         </div>
         <button className="inline-flex items-center px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
@@ -195,7 +195,7 @@ export default function ProjectEvents() {
               <button className="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
                 Précédent
               </button>
-              <span className="px-3 py-1 bg-[#f21515] text-white rounded-md text-sm font-medium">1</span>
+              <span className="px-3 py-1 bg-[#f26755] text-white rounded-md text-sm font-medium">1</span>
               <button className="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
                 Suivant
               </button>

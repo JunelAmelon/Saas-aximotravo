@@ -43,7 +43,7 @@ export default function Header({ userRole }: HeaderProps) {
   return (
     <header className="bg-white border-b border-gray-200 py-4 px-4 sm:px-6 flex items-center justify-between">
       <div className="flex items-center">
-        <Link href="/" className="text-2xl sm:text-3xl font-bold text-[#f21515] mr-2 sm:mr-8">
+        <Link href="/" className="text-2xl sm:text-3xl font-bold text-[#f26755] mr-2 sm:mr-8">
           Aximotravo
         </Link>
       </div>

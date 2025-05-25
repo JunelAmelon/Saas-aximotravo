@@ -19,7 +19,7 @@ export default function StatCard({ title, value, description, icon, trend }: Sta
           <p className="text-sm font-medium text-gray-500">{title}</p>
           <p className="text-2xl font-semibold text-gray-900">{value}</p>
           {trend && (
-            <p className={`text-sm flex items-center ${trend.isPositive ? 'text-[#f21515]' : 'text-red-600'}`}>
+            <p className={`text-sm flex items-center ${trend.isPositive ? 'text-[#f26755]' : 'text-red-600'}`}>
               <span>{trend.isPositive ? '↑' : '↓'}</span>
               <span>{Math.abs(trend.value)}%</span>
               <span className="ml-1 text-gray-500">ce mois</span>
@@ -29,7 +29,7 @@ export default function StatCard({ title, value, description, icon, trend }: Sta
             <p className="text-xs text-gray-500">{description}</p>
           )}
         </div>
-        <div className="p-3 bg-[#f21515]/5 rounded-full text-[#f21515]">
+        <div className="p-3 bg-[#f26755]/5 rounded-full text-[#f26755]">
           {icon}
         </div>
       </div>

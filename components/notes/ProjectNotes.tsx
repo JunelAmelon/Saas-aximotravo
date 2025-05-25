@@ -45,7 +45,7 @@ export default function ProjectNotes() {
         <h2 className="text-lg font-medium text-gray-900">Notes du projet</h2>
         <button 
           onClick={() => setIsAddNoteOpen(true)}
-          className="inline-flex items-center px-4 py-2 bg-[#f21515] text-white rounded-md text-sm font-medium hover:bg-[#f21515]/90 transition-colors"
+          className="inline-flex items-center px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors"
         >
           <Plus className="h-4 w-4 mr-2" />
           Ajouter une note

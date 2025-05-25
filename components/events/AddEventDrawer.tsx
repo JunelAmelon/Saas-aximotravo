@@ -51,7 +51,7 @@ export default function AddEventDrawer({ isOpen, onOpenChange }: AddEventDrawerP
                 id="event-type"
                 value={eventForm.type}
                 onChange={(e) => setEventForm({ ...eventForm, type: e.target.value })}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-[#f21515] focus:border-[#f21515]"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-[#f26755] focus:border-[#f26755]"
                 title="Type d'événement"
                 aria-label="Sélectionner le type d'événement"
               >
@@ -73,7 +73,7 @@ export default function AddEventDrawer({ isOpen, onOpenChange }: AddEventDrawerP
                 type="text"
                 value={eventForm.title}
                 onChange={(e) => setEventForm({ ...eventForm, title: e.target.value })}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-[#f21515] focus:border-[#f21515]"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-[#f26755] focus:border-[#f26755]"
                 aria-label="Titre de l'événement"
               />
             </div>
@@ -116,7 +116,7 @@ export default function AddEventDrawer({ isOpen, onOpenChange }: AddEventDrawerP
                 value={eventForm.address}
                 onChange={(e) => setEventForm({ ...eventForm, address: e.target.value })}
                 placeholder="Adresse du client"
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-[#f21515] focus:border-[#f21515]"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-[#f26755] focus:border-[#f26755]"
                 aria-label="Adresse de l&apos;événement"
               />
             </div>
@@ -130,7 +130,7 @@ export default function AddEventDrawer({ isOpen, onOpenChange }: AddEventDrawerP
                 value={eventForm.description}
                 onChange={(e) => setEventForm({ ...eventForm, description: e.target.value })}
                 rows={4}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-[#f21515] focus:border-[#f21515]"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-[#f26755] focus:border-[#f26755]"
                 aria-label="Description de l&apos;événement"
               />
             </div>
@@ -141,7 +141,7 @@ export default function AddEventDrawer({ isOpen, onOpenChange }: AddEventDrawerP
                 id="addToCalendar"
                 checked={eventForm.addToCalendar}
                 onChange={(e) => setEventForm({ ...eventForm, addToCalendar: e.target.checked })}
-                className="rounded border-gray-300 text-[#f21515] focus:ring-[#f21515]"
+                className="rounded border-gray-300 text-[#f26755] focus:ring-[#f26755]"
               />
               <label htmlFor="addToCalendar" className="text-sm text-gray-700 flex items-center gap-2">
                 <Calendar className="h-4 w-4" aria-hidden="true" />
@@ -171,7 +171,7 @@ export default function AddEventDrawer({ isOpen, onOpenChange }: AddEventDrawerP
                           [key]: { ...value, selected: e.target.checked }
                         }
                       })}
-                      className="rounded border-gray-300 text-[#f21515] focus:ring-[#f21515]"
+                      className="rounded border-gray-300 text-[#f26755] focus:ring-[#f26755]"
                       title={`Notifier ${key.replace(/([A-Z])/g, ' $1').trim()}`}
                       aria-label={`Notifier ${key.replace(/([A-Z])/g, ' $1').trim()} par email`}
                     />
@@ -191,7 +191,7 @@ export default function AddEventDrawer({ isOpen, onOpenChange }: AddEventDrawerP
                     type="email"
                     id="additional-email"
                     placeholder="Ajouter un email"
-                    className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-[#f21515] focus:border-[#f21515]"
+                    className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-[#f26755] focus:border-[#f26755]"
                     aria-label="Adresse email additionnelle"
                   />
                   <button
@@ -210,7 +210,7 @@ export default function AddEventDrawer({ isOpen, onOpenChange }: AddEventDrawerP
           <div className="flex justify-end pt-4">
               <button
                 type="submit"
-                className="px-4 py-2 bg-[#f21515] text-white rounded-md text-sm font-medium hover:bg-[#f21515]/90 transition-colors"
+                className="px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors"
                 aria-label="Enregistrer l'événement"
                 title="Enregistrer l'événement"
               >

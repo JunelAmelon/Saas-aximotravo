@@ -98,7 +98,7 @@ export default function ProjectDocuments() {
         <h2 className="text-lg font-medium text-gray-900">Documents du projet</h2>
         <button
           onClick={() => setIsAddDocumentOpen(true)}
-          className="inline-flex items-center px-4 py-2 bg-[#f21515] text-white rounded-md text-sm font-medium hover:bg-[#f21515]/90 transition-colors"
+          className="inline-flex items-center px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors"
           aria-label="Ajouter un nouveau document"
         >
           <Upload className="h-4 w-4 mr-2" aria-hidden="true" />
@@ -116,7 +116,7 @@ export default function ProjectDocuments() {
                 <span className="text-sm font-medium text-gray-900">{document.name}</span>
               </div>
               <button 
-                className="text-[#f21515] hover:text-[#f21515]/80 p-2"
+                className="text-[#f26755] hover:text-[#f26755]/80 p-2"
                 title="Télécharger le document"
                 aria-label="Télécharger le document"
               >
@@ -207,7 +207,7 @@ export default function ProjectDocuments() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <button 
-                      className="text-[#f21515] hover:text-[#f21515]/80"
+                      className="text-[#f26755] hover:text-[#f26755]/80"
                       title="Télécharger le document"
                       aria-label="Télécharger le document"
                     >
@@ -237,7 +237,7 @@ export default function ProjectDocuments() {
                 name="document-type"
                 value={documentType}
                 onChange={(e) => setDocumentType(e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-[#f21515] focus:border-[#f21515]"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-[#f26755] focus:border-[#f26755]"
                 aria-label="Sélectionner le type de document"
               >
                 <option value="">Sélectionner...</option>
@@ -252,7 +252,7 @@ export default function ProjectDocuments() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Fichier
               </label>
-              <label className="block w-full border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#f21515] cursor-pointer">
+              <label className="block w-full border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#f26755] cursor-pointer">
                 <input
                   type="file"
                   className="hidden"
@@ -295,7 +295,7 @@ export default function ProjectDocuments() {
                       <span className="text-gray-700">{recipient.name}</span>
                       <span className="text-gray-500 ml-2">- {recipient.email}</span>
                       {recipient.required && (
-                        <span className="ml-2 text-xs text-[#f21515]">(Obligatoire)</span>
+                        <span className="ml-2 text-xs text-[#f26755]">(Obligatoire)</span>
                       )}
                     </label>
                   </div>
@@ -310,7 +310,7 @@ export default function ProjectDocuments() {
                 className={`px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 ${
                   isNotificationSent
                     ? "bg-green-100 text-green-700 cursor-not-allowed"
-                    : "bg-[#f21515] text-white hover:bg-[#f21515]/90"
+                    : "bg-[#f26755] text-white hover:bg-[#f26755]/90"
                 }`}
               >
                 {isNotificationSent ? (

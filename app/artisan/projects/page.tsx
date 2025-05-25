@@ -114,7 +114,7 @@ export default function ArtisanProjects() {
                     }}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-1 h-5 rounded" style={{ backgroundColor: config.color }} />
+                      <div className={`w-1 h-5 rounded bg-${config.color}-500`} />
                       <span className="text-sm text-gray-700">{config.label}</span>
                     </div>
                     <div className="flex items-center gap-3">
@@ -194,8 +194,10 @@ export default function ArtisanProjects() {
             onClick={() => setCurrentPage(page => Math.max(1, page - 1))}
             disabled={currentPage === 1}
             className="p-2 rounded-full border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Page précédente"
+            aria-label="Aller à la page précédente"
           >
-            <ChevronLeft className="h-5 w-5 text-gray-600" />
+            <ChevronLeft className="h-5 w-5 text-gray-600" aria-hidden="true" />
           </button>
           
           <div className="flex items-center gap-1">
@@ -218,8 +220,10 @@ export default function ArtisanProjects() {
             onClick={() => setCurrentPage(page => Math.min(totalPages, page + 1))}
             disabled={currentPage === totalPages}
             className="p-2 rounded-full border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Page suivante"
+            aria-label="Aller à la page suivante"
           >
-            <ChevronRight className="h-5 w-5 text-gray-600" />
+            <ChevronRight className="h-5 w-5 text-gray-600" aria-hidden="true" />
           </button>
         </div>
       )}
