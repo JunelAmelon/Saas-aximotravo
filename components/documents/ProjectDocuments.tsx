@@ -99,89 +99,146 @@ export default function ProjectDocuments() {
         <button
           onClick={() => setIsAddDocumentOpen(true)}
           className="inline-flex items-center px-4 py-2 bg-[#f21515] text-white rounded-md text-sm font-medium hover:bg-[#f21515]/90 transition-colors"
+          aria-label="Ajouter un nouveau document"
         >
-          <Upload className="h-4 w-4 mr-2" />
+          <Upload className="h-4 w-4 mr-2" aria-hidden="true" />
           Ajouter un document
         </button>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Document
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Catégorie
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Date
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Taille
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Statut
-              </th>
-              <th scope="col" className="relative px-6 py-3">
-                <span className="sr-only">Actions</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {documents.map((document) => (
-              <tr key={document.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <FileText className="h-5 w-5 text-gray-400 mr-2" />
-                    <span className="text-sm font-medium text-gray-900">{document.name}</span>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {document.category}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {document.date}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {document.size}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    document.status === 'Signé' 
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {document.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <button className="text-[#f21515] hover:text-[#f21515]/80">
-                    <Download className="h-5 w-5" />
-                  </button>
-                </td>
+      {/* Version mobile: affichage en cartes */}
+      <div className="block md:hidden space-y-4">
+        {documents.map((document) => (
+          <div key={document.id} className="bg-white rounded-lg shadow-sm p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <FileText className="h-5 w-5 text-gray-400 mr-2" aria-hidden="true" />
+                <span className="text-sm font-medium text-gray-900">{document.name}</span>
+              </div>
+              <button 
+                className="text-[#f21515] hover:text-[#f21515]/80 p-2"
+                title="Télécharger le document"
+                aria-label="Télécharger le document"
+              >
+                <Download className="h-5 w-5" aria-hidden="true" />
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div>
+                <p className="text-gray-500 font-medium">CATÉGORIE</p>
+                <p className="text-gray-700">{document.category}</p>
+              </div>
+              <div>
+                <p className="text-gray-500 font-medium">DATE</p>
+                <p className="text-gray-700">{document.date}</p>
+              </div>
+              <div>
+                <p className="text-gray-500 font-medium">Taille</p>
+                <p className="text-gray-700">{document.size}</p>
+              </div>
+              <div>
+                <p className="text-gray-500 font-medium">Statut</p>
+                <span className={`px-2 py-1 inline-flex text-xs leading-none font-semibold rounded-full ${
+                  document.status === "Signé" 
+                    ? "bg-green-100 text-green-800"
+                    : "bg-yellow-100 text-yellow-800"
+                }`}>
+                  {document.status}
+                </span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      
+      {/* Version desktop: affichage en tableau */}
+      <div className="hidden md:block bg-white rounded-lg shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Document
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Catégorie
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Date
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Taille
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Statut
+                </th>
+                <th scope="col" className="relative px-6 py-3">
+                  <span className="sr-only">Actions</span>
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {documents.map((document) => (
+                <tr key={document.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <FileText className="h-5 w-5 text-gray-400 mr-2" />
+                      <span className="text-sm font-medium text-gray-900">{document.name}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {document.category}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {document.date}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {document.size}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                      document.status === 'Signé' 
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {document.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <button 
+                      className="text-[#f21515] hover:text-[#f21515]/80"
+                      title="Télécharger le document"
+                      aria-label="Télécharger le document"
+                    >
+                      <Download className="h-5 w-5" aria-hidden="true" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <Sheet open={isAddDocumentOpen} onOpenChange={setIsAddDocumentOpen}>
-        <SheetContent className="w-[500px] sm:w-[540px] overflow-y-auto">
+        <SheetContent className="w-full sm:max-w-md md:max-w-lg overflow-y-auto p-4 sm:p-6">
           <SheetHeader>
             <SheetTitle>Ajouter un document</SheetTitle>
           </SheetHeader>
           
-          <form onSubmit={handleSubmit} className="mt-6 space-y-6">
+          <form onSubmit={handleSubmit} className="mt-4 sm:mt-6 space-y-4 sm:space-y-6 max-h-[80vh] overflow-y-auto pr-1">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="document-type" className="block text-sm font-medium text-gray-700 mb-2">
                 Type de document
               </label>
               <select
+                id="document-type"
+                name="document-type"
                 value={documentType}
                 onChange={(e) => setDocumentType(e.target.value)}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-[#f21515] focus:border-[#f21515]"
+                aria-label="Sélectionner le type de document"
               >
                 <option value="">Sélectionner...</option>
                 <option value="devis">Devis</option>
@@ -201,19 +258,19 @@ export default function ProjectDocuments() {
                   className="hidden"
                   onChange={handleFileChange}
                 />
-                <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                <Upload className="mx-auto h-12 w-12 text-gray-400" aria-hidden="true" />
                 <span className="mt-2 block text-sm font-medium text-gray-900">
                   {selectedFile ? selectedFile.name : "Cliquez pour télécharger"}
                 </span>
                 <span className="mt-1 block text-sm text-gray-500">
-                  PDF, DOC jusqu'à 10MB
+                  PDF, DOC jusqu&apos;à 10MB
                 </span>
               </label>
             </div>
 
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <Mail className="h-4 w-4 text-gray-500" />
+                <Mail className="h-4 w-4 text-gray-500" aria-hidden="true" />
                 <span className="text-sm font-medium text-gray-700">
                   Notifier par email
                 </span>
@@ -252,8 +309,8 @@ export default function ProjectDocuments() {
                 disabled={isNotificationSent || !selectedFile || !documentType}
                 className={`px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 ${
                   isNotificationSent
-                    ? 'bg-green-100 text-green-700 cursor-not-allowed'
-                    : 'bg-[#f21515] text-white hover:bg-[#f21515]/90'
+                    ? "bg-green-100 text-green-700 cursor-not-allowed"
+                    : "bg-[#f21515] text-white hover:bg-[#f21515]/90"
                 }`}
               >
                 {isNotificationSent ? (

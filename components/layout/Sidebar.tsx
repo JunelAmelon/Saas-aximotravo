@@ -73,27 +73,30 @@ export default function Sidebar({ userRole }: SidebarProps) {
 
   return (
     <div className="bg-white border-b border-gray-200">
-      <nav className="flex justify-center px-4">
+      <nav className="flex justify-between sm:justify-center px-2 sm:px-4">
         {navigation[userRole].map((item) => (
           <Link
             key={item.name}
             href={item.href}
             className={cn(
-              "flex items-center px-8 py-3 text-sm font-medium transition-colors border-b-2",
+              "flex flex-col sm:flex-row items-center px-3 sm:px-8 py-3 text-xs sm:text-sm font-medium transition-colors border-b-2",
               item.current
                 ? "border-[#f21515] text-[#f21515]"
                 : "border-transparent text-gray-700 hover:text-[#f21515] hover:border-[#f21515]"
             )}
+            title={item.name}
           >
             <item.icon
               className={cn(
-                "mr-2 h-5 w-5",
+                "h-5 w-5 sm:mr-2",
                 item.current
                   ? "text-[#f21515]"
                   : "text-gray-400 group-hover:text-[#f21515]"
               )}
+              aria-hidden="true"
             />
-            {item.name}
+            <span className="hidden sm:inline">{item.name}</span>
+            <span className="text-[10px] mt-1 sm:hidden">{item.name.split(' ')[0]}</span>
           </Link>
         ))}
       </nav>
