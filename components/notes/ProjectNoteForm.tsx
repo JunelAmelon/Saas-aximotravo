@@ -26,7 +26,7 @@ export default function ProjectNoteForm({ onClose }: ProjectNoteFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6 max-h-[80vh] overflow-y-auto px-1">
       <div>
         <label className="block text-sm text-gray-700 mb-1">
           Titre de la note <span className="text-gray-400">(facultatif)</span>
@@ -47,7 +47,13 @@ export default function ProjectNoteForm({ onClose }: ProjectNoteFormProps) {
             <button type="button" className="p-1 hover:bg-gray-100 rounded">B</button>
             <button type="button" className="p-1 hover:bg-gray-100 rounded italic">I</button>
             <button type="button" className="p-1 hover:bg-gray-100 rounded underline">S</button>
-            <select className="text-sm border-0 bg-transparent">
+            <select 
+              className="text-sm border-0 bg-transparent"
+              title="Style de texte"
+              aria-label="Choisir le style de texte"
+              id="text-style"
+              name="text-style"
+            >
               <option>Normal</option>
             </select>
           </div>
@@ -75,7 +81,7 @@ export default function ProjectNoteForm({ onClose }: ProjectNoteFormProps) {
       <div>
         <label className="block text-sm text-gray-700 mb-2">Envoyer cette note par mail</label>
         <div className="space-y-2">
-          <div className="flex items-center gap-6">
+          <div className="grid grid-cols-2 md:flex md:items-center gap-3 md:gap-6">
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"
@@ -114,7 +120,7 @@ export default function ProjectNoteForm({ onClose }: ProjectNoteFormProps) {
             </label>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <input
               type="email"
               placeholder="Ajouter un email"
@@ -122,7 +128,7 @@ export default function ProjectNoteForm({ onClose }: ProjectNoteFormProps) {
             />
             <button
               type="button"
-              className="px-4 py-2 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50"
+              className="px-4 py-2 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50 whitespace-nowrap"
             >
               Ajouter un email
             </button>
