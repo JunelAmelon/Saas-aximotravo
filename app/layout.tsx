@@ -1,6 +1,7 @@
 import './globals.css';
 import type { Metadata } from 'next';
 import { Inter, DM_Sans } from 'next/font/google';
+import { Providers } from './providers';
 
 // Configure DM Sans font
 const dmSans = DM_Sans({ 
@@ -22,7 +23,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={dmSans.variable}>
-      <body className={dmSans.className}>{children}</body>
+      <body className={dmSans.className}>
+        <Providers>
+          {children}
+        </Providers>
+      </body>
     </html>
   );
 }

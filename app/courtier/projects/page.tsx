@@ -1,17 +1,20 @@
 "use client";
 
-import { useState } from "react";
-import { Search, Filter, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Search, Filter, X, ChevronLeft, ChevronRight, PlusCircle } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/contexts/AuthContext";
+import { getProjectsByCourtier, Project as FirebaseProject } from "@/lib/firebase/projects";
 
 interface Project {
   id: string;
   name: string;
   client: string;
-  status: "equipe_assignee" | "chantier_planifie" | "chantier_en_cours" | "sav" | "termine" | "cloture";
+  status: "en_attente" | "en_cours" | "terminé" | "equipe_assignee" | "chantier_planifie" | "chantier_en_cours" | "sav" | "termine" | "cloture";
   amount: number;
-  image: string;
+  image?: string;
   date?: string;
 }
 
@@ -22,32 +25,72 @@ interface StatusConfig {
 }
 
 export default function CourtierProjects() {
+  const { currentUser } = useAuth();
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<Project["status"] | "">("");
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const projectsPerPage = 1;
+  const projectsPerPage = 6;
   
-  const statusConfig: Record<Project["status"], StatusConfig> = {
-    equipe_assignee: { label: "Équipe assignée", count: 42, color: "#6366f1" },
-    chantier_planifie: { label: "Chantier planifié", count: 67, color: "#8b5cf6" },
-    chantier_en_cours: { label: "Chantier en cours", count: 44, color: "#f59e0b" },
-    sav: { label: "SAV", count: 86, color: "#8b5cf6" },
-    termine: { label: "Terminé", count: 142, color: "#f97316" },
-    cloture: { label: "Clôturé", count: 459, color: "#10b981" }
+  // Configuration des statuts avec traduction et couleurs
+  const statusConfig: Record<string, StatusConfig> = {
+    en_attente: { label: "En attente", count: 0, color: "#f59e0b" },
+    en_cours: { label: "En cours", count: 0, color: "#6366f1" },
+    terminé: { label: "Terminé", count: 0, color: "#10b981" },
+    equipe_assignee: { label: "Équipe assignée", count: 0, color: "#6366f1" },
+    chantier_planifie: { label: "Chantier planifié", count: 0, color: "#8b5cf6" },
+    chantier_en_cours: { label: "Chantier en cours", count: 0, color: "#f59e0b" },
+    sav: { label: "SAV", count: 0, color: "#8b5cf6" },
+    termine: { label: "Terminé", count: 0, color: "#f97316" },
+    cloture: { label: "Clôturé", count: 0, color: "#10b981" }
   };
 
-  const [projects] = useState<Project[]>([
-    {
-      id: "1",
-      name: "Projet Découverte - Leroy Merlin Biganos",
-      client: "LEROY MERLIN BIGANOS",
-      status: "chantier_en_cours",
-      amount: 3979.94,
-      date: "27/09/2021",
-      image: "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg"
+  const [projects, setProjects] = useState<Project[]>([]);
+
+  // Charger les projets du courtier
+  useEffect(() => {
+    async function loadProjects() {
+      if (!currentUser) return;
+      
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Récupérer tous les projets du courtier
+        const courtierProjects = await getProjectsByCourtier(currentUser.uid);
+        
+        // Formater les projets pour l'affichage
+        const formattedProjects: Project[] = courtierProjects.map((project: FirebaseProject) => {
+          // Mettre à jour le compteur de statut
+          if (statusConfig[project.status]) {
+            statusConfig[project.status].count += 1;
+          }
+          
+          return {
+            id: project.id,
+            name: project.name,
+            client: project.clientName,
+            status: project.status as any,
+            amount: project.budget || 0,
+            date: project.createdAt?.toDate?.()?.toLocaleDateString('fr-FR') || undefined,
+            image: "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg"
+          };
+        });
+        
+        setProjects(formattedProjects);
+      } catch (err: any) {
+        console.error('Erreur lors du chargement des projets:', err);
+        setError('Impossible de charger la liste des projets.');
+      } finally {
+        setLoading(false);
+      }
     }
-  ]);
+    
+    loadProjects();
+  }, [currentUser]);
 
   const clearFilters = () => {
     setSearchTerm("");
@@ -71,10 +114,41 @@ export default function CourtierProjects() {
 
   const hasActiveFilters = searchTerm !== "" || statusFilter !== "";
 
+  // Afficher un indicateur de chargement
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#f21515]"></div>
+      </div>
+    );
+  }
+
+  // Afficher un message d'erreur
+  if (error) {
+    return (
+      <div className="p-4 bg-red-50 text-red-600 rounded-lg">
+        <p>{error}</p>
+        <button 
+          onClick={() => window.location.reload()} 
+          className="mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+        >
+          Réessayer
+        </button>
+      </div>
+    );
+  }
+  
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-medium text-gray-900">Liste des projets</h1>
+        <button 
+          onClick={() => router.push('/courtier/projects/new')} 
+          className="px-4 py-2 bg-[#f21515] text-white rounded-lg flex items-center gap-2 hover:bg-[#d41414] transition-colors"
+        >
+          <PlusCircle size={16} />
+          Nouveau projet
+        </button>
       </div>
 
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
@@ -146,24 +220,47 @@ export default function CourtierProjects() {
       </div>
 
       <div className="flex flex-wrap gap-6">
-        {paginatedProjects.map((project) => (
+        {paginatedProjects.length === 0 ? (
+          <div className="w-full bg-white p-10 rounded-lg shadow text-center">
+            <p className="text-gray-500 mb-4">Aucun projet trouvé</p>
+            <button
+              onClick={() => router.push('/courtier/projects/new')}
+              className="px-4 py-2 bg-[#f21515] text-white rounded-lg flex items-center gap-2 hover:bg-[#d41414] transition-colors mx-auto"
+            >
+              <PlusCircle size={16} />
+              Créer votre premier projet
+            </button>
+          </div>
+        ) : paginatedProjects.map((project) => (
           <div key={project.id} className="bg-white rounded-lg shadow-sm overflow-hidden h-[210px] flex w-full max-w-[410px]">
             <div className="flex flex-col w-full p-4">
               <div className="flex items-start gap-4">
                 <div className="relative w-[60px] h-[60px] flex-shrink-0">
-                  <Image
-                    src={project.image}
-                    alt={project.name}
-                    fill
-                    className="object-cover rounded-lg"
-                  />
+                  {project.image ? (
+                    <Image
+                      src={project.image}
+                      alt={project.name}
+                      fill
+                      className="object-cover rounded-lg"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gray-200 rounded-lg flex items-center justify-center text-gray-400">
+                      <span className="text-xs">Aucune image</span>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="text-base font-medium text-gray-900 truncate">{project.name}</h3>
-                    <span className="inline-flex flex-shrink-0 px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full whitespace-nowrap">
-                      DÉMO
+                    <span 
+                      className={`inline-flex flex-shrink-0 px-2 py-1 text-xs font-medium rounded-full whitespace-nowrap`}
+                      style={{
+                        backgroundColor: `${statusConfig[project.status]?.color}20`,
+                        color: statusConfig[project.status]?.color
+                      }}
+                    >
+                      {statusConfig[project.status]?.label || project.status}
                     </span>
                   </div>
                   <p className="text-sm text-gray-600 truncate mt-1">{project.client}</p>

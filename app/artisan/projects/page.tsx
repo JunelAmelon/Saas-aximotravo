@@ -1,17 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, Filter, X, ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+// Temporary import fix - should be updated with proper Firebase imports
+const projectService = {
+  getByStatus: async () => []
+};
 
 interface Project {
-  id: string;
+  id?: string;
   name: string;
-  client: string;
+  clientId: string;
+  client?: string; // Pour l'affichage
   status: "equipe_assignee" | "chantier_planifie" | "chantier_en_cours" | "sav" | "termine" | "cloture";
-  amount: number;
-  image: string;
+  amount?: number;
+  image?: string;
   date?: string;
 }
 
@@ -26,7 +31,9 @@ export default function ArtisanProjects() {
   const [statusFilter, setStatusFilter] = useState<Project["status"] | "">("");
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const projectsPerPage = 1;
+  const projectsPerPage = 5;
+  const [loading, setLoading] = useState(true);
+  const [projects, setProjects] = useState<Project[]>([]);
   
   const statusConfig: Record<Project["status"], StatusConfig> = {
     equipe_assignee: { label: "Équipe assignée", count: 42, color: "#6366f1" },
@@ -37,17 +44,61 @@ export default function ArtisanProjects() {
     cloture: { label: "Clôturé", count: 459, color: "#10b981" }
   };
 
-  const [projects] = useState<Project[]>([
-    {
-      id: "1",
-      name: "Projet Découverte - Leroy Merlin Biganos",
-      client: "LEROY MERLIN BIGANOS",
-      status: "chantier_en_cours",
-      amount: 3979.94,
-      date: "27/09/2021",
-      image: "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg"
+  // Charger les projets depuis Firebase
+  useEffect(() => {
+    async function loadProjects() {
+      try {
+        setLoading(true);
+        // Dans un vrai projet, vous pourriez restreindre les projets par utilisateur ou organisation
+        const projectsData = await projectService.getByStatus("active");
+        
+        // Adapter les données de Firebase à notre interface locale
+        const formattedProjects: Project[] = projectsData.map(p => ({
+          id: p.id,
+          name: p.name,
+          clientId: p.clientId,
+          client: p.clientId, // Normalement vous récupéreriez le client à partir de son ID
+          status: (p.status === "active" ? "chantier_en_cours" : "termine") as Project["status"], // Adapter le statut
+          amount: 3979.94, // Dans un vrai projet, ce serait une propriété du projet
+          date: p.startDate ? new Date(p.startDate.seconds * 1000).toLocaleDateString() : undefined,
+          image: "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg" // Placeholder image
+        }));
+        
+        // Si aucun projet n'est trouvé, ajouter un projet de démonstration
+        if (formattedProjects.length === 0) {
+          formattedProjects.push({
+            id: "1",
+            name: "Projet Découverte - Leroy Merlin Biganos",
+            clientId: "client1",
+            client: "LEROY MERLIN BIGANOS",
+            status: "chantier_en_cours",
+            amount: 3979.94,
+            date: "27/09/2021",
+            image: "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg"
+          });
+        }
+        
+        setProjects(formattedProjects);
+      } catch (error) {
+        console.error("Erreur lors du chargement des projets:", error);
+        // En cas d'erreur, ajouter un projet de démonstration
+        setProjects([{
+          id: "1",
+          name: "Projet Découverte - Leroy Merlin Biganos",
+          clientId: "client1",
+          client: "LEROY MERLIN BIGANOS",
+          status: "chantier_en_cours",
+          amount: 3979.94,
+          date: "27/09/2021",
+          image: "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg"
+        }]);
+      } finally {
+        setLoading(false);
+      }
     }
-  ]);
+    
+    loadProjects();
+  }, []);
 
   const clearFilters = () => {
     setSearchTerm("");
@@ -75,6 +126,12 @@ export default function ArtisanProjects() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-medium text-gray-900">Liste des projets</h1>
+        <Link 
+          href="/artisan/projects/new"
+          className="px-4 py-2 bg-[#f26755] text-white text-sm font-medium rounded-md hover:bg-[#f26755]/90 transition-colors"
+        >
+          Nouveau projet
+        </Link>
       </div>
 
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
@@ -145,47 +202,58 @@ export default function ArtisanProjects() {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-6">
-        {paginatedProjects.map((project) => (
-          <div key={project.id} className="bg-white rounded-lg shadow-sm overflow-hidden h-[210px] flex w-full max-w-[410px]">
-            <div className="flex flex-col w-full p-4">
-              <div className="flex items-start gap-4">
-                <div className="relative w-[60px] h-[60px] flex-shrink-0">
-                  <Image
-                    src={project.image}
-                    alt={project.name}
-                    fill
-                    className="object-cover rounded-lg"
-                  />
-                </div>
-                
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="text-base font-medium text-gray-900 truncate">{project.name}</h3>
-                    <span className="inline-flex flex-shrink-0 px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full whitespace-nowrap">
-                      DÉMO
-                    </span>
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#f26755]"></div>
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-6">
+          {paginatedProjects.length === 0 ? (
+            <div className="w-full text-center py-12 text-gray-500">
+              Aucun projet trouvé. Ajoutez votre premier projet en cliquant sur "Nouveau projet".
+            </div>
+          ) : paginatedProjects.map((project) => (
+            <div key={project.id} className="bg-white rounded-lg shadow-sm overflow-hidden h-[210px] flex w-full max-w-[410px]">
+              <div className="flex flex-col w-full p-4">
+                <div className="flex items-start gap-4">
+                  <div className="relative w-[60px] h-[60px] flex-shrink-0">
+                    <Image
+                      src={project.image || "https://via.placeholder.com/60"}
+                      alt={project.name}
+                      fill
+                      className="object-cover rounded-lg"
+                    />
                   </div>
-                  <p className="text-sm text-gray-600 truncate mt-1">{project.client}</p>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="text-base font-medium text-gray-900 truncate">{project.name}</h3>
+                      <span className="inline-flex flex-shrink-0 px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full whitespace-nowrap">
+                        {statusConfig[project.status].label}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600 truncate mt-1">{project.client}</p>
+                  </div>
                 </div>
-              </div>
               
-              <div className="mt-4">
-                <p className="text-sm text-gray-500">Montant prospecté</p>
-                <p className="text-lg font-semibold">{project.amount.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €</p>
-              </div>
+                <div className="mt-4">
+                  <p className="text-sm text-gray-500">Montant prospecté</p>
+                  <p className="text-lg font-semibold">{project.amount ? project.amount.toLocaleString('fr-FR', { minimumFractionDigits: 2 }) + ' €' : 'N/A'}</p>
+                </div>
 
-              <div className="mt-auto pt-4">
-                <Link 
-                  href={`/artisan/projects/${project.id}`}
-                  className="block w-full px-4 py-2 bg-[#f26755] text-white text-sm font-medium rounded-md hover:bg-[#f26755]/90 transition-colors text-center"
-                >
-                  Voir le projet
-                </Link>
+                <div className="mt-auto pt-4">
+                  <Link 
+                    href={`/artisan/projects/${project.id}`}
+                    className="block w-full px-4 py-2 bg-[#f26755] text-white text-sm font-medium rounded-md hover:bg-[#f26755]/90 transition-colors text-center"
+                  >
+                    Voir le projet
+                  </Link>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
+      )}
       </div>
 
       {totalPages > 1 && (

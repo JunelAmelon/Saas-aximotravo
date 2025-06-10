@@ -4,15 +4,88 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "../../../lib/contexts/AuthContext";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "../../../lib/firebase/config";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const router = useRouter();
+  const { login } = useAuth();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle login logic
+    
+    // Réinitialiser l'erreur
+    setError("");
+    setLoading(true);
+    
+    try {
+      // Appeler la fonction de connexion du contexte d'authentification
+      const user = await login(email, password);
+      
+      // Vérifier le rôle de l'utilisateur dans Firestore
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        const role = userData.role;
+        
+        // Rediriger en fonction du rôle
+        if (role === "courtier") {
+          router.push("/courtier/dashboard");
+        } else if (role === "artisan") {
+          router.push("/artisan/dashboard");
+        } else if (role === "admin") {
+          router.push("/admin/dashboard");
+        } else {
+          // Par défaut, page d'accueil
+          router.push("/");
+        }
+      } else {
+        // Pour le développement uniquement - créer automatiquement un document utilisateur
+        try {
+          // Par défaut, on crée un utilisateur avec le rôle "courtier" pour tester
+          const newUserData = {
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName || email.split('@')[0],
+            role: "courtier", // Par défaut pour les tests
+            createdAt: serverTimestamp()
+          };
+          
+          await setDoc(doc(db, "users", user.uid), newUserData);
+          console.log("Document utilisateur créé automatiquement pour les tests");
+          
+          // Redirection vers le dashboard courtier
+          router.push("/courtier/dashboard");
+        } catch (createError) {
+          console.error("Erreur lors de la création du document utilisateur:", createError);
+          setError("Impossible de récupérer ou créer vos informations utilisateur.");
+          setLoading(false);
+        }
+      }
+      
+    } catch (err: any) {
+      console.error("Erreur de connexion:", err);
+      
+      // Traduire les erreurs Firebase en messages plus conviviaux
+      if (err.message?.includes("user-not-found")) {
+        setError("Aucun utilisateur trouvé avec cet email.");
+      } else if (err.message?.includes("wrong-password")) {
+        setError("Mot de passe incorrect.");
+      } else if (err.message?.includes("too-many-requests")) {
+        setError("Trop de tentatives. Veuillez réessayer plus tard.");
+      } else {
+        setError("Une erreur est survenue lors de la connexion.");
+      }
+      setLoading(false);
+    }
   };
 
   return (
@@ -103,11 +176,25 @@ export default function LoginPage() {
                 </Link>
               </div>
 
+              {error && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
+                  {error}
+                </div>
+              )}
+
               <button
                 type="submit"
-                className="w-full bg-[#f21515] text-white py-2 rounded-md hover:bg-[#f21515]/90 transition-colors"
+                disabled={loading}
+                className={`w-full bg-[#f21515] text-white py-2 rounded-md hover:bg-[#f21515]/90 transition-colors flex items-center justify-center ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
               >
-                Se connecter
+                {loading ? (
+                  <>
+                    <span className="animate-spin h-4 w-4 mr-2 border-b-2 border-white rounded-full"></span>
+                    Connexion en cours...
+                  </>
+                ) : (
+                  'Se connecter'
+                )}
               </button>
 
               <div className="text-center">
