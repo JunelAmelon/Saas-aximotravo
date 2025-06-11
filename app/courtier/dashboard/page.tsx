@@ -94,8 +94,7 @@ export default function CourtierDashboard() {
           name: project.name,
           client: project.clientName,
           status: project.status,
-          deadline: project.deadline || 'Non défini',
-          progress: project.progress,
+          deadline: project.estimatedEndDate || 'Non défini',
         }));
         
         // Formater les activités pour l'affichage

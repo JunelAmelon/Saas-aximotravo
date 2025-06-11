@@ -6,9 +6,8 @@ interface Project {
   id: string;
   name: string;
   client: string;
-  status: "en_cours" | "terminé" | "en_attente";
-  deadline: string;
-  progress: number;
+  status: "En cours" | "Terminé" | "En attente";
+  deadline: Date;
 }
 
 interface ProjectsTableProps {
@@ -18,21 +17,21 @@ interface ProjectsTableProps {
 export default function ProjectsTable({ projects }: ProjectsTableProps) {
   const getStatusBadge = (status: Project["status"]) => {
     switch (status) {
-      case "en_cours":
+      case "En cours":
         return (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
             <Clock size={12} className="mr-1" />
             En cours
           </span>
         );
-      case "terminé":
+      case "Terminé":
         return (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
             <Check size={12} className="mr-1" />
             Terminé
           </span>
         );
-      case "en_attente":
+      case "En attente":
         return (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
             <Clock size={12} className="mr-1" />
@@ -60,9 +59,6 @@ export default function ProjectsTable({ projects }: ProjectsTableProps) {
             </th>
             <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
               Échéance
-            </th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
-              Progression
             </th>
             <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
               Action
@@ -96,36 +92,8 @@ export default function ProjectsTable({ projects }: ProjectsTableProps) {
               {/* Échéance */}
               <td className="px-0 md:px-6 py-2 md:py-4 md:whitespace-nowrap">
                 <div className="md:hidden text-xs font-bold text-gray-500 uppercase mb-1">Échéance</div>
-                <div className="text-sm font-medium text-gray-500">{project.deadline}</div>
+                <div className="text-sm font-medium text-gray-500">{project.deadline ? new Date(project.deadline).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Non renseignée'}</div>
               </td>
-              
-              {/* Progression */}
-              <td className="px-0 md:px-6 py-2 md:py-4 md:whitespace-nowrap">
-                <div className="md:hidden text-xs font-bold text-gray-500 uppercase mb-1">Progression</div>
-                <div 
-                  className="w-full bg-gray-200 rounded-full h-3 relative overflow-hidden" 
-                  role="progressbar"
-                  aria-label={`Progression: ${project.progress}%`}
-                >
-                  <div
-                    className={cn(
-                      "bg-[#f26755] h-3 rounded-full transition-all duration-300 ease-in-out",
-                      project.progress === 0 ? "w-0" : 
-                      project.progress <= 10 ? "w-[10%]" : 
-                      project.progress <= 20 ? "w-[20%]" : 
-                      project.progress <= 30 ? "w-[30%]" : 
-                      project.progress <= 40 ? "w-[40%]" : 
-                      project.progress <= 50 ? "w-[50%]" : 
-                      project.progress <= 60 ? "w-[60%]" : 
-                      project.progress <= 70 ? "w-[70%]" : 
-                      project.progress <= 80 ? "w-[80%]" : 
-                      project.progress <= 90 ? "w-[90%]" : "w-full"
-                    )}
-                  ></div>
-                </div>
-                <span className="text-xs font-bold text-gray-500 mt-1 block">{project.progress}%</span>
-              </td>
-              
               {/* Action */}
               <td className="px-0 md:px-6 py-2 md:py-4 md:whitespace-nowrap">
                 <div className="md:hidden text-xs font-bold text-gray-500 uppercase mb-1">Action</div>
