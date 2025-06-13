@@ -2,6 +2,17 @@
 
 import { useState, useEffect } from "react";
 import { Search, Filter, X, ChevronLeft, ChevronRight, PlusCircle } from "lucide-react";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { useCreateProject } from "@/hooks/use-create-project";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -25,6 +36,34 @@ interface StatusConfig {
 }
 
 export default function CourtierProjects() {
+  const { addProject, loading: creating, error: createError, success } = useCreateProject();
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({
+    name: '',
+    description: '',
+    budget: 0,
+    paidAmount: 0,
+    startDate: '',
+    estimatedEndDate: '',
+    status: 'En attente',
+    broker: '',
+    progress: 0,
+    type: '',
+    location: '',
+    firstDepositPercent: 0,
+    image: ''
+  });
+
+
+  // Gère le changement d'un champ du formulaire
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value, type } = e.target;
+    setForm(prev => ({
+      ...prev,
+      [name]: type === 'number' ? Number(value) : value
+    }));
+  };
+
   const { currentUser } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -34,7 +73,7 @@ export default function CourtierProjects() {
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const projectsPerPage = 6;
-  
+
   // Configuration des statuts avec traduction et couleurs
   const statusConfig: Record<string, StatusConfig> = {
     en_attente: { label: "En attente", count: 0, color: "#f59e0b" },
@@ -51,45 +90,46 @@ export default function CourtierProjects() {
   const [projects, setProjects] = useState<Project[]>([]);
 
   // Charger les projets du courtier
-  useEffect(() => {
-    async function loadProjects() {
-      if (!currentUser) return;
-      
-      try {
-        setLoading(true);
-        setError(null);
-        
-        // Récupérer tous les projets du courtier
-        const courtierProjects = await getProjectsByCourtier(currentUser.uid);
-        
-        // Formater les projets pour l'affichage
-        const formattedProjects: Project[] = courtierProjects.map((project: FirebaseProject) => {
-          // Mettre à jour le compteur de statut
-          if (statusConfig[project.status]) {
-            statusConfig[project.status].count += 1;
-          }
-          
-          return {
-            id: project.id,
-            name: project.name,
-            client: project.clientName,
-            status: project.status as any,
-            amount: project.budget || 0,
-            date: project.createdAt?.toDate?.()?.toLocaleDateString('fr-FR') || undefined,
-            image: "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg"
-          };
-        });
-        
-        setProjects(formattedProjects);
-      } catch (err: any) {
-        console.error('Erreur lors du chargement des projets:', err);
-        setError('Impossible de charger la liste des projets.');
-      } finally {
-        setLoading(false);
-      }
+  async function loadProjects() {
+    if (!currentUser) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Récupérer tous les projets du courtier
+      const courtierProjects = await getProjectsByCourtier(currentUser.uid);
+
+      // Formater les projets pour l'affichage
+      const formattedProjects: Project[] = courtierProjects.map((project: FirebaseProject) => {
+        // Mettre à jour le compteur de statut
+        if (statusConfig[project.status]) {
+          statusConfig[project.status].count += 1;
+        }
+
+        return {
+          id: project.id,
+          name: project.name,
+          client: project.clientName,
+          status: project.status as any,
+          amount: project.budget || 0,
+          date: project.createdAt?.toDate?.()?.toLocaleDateString('fr-FR') || undefined,
+          image: project.image || "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg"
+        };
+      });
+
+      setProjects(formattedProjects);
+    } catch (err: any) {
+      console.error('Erreur lors du chargement des projets:', err);
+      setError('Impossible de charger la liste des projets.');
+    } finally {
+      setLoading(false);
     }
-    
+  }
+
+  useEffect(() => {
     loadProjects();
+    // eslint-disable-next-line
   }, [currentUser]);
 
   const clearFilters = () => {
@@ -101,7 +141,7 @@ export default function CourtierProjects() {
 
   const filteredProjects = projects.filter(project => {
     const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         project.client.toLowerCase().includes(searchTerm.toLowerCase());
+      project.client.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = !statusFilter || project.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -128,8 +168,8 @@ export default function CourtierProjects() {
     return (
       <div className="p-4 bg-red-50 text-red-600 rounded-lg">
         <p>{error}</p>
-        <button 
-          onClick={() => window.location.reload()} 
+        <button
+          onClick={() => window.location.reload()}
           className="mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
         >
           Réessayer
@@ -137,17 +177,17 @@ export default function CourtierProjects() {
       </div>
     );
   }
-  
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-medium text-gray-900">Liste des projets</h1>
-        <button 
-          onClick={() => router.push('/courtier/projects/new')} 
-          className="px-4 py-2 bg-[#f21515] text-white rounded-lg flex items-center gap-2 hover:bg-[#d41414] transition-colors"
+        <button
+          className="flex items-center gap-2 px-4 py-2 bg-[#f26755] text-white rounded-md hover:bg-[#f26755]/90 transition-colors"
+          onClick={() => router.push('/courtier/projects/new')}
         >
-          <PlusCircle size={16} />
-          Nouveau projet
+          <PlusCircle className="h-5 w-5" />
+          Créer un projet
         </button>
       </div>
 
@@ -188,7 +228,7 @@ export default function CourtierProjects() {
                     }}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-1 h-5 rounded" style={{ backgroundColor: config.color }} />
+                      <div className="w-1 h-5 rounded" style={{ backgroundColor: config.color }}></div>
                       <span className="text-sm text-gray-700">{config.label}</span>
                     </div>
                     <div className="flex items-center gap-3">
@@ -249,11 +289,11 @@ export default function CourtierProjects() {
                     </div>
                   )}
                 </div>
-                
+
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="text-base font-medium text-gray-900 truncate">{project.name}</h3>
-                    <span 
+                    <span
                       className={`inline-flex flex-shrink-0 px-2 py-1 text-xs font-medium rounded-full whitespace-nowrap`}
                       style={{
                         backgroundColor: `${statusConfig[project.status]?.color}20`,
@@ -266,14 +306,14 @@ export default function CourtierProjects() {
                   <p className="text-sm text-gray-600 truncate mt-1">{project.client}</p>
                 </div>
               </div>
-              
+
               <div className="mt-4">
                 <p className="text-sm text-gray-500">Montant prospecté</p>
                 <p className="text-lg font-semibold">{project.amount.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €</p>
               </div>
 
               <div className="mt-auto pt-4">
-                <Link 
+                <Link
                   href={`/courtier/projects/${project.id}`}
                   className="block w-full px-4 py-2 bg-[#f26755] text-white text-sm font-medium rounded-md hover:bg-[#f26755]/90 transition-colors text-center"
                 >
@@ -294,15 +334,15 @@ export default function CourtierProjects() {
           >
             <ChevronLeft className="h-5 w-5 text-gray-600" />
           </button>
-          
+
           <div className="flex items-center gap-1">
             {[...Array(totalPages)].map((_, i) => (
               <button
                 key={i + 1}
                 onClick={() => setCurrentPage(i + 1)}
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors
-                  ${currentPage === i + 1 
-                    ? 'bg-[#f26755] text-white' 
+                  ${currentPage === i + 1
+                    ? 'bg-[#f26755] text-white'
                     : 'text-gray-600 hover:bg-gray-100'
                   }`}
               >
@@ -310,7 +350,7 @@ export default function CourtierProjects() {
               </button>
             ))}
           </div>
-          
+
           <button
             onClick={() => setCurrentPage(page => Math.min(totalPages, page + 1))}
             disabled={currentPage === totalPages}

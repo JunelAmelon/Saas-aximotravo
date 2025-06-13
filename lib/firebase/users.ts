@@ -63,6 +63,24 @@ export async function createUser(
   }
 }
 
+// Récupérer un utilisateur par email
+export async function getUserByEmail(email: string): Promise<User | null> {
+  try {
+    const usersRef = collection(db, 'users');
+    const q = query(usersRef, where('email', '==', email));
+    const querySnapshot = await getDocs(q);
+    if (!querySnapshot.empty) {
+      const userData = querySnapshot.docs[0].data() as User;
+      userData.uid = querySnapshot.docs[0].id; // Pour avoir l'uid
+      return userData;
+    }
+    return null;
+  } catch (error) {
+    console.error("Erreur lors de la récupération de l'utilisateur par email:", error);
+    throw error;
+  }
+}
+
 // Récupérer un utilisateur par ID
 export async function getUserById(uid: string): Promise<User | null> {
   try {

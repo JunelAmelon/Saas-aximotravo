@@ -14,12 +14,13 @@ import {
   limit
 } from 'firebase/firestore';
 
-export type ProjectStatus = 'en_attente' | 'en_cours' | 'terminé';
+export type ProjectStatus = 'En attente' | 'En cours' | 'Terminé';
 
 export interface Project {
   id: string;
   name: string;
   description: string;
+  paidAmount: number;
   clientName: string;
   clientPhone?: string;
   clientEmail?: string;
@@ -69,12 +70,12 @@ export async function getProjectById(projectId: string): Promise<Project | null>
   }
 }
 
-// Récupérer tous les projets d'un courtier
+// Récupérer tous les projets d'un courtier (via broker.id)
 export async function getProjectsByCourtier(courtierId: string): Promise<Project[]> {
   try {
     const projectsQuery = query(
       collection(db, 'projects'),
-      where('courtierId', '==', courtierId),
+      where('broker.id', '==', courtierId),
       orderBy('createdAt', 'desc')
     );
     const snapshot = await getDocs(projectsQuery);
@@ -90,12 +91,40 @@ export async function getRecentProjectsByCourtier(courtierId: string, limitCount
   try {
     const projectsQuery = query(
       collection(db, 'projects'),
-      where('courtierId', '==', courtierId),
+      where('broker.id', '==', courtierId),
       orderBy('createdAt', 'desc'),
       limit(limitCount)
     );
     const snapshot = await getDocs(projectsQuery);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Project));
+    const projects = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Project));
+
+    // Enrichir chaque projet avec clientName (firstName + lastName ou email)
+    const enrichedProjects = await Promise.all(projects.map(async (project) => {
+      let clientName = '';
+      if (project.client_id) {
+        try {
+          // Import dynamique pour éviter import cyclique
+          const { getUserById } = await import('./users');
+          const clientUser = await getUserById(project.client_id);
+          if (clientUser) {
+            const firstName = clientUser.firstName || '';
+            const lastName = clientUser.lastName || '';
+            if (firstName || lastName) {
+              clientName = `${firstName} ${lastName}`.trim();
+            } else if (clientUser.email) {
+              clientName = clientUser.email;
+            }
+          }
+        } catch (e) {
+          clientName = '';
+        }
+      }
+      return {
+        ...project,
+        clientName,
+      };
+    }));
+    return enrichedProjects;
   } catch (error) {
     console.error('Erreur lors de la récupération des projets récents:', error);
     throw error;
@@ -201,9 +230,9 @@ export async function getCourtierProjectStats(courtierId: string) {
     
     // Calculer les statistiques
     const totalProjects = projects.length;
-    const activeProjects = projects.filter(p => p.status === 'en_cours').length;
-    const completedProjects = projects.filter(p => p.status === 'terminé').length;
-    const pendingProjects = projects.filter(p => p.status === 'en_attente').length;
+    const activeProjects = projects.filter(p => p.status === 'En cours').length;
+    const completedProjects = projects.filter(p => p.status === 'Terminé').length;
+    const pendingProjects = projects.filter(p => p.status === 'En attente').length;
     
     // Calculer la progression moyenne
     const avgProgress = projects.length > 0
