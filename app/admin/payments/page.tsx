@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { Search, Filter, X, Euro, Clock, CheckCircle, ChevronLeft, ChevronRight, Send, Upload, Mail } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Search, Filter, X, ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Checkbox } from "@/components/ui/checkbox";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { db } from "@/lib/firebase/config";
 
 interface PaymentProject {
   id: string;
@@ -26,91 +26,87 @@ interface PaymentProject {
   status: "en_attente" | "validé" | "refusé";
 }
 
-interface Recipient {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  required?: boolean;
-}
-
 export default function AdminPayments() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "validated">("all");
   const [currentPage, setCurrentPage] = useState(1);
-  const [isValidationDrawerOpen, setIsValidationDrawerOpen] = useState(false);
-  const [selectedProject, setSelectedProject] = useState<PaymentProject | null>(null);
-  const [message, setMessage] = useState("");
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isNotificationSent, setIsNotificationSent] = useState(false);
-  const projectsPerPage = 10;
+  const [projects, setProjects] = useState<PaymentProject[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const projectsPerPage = 6;
 
-  const [recipients] = useState<Recipient[]>([
-    {
-      id: "1",
-      name: "Jean Dupont",
-      email: "jean.dupont@example.com",
-      role: "Client"
-    },
-    {
-      id: "2",
-      name: "Marie Martin",
-      email: "marie.martin@example.com",
-      role: "Courtier",
-      required: true
-    },
-    {
-      id: "3",
-      name: "Pierre Durand",
-      email: "pierre.durand@example.com",
-      role: "Pilote"
-    }
-  ]);
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        // Récupérer tous les projets avec les informations des courtiers et artisans
+        const projectsQuery = query(collection(db, "projects"));
+        const projectsSnapshot = await getDocs(projectsQuery);
+        
+        const projectsData: PaymentProject[] = await Promise.all(
+          projectsSnapshot.docs.map(async (doc) => {
+            const projectData = doc.data();
+            
+            // Récupérer les infos du courtier
+            let broker = {
+              name: "Courtier inconnu",
+              company: "Société inconnue",
+              avatar: "/default-avatar.png"
+            };
+            if (projectData.brokerId) {
+              const brokerDoc = await getDoc(doc(db, "users", projectData.brokerId));
+              if (brokerDoc.exists()) {
+                const brokerData = brokerDoc.data();
+                broker = {
+                  name: brokerData.name || `${brokerData.firstName} ${brokerData.lastName}`,
+                  company: brokerData.company || "Société non spécifiée",
+                  avatar: brokerData.avatar || "/default-avatar.png"
+                };
+              }
+            }
 
-  const [selectedRecipients, setSelectedRecipients] = useState<string[]>(
-    recipients.filter(r => r.required).map(r => r.id)
-  );
-  
-  const [projects] = useState<PaymentProject[]>([
-    {
-      id: "1",
-      name: "Rénovation appartement",
-      broker: {
-        name: "Jean Dupont",
-        company: "Courtage Pro",
-        avatar: "https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg"
-      },
-      artisan: {
-        name: "Pierre Martin",
-        company: "Martin Construction",
-        avatar: "https://images.pexels.com/photos/1516680/pexels-photo-1516680.jpeg"
-      },
-      amount: 15000,
-      validatedPayments: 3000,
-      pendingPayments: 2000,
-      quontoBalance: 5000,
-      status: "en_attente"
-    },
-    {
-      id: "2",
-      name: "Installation cuisine",
-      broker: {
-        name: "Marie Martin",
-        company: "Habitat Solutions",
-        avatar: "https://images.pexels.com/photos/1587009/pexels-photo-1587009.jpeg"
-      },
-      artisan: {
-        name: "Jean Dubois",
-        company: "Dubois & Fils",
-        avatar: "https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg"
-      },
-      amount: 25000,
-      validatedPayments: 5000,
-      pendingPayments: 0,
-      quontoBalance: 8000,
-      status: "validé"
-    }
-  ]);
+            // Récupérer les infos de l'artisan
+            let artisan = {
+              name: "Artisan non assigné",
+              company: "Société inconnue",
+              avatar: "/default-avatar.png"
+            };
+            if (projectData.artisanId) {
+              const artisanDoc = await getDoc(doc(db, "users", projectData.artisanId));
+              if (artisanDoc.exists()) {
+                const artisanData = artisanDoc.data();
+                artisan = {
+                  name: artisanData.name || `${artisanData.firstName} ${artisanData.lastName}`,
+                  company: artisanData.company || "Société non spécifiée",
+                  avatar: artisanData.avatar || "/default-avatar.png"
+                };
+              }
+            }
+
+            return {
+              id: doc.id,
+              name: projectData.name || "Projet sans nom",
+              broker,
+              artisan,
+              amount: projectData.amount || 0,
+              validatedPayments: projectData.validatedPayments || 0,
+              pendingPayments: projectData.pendingPayments || 0,
+              quontoBalance: projectData.quontoBalance || 0,
+              status: projectData.status || "en_attente"
+            };
+          })
+        );
+
+        setProjects(projectsData);
+        setLoading(false);
+      } catch (err) {
+        console.error("Error fetching projects: ", err);
+        setError("Failed to load projects data");
+        setLoading(false);
+      }
+    };
+
+    fetchProjects();
+  }, []);
 
   const filteredProjects = projects.filter(project => {
     const matchesSearch = 
@@ -133,28 +129,38 @@ export default function AdminPayments() {
     currentPage * projectsPerPage
   );
 
-  const handleValidation = (project: PaymentProject) => {
-    setSelectedProject(project);
-    setIsValidationDrawerOpen(true);
-  };
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#f21515]"></div>
+      </div>
+    );
+  }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setSelectedFile(e.target.files[0]);
-    }
-  };
+  if (error) {
+    return (
+      <div className="bg-red-50 border-l-4 border-red-400 p-4">
+        <div className="flex">
+          <div className="flex-shrink-0">
+            <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <div className="ml-3">
+            <p className="text-sm text-red-700">{error}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-  const handleSubmitValidation = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsNotificationSent(true);
-    setTimeout(() => {
-      setIsNotificationSent(false);
-      setIsValidationDrawerOpen(false);
-      setSelectedProject(null);
-      setSelectedFile(null);
-      setMessage('');
-    }, 2000);
-  };
+  if (projects.length === 0) {
+    return (
+      <div className="bg-white rounded-lg shadow-sm p-6 text-center">
+        <p className="text-gray-500">Aucun projet trouvé</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -226,9 +232,6 @@ export default function AdminPayments() {
                 <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-[#f21515] uppercase tracking-wider bg-white">
                   Solde Qonto
                 </th>
-                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider bg-white">
-                  Actions
-                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -243,7 +246,8 @@ export default function AdminPayments() {
                         <Image
                           src={project.broker.avatar}
                           alt={project.broker.name}
-                          fill
+                          width={32}
+                          height={32}
                           className="rounded-full object-cover"
                         />
                       </div>
@@ -259,7 +263,8 @@ export default function AdminPayments() {
                         <Image
                           src={project.artisan.avatar}
                           alt={project.artisan.name}
-                          fill
+                          width={32}
+                          height={32}
                           className="rounded-full object-cover"
                         />
                       </div>
@@ -289,24 +294,6 @@ export default function AdminPayments() {
                       {project.quontoBalance.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right">
-                    {project.pendingPayments > 0 && (
-                      <div className="flex justify-end gap-2">
-                        <button
-                          onClick={() => {}}
-                          className="px-3 py-1 bg-red-100 text-red-700 rounded text-sm font-medium hover:bg-red-200 transition-colors"
-                        >
-                          Refuser
-                        </button>
-                        <button
-                          onClick={() => handleValidation(project)}
-                          className="px-3 py-1 bg-green-600 text-white rounded text-sm font-medium hover:bg-green-700 transition-colors"
-                        >
-                          Valider
-                        </button>
-                      </div>
-                    )}
-                  </td>
                 </tr>
               ))}
             </tbody>
@@ -315,11 +302,11 @@ export default function AdminPayments() {
 
         <div className="px-6 py-4 border-t border-gray-200">
           <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-500">
-              Affichage de <span className="font-medium">{((currentPage - 1) * projectsPerPage) + 1}</span> à{' '}
-              <span className="font-medium">{Math.min(currentPage * projectsPerPage, filteredProjects.length)}</span> sur{' '}
-              <span className="font-medium">{filteredProjects.length}</span> projets
-            </div>
+  <div className="text-sm text-gray-500">
+  Affichage de <span className="font-medium">{((currentPage - 1) * projectsPerPage) + 1}</span> à{' '}
+  <span className="font-medium">{Math.min(currentPage * projectsPerPage, filteredProjects.length)}</span> sur{' '}
+  <span className="font-medium">{filteredProjects.length}</span> projets
+</div>
             
             <div className="flex items-center gap-2">
               <button
@@ -357,108 +344,6 @@ export default function AdminPayments() {
           </div>
         </div>
       </div>
-
-      <Sheet open={isValidationDrawerOpen} onOpenChange={setIsValidationDrawerOpen}>
-        <SheetContent className="w-[500px] sm:w-[540px] overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle>Valider la demande d'acompte</SheetTitle>
-          </SheetHeader>
-          
-          <form onSubmit={handleSubmitValidation} className="mt-6 space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Message
-              </label>
-              <textarea
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                rows={4}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-[#f21515] focus:border-[#f21515]"
-                placeholder="Ajouter un message..."
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Documents
-              </label>
-              <label className="block w-full border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#f21515] cursor-pointer">
-                <input
-                  type="file"
-                  className="hidden"
-                  onChange={handleFileChange}
-                />
-                <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                <span className="mt-2 block text-sm font-medium text-gray-900">
-                  {selectedFile ? selectedFile.name : "Cliquez pour télécharger"}
-                </span>
-                <span className="mt-1 block text-sm text-gray-500">
-                  PDF, DOC jusqu'à 10MB
-                </span>
-              </label>
-            </div>
-
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <Mail className="h-4 w-4 text-gray-500" />
-                <span className="text-sm font-medium text-gray-700">
-                  Notifier par email
-                </span>
-              </div>
-              
-              <div className="space-y-3">
-                {recipients.map((recipient) => (
-                  <div key={recipient.id} className="flex items-center gap-2">
-                    <Checkbox
-                      id={recipient.id}
-                      checked={selectedRecipients.includes(recipient.id)}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedRecipients([...selectedRecipients, recipient.id]);
-                        } else if (!recipient.required) {
-                          setSelectedRecipients(selectedRecipients.filter(id => id !== recipient.id));
-                        }
-                      }}
-                      disabled={recipient.required}
-                    />
-                    <label htmlFor={recipient.id} className="flex-1 text-sm">
-                      <span className="text-gray-700">{recipient.name}</span>
-                      <span className="text-gray-500 ml-2">- {recipient.email}</span>
-                      {recipient.required && (
-                        <span className="ml-2 text-xs text-[#f21515]">(Obligatoire)</span>
-                      )}
-                    </label>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-4">
-              <button
-                type="submit"
-                disabled={isNotificationSent}
-                className={`px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 ${
-                  isNotificationSent
-                    ? 'bg-green-100 text-green-700 cursor-not-allowed'
-                    : 'bg-[#f21515] text-white hover:bg-[#f21515]/90'
-                }`}
-              >
-                {isNotificationSent ? (
-                  <>
-                    <CheckCircle className="h-4 w-4" />
-                    Demande validée
-                  </>
-                ) : (
-                  <>
-                    <Send className="h-4 w-4" />
-                    Valider et envoyer
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
-        </SheetContent>
-      </Sheet>
     </div>
   );
 }

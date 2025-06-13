@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Users, FileText, Search, MapPin } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
 import Link from "next/link";
 import Image from "next/image";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { db } from "@/lib/firebase/config";
 
 interface Broker {
   id: string;
@@ -25,54 +27,48 @@ interface Broker {
 export default function AdminDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [regionFilter, setRegionFilter] = useState("");
-  
-  const [brokers] = useState<Broker[]>([
-    {
-      id: "1",
-      name: "Jean Dupont",
-      company: "Courtage Pro",
-      email: "jean.dupont@courtagepro.fr",
-      region: "Île-de-France",
-      avatar: "https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg",
-      stats: {
-        activeProjects: 12,
-        totalArtisans: 8,
-        totalAmount: 150000,
-        pendingAmount: 45000,
-        validatedAmount: 105000
+  const [brokers, setBrokers] = useState<Broker[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchBrokers = async () => {
+      try {
+        // Créer une query pour récupérer uniquement les utilisateurs avec rôle "courtier"
+        const q = query(collection(db, "users"), where("role", "==", "courtier"));
+        const querySnapshot = await getDocs(q);
+        const brokersData: Broker[] = [];
+        
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          brokersData.push({
+            id: doc.id,
+            name: data.name || `${data.firstName} ${data.lastName}` || "Nom inconnu",
+            company: data.company || "Société non spécifiée",
+            email: data.email || "Email non spécifié",
+            region: data.region || "Région non spécifiée",
+            avatar: data.avatar || "/default-avatar.png",
+            stats: {
+              activeProjects: data.activeProjects || 0,
+              totalArtisans: data.totalArtisans || 0,
+              totalAmount: data.totalAmount || 0,
+              pendingAmount: data.pendingAmount || 0,
+              validatedAmount: data.validatedAmount || 0,
+            },
+          });
+        });
+
+        setBrokers(brokersData);
+        setLoading(false);
+      } catch (err) {
+        console.error("Error fetching brokers: ", err);
+        setError("Failed to load brokers data");
+        setLoading(false);
       }
-    },
-    {
-      id: "2",
-      name: "Marie Martin",
-      company: "Habitat Solutions",
-      email: "m.martin@habitat-solutions.fr",
-      region: "Nouvelle-Aquitaine",
-      avatar: "https://images.pexels.com/photos/1587009/pexels-photo-1587009.jpeg",
-      stats: {
-        activeProjects: 15,
-        totalArtisans: 10,
-        totalAmount: 180000,
-        pendingAmount: 60000,
-        validatedAmount: 120000
-      }
-    },
-    {
-      id: "3",
-      name: "Pierre Dubois",
-      company: "Dubois Immobilier",
-      email: "p.dubois@dubois-immo.fr",
-      region: "Auvergne-Rhône-Alpes",
-      avatar: "https://images.pexels.com/photos/1516680/pexels-photo-1516680.jpeg",
-      stats: {
-        activeProjects: 8,
-        totalArtisans: 6,
-        totalAmount: 120000,
-        pendingAmount: 35000,
-        validatedAmount: 85000
-      }
-    }
-  ]);
+    };
+
+    fetchBrokers();
+  }, []);
 
   const regions = Array.from(new Set(brokers.map(broker => broker.region))).sort();
 
@@ -95,6 +91,39 @@ export default function AdminDashboard() {
     pendingAmount: brokers.reduce((acc, broker) => acc + broker.stats.pendingAmount, 0),
     validatedAmount: brokers.reduce((acc, broker) => acc + broker.stats.validatedAmount, 0)
   };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#f21515]"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border-l-4 border-red-400 p-4">
+        <div className="flex">
+          <div className="flex-shrink-0">
+            <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <div className="ml-3">
+            <p className="text-sm text-red-700">{error}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (brokers.length === 0) {
+    return (
+      <div className="bg-white rounded-lg shadow-sm p-6 text-center">
+        <p className="text-gray-500">Aucun courtier trouvé</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -190,7 +219,8 @@ export default function AdminDashboard() {
                           <Image
                             src={broker.avatar}
                             alt={broker.name}
-                            fill
+                            width={40}
+                            height={40}
                             className="rounded-full object-cover"
                           />
                         </div>
