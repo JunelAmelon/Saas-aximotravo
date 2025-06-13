@@ -24,7 +24,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const userRecord = await getAuth().createUser({
       email,
-      password,
+      password,a
       emailVerified: false,
       disabled: false,
     });
