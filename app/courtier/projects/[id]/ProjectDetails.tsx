@@ -519,13 +519,13 @@ export default function ProjectDetails() {
                           {projectArtisans.map((artisan) => (
                             <div key={artisan.uid} className="flex items-center justify-between">
                               <span className="text-sm text-gray-600">{artisan.displayName || artisan.firstName || artisan.email}</span>
-                              {/* Prévoir un bouton pour retirer l'artisan du projet si besoin
-            <button
-              onClick={() => handleRemoveArtisan(artisan.uid)}
-              className="p-1.5 rounded-full hover:bg-red-50 text-red-600 transition-colors"
-            >
-              <X className="h-4 w-4" />
-            </button> */}
+                              Prévoir un bouton pour retirer l'artisan du projet si besoin
+                              <button
+                                onClick={() => handleRemoveArtisan(artisan.uid)}
+                                className="p-1.5 rounded-full hover:bg-red-50 text-red-600 transition-colors"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
                             </div>
                           ))}
                         </div>
