@@ -21,10 +21,11 @@ export interface User {
   createdAt: string;
   updatedAt?: string;
   courtierId: string;
-  companyName?: string;
+  phone?: string;
+  company?: string;
   firstName?: string;
   lastName?: string;
-  phoneNumber?: string;
+  photoURL?: string;
 }
 
 export interface ProjectDetails {
@@ -51,6 +52,21 @@ export interface ProjectDetails {
 }
 
 // --- SERVICES & FONCTIONS UTILITAIRES FIRESTORE ---
+
+/**
+ * Récupère tous les devis d'un projet
+ */
+export const getDevisForProject = async (projectId: string) => {
+  try {
+    const devisRef = collection(db, "devis");
+    const q = query(devisRef, where("projectId", "==", projectId));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (error) {
+    console.error("Erreur lors de la récupération des devis:", error);
+    return [];
+  }
+};
 
 /**
  * Récupère un utilisateur par son ID
@@ -133,7 +149,8 @@ export const inviteArtisanToProject = async (
 
 
 // Fonction utilitaire pour récupérer les artisans liés à un courtier
-export const getArtisansByCourtier = async (courtierId: string): Promise<User[]> => {
+// Fonction utilitaire pour récupérer les artisans liés à un courtier QUI N'ONT PAS ENCORE ÉTÉ INVITÉS AU PROJET
+export const getArtisansByCourtier = async (courtierId: string, projectId?: string): Promise<User[]> => {
   try {
     const artisansRef = collection(db, "users");
     const q = query(
@@ -142,7 +159,7 @@ export const getArtisansByCourtier = async (courtierId: string): Promise<User[]>
       where("courtierId", "==", courtierId)
     );
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => {
+    let artisans = snapshot.docs.map(doc => {
       const data = doc.data();
       return {
         uid: data.uid || doc.id,
@@ -158,6 +175,21 @@ export const getArtisansByCourtier = async (courtierId: string): Promise<User[]>
         phoneNumber: data.phoneNumber || '',
       } as User;
     });
+
+    // Si projectId fourni, on filtre pour ne garder que les artisans NON INVITÉS
+    if (projectId) {
+      // On récupère tous les artisanId déjà invités pour ce projet (tous statuts)
+      const invitationsQ = query(
+        collection(db, "artisan_projet"),
+        where("projetId", "==", projectId),
+        where("status", "in", ["pending", "refusé", "rejeté", "accepté"])
+      );
+      const invitationsSnap = await getDocs(invitationsQ);
+      const invitedArtisanIds = invitationsSnap.docs.map(doc => doc.data().artisanId);
+      artisans = artisans.filter(a => !invitedArtisanIds.includes(a.uid));
+    }
+
+    return artisans;
   } catch (error) {
     console.error('Erreur lors de la récupération des artisans du courtier :', error);
     return [];
@@ -167,18 +199,19 @@ export const getArtisansByCourtier = async (courtierId: string): Promise<User[]>
 import { getAuth } from "firebase/auth";
 
 export default function ProjectDetails() {
+  // ...
+  const [devis, setDevis] = useState<any[]>([]);
   const params = useParams<{ id: string; tab?: string }>();
   const { id } = params;
   const [project, setProject] = useState<ProjectDetails | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const [selectedQuote, setSelectedQuote] = useState<ProjectDetails["quotes"][0] | null>(null);
-  const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
   const [selectedArtisanIds, setSelectedArtisanIds] = useState<string[]>([]);
   // Nouvel état pour stocker les artisans acceptés du projet
   const [projectArtisans, setProjectArtisans] = useState<User[]>([]);
   const [isRequestSent, setIsRequestSent] = useState(false);
+  // Nouvel état pour stocker les invitations envoyées (en attente, refusées, etc)
+  const [artisanInvitations, setArtisanInvitations] = useState<{ id: string, artisan: User | null, status: string }[]>([]);
 
   // courtierId récupéré via Firebase Auth
   const [courtierId, setCourtierId] = useState<string | null>(null);
@@ -189,19 +222,43 @@ export default function ProjectDetails() {
     setCourtierId(auth.currentUser ? auth.currentUser.uid : null);
   }, []);
 
+  // Récupère les invitations envoyées (hors acceptés)
+  useEffect(() => {
+    async function fetchArtisanInvitations() {
+      if (!id) return;
+      const q = query(
+        collection(db, "artisan_projet"),
+        where("projetId", "==", id),
+        where("status", "in", ["pending", "refusé", "rejeté"]) // Statuts à adapter selon ta base
+      );
+      const snapshot = await getDocs(q);
+      const invitations = await Promise.all(snapshot.docs.map(async (docSnap) => {
+        const data = docSnap.data();
+        let artisan: User | null = null;
+        try {
+          const userDoc = await getDoc(doc(db, "users", data.artisanId));
+          artisan = userDoc.exists() ? userDoc.data() as User : null;
+        } catch { }
+        return {
+          id: docSnap.id,
+          artisan,
+          status: data.status
+        };
+      }));
+      setArtisanInvitations(invitations);
+    }
+    fetchArtisanInvitations();
+  }, [id, isRequestSent]);
+
   useEffect(() => {
     const fetchArtisans = async () => {
-      if (!courtierId) return;
-      // DEBUG: Afficher le courtierId
-      console.log('Courtier ID utilisé pour la requête artisans:', courtierId);
-      const artisans = await getArtisansByCourtier(courtierId);
-      // On filtre ici au cas où : ne garder que les artisans
+      if (!courtierId || !id) return;
+      const artisans = await getArtisansByCourtier(courtierId, id); // Passe l'id du projet
       const onlyArtisans = artisans.filter(a => a.role === 'artisan');
-      console.log("Artisans récupérés (role artisan) :", onlyArtisans);
       setAvailableArtisans(onlyArtisans);
     };
     fetchArtisans();
-  }, [courtierId]);
+  }, [courtierId, id]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -218,6 +275,12 @@ export default function ProjectDetails() {
       }
     };
     fetchData();
+  }, [id]);
+
+  // Récupération des devis du projet
+  useEffect(() => {
+    if (!id) return;
+    getDevisForProject(id).then(setDevis);
   }, [id]);
 
   // Récupération des artisans acceptés du projet
@@ -243,8 +306,12 @@ export default function ProjectDetails() {
     getAcceptedArtisansForProject(id).then(setProjectArtisans);
   }, [id]);
 
-  const handleArtisanSelect = (artisanIds: string[]) => {
-    setSelectedArtisanIds(artisanIds);
+  const handleArtisanSelect = (artisanIds: string[] | string) => {
+    if (typeof artisanIds === "string") {
+      setSelectedArtisanIds([artisanIds]);
+    } else {
+      setSelectedArtisanIds(artisanIds);
+    }
   };
 
   const handleSendRequest = async () => {
@@ -271,10 +338,6 @@ export default function ProjectDetails() {
         setIsRequestSent(false);
       }, 3000);
       setSelectedArtisanIds([]);
-      // Rafraîchir la liste des artisans acceptés si besoin
-      if (project?.id) {
-        getAcceptedArtisansForProject(project.id).then(setProjectArtisans);
-      }
     }
     if (failCount > 0) {
       setError(`Erreur lors de l'envoi de ${failCount} invitation(s).`);
@@ -287,10 +350,10 @@ export default function ProjectDetails() {
   };
 
   const tabs = [
-    { id: "notes", icon: FileText, label: "Notes", count: 1 },
-    { id: "events", icon: Calendar, label: "Événements", count: 1 },
-    { id: "photos", icon: Camera, label: "Photos RT, chantier, etc", count: 1 },
-    { id: "plans", icon: FileSpreadsheet, label: "Plans", count: 1 },
+    { id: "notes", icon: FileText, label: "Notes" },
+    { id: "events", icon: Calendar, label: "Événements" },
+    { id: "photos", icon: Camera, label: "Photos RT, chantier, etc" },
+    { id: "plans", icon: FileSpreadsheet, label: "Plans" },
     { id: "documents", icon: FileBox, label: "Documents" },
     { id: "payment-requests", icon: Scale, label: "Demandes d'acompte" }
   ];
@@ -338,8 +401,8 @@ export default function ProjectDetails() {
           <div className="flex flex-col md:flex-row items-start gap-6">
             <div className="relative w-[100px] h-[100px] flex-shrink-0">
               <Image
-                src={project?.image}
-                alt={project?.name}
+                src={project?.image || "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg"}
+                alt={project?.name || ""}
                 fill
                 className="object-cover rounded-full border-2 border-white shadow"
               />
@@ -397,16 +460,6 @@ export default function ProjectDetails() {
               >
                 <tab.icon className="h-5 w-5" />
                 <span>{tab.label}</span>
-                {tab.count && (
-                  <span className={cn(
-                    "px-2 py-0.5 text-xs rounded-full",
-                    params?.tab === tab.id
-                      ? "bg-[#f26755] text-white"
-                      : "bg-gray-100 text-gray-600"
-                  )}>
-                    {tab.count}
-                  </span>
-                )}
               </Link>
             ))}
           </div>
@@ -422,15 +475,15 @@ export default function ProjectDetails() {
                 <div className="flex items-center gap-4 bg-gray-50 p-4 rounded-lg border border-gray-100">
                   <div className="relative w-16 h-16 rounded-full overflow-hidden ring-2 ring-[#f26755] ring-offset-2">
                     <Image
-                      src={project?.image || "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg"}
-                      alt={project?.client.displayName || ""}
+                      src={project?.client.photoURL || "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg"}
+                      alt={project?.client.firstName + " " + project?.client.lastName || ""}
                       fill
                       className="object-cover"
                     />
                   </div>
                   <div>
-                    <h4 className="font-medium text-gray-900">{project?.client.displayName}</h4>
-                    <p className="text-sm text-[#f26755]">{project?.broker.company}</p>
+                    <h4 className="font-medium text-gray-900">{project?.client.firstName + " " + project?.client.lastName}</h4>
+                    <p className="text-sm text-[#f26755]">{project?.client.company}</p>
                   </div>
                 </div>
 
@@ -511,127 +564,98 @@ export default function ProjectDetails() {
                       <User className="h-4 w-4 text-[#f26755]" />
                     </span>
                   </h4>
-
-                  {projectArtisans && projectArtisans.length > 0 ? (
-                    <div className="space-y-4">
-                      <div className="bg-white p-4 rounded-md border border-gray-100">
-                        <div className="flex flex-col gap-2">
-                          {projectArtisans.map((artisan) => (
-                            <div key={artisan.uid} className="flex items-center justify-between">
-                              <span className="text-sm text-gray-600">{artisan.displayName || artisan.firstName || artisan.email}</span>
-                              {/* Prévoir un bouton pour retirer l'artisan du projet si besoin
-            <button
-              onClick={() => handleRemoveArtisan(artisan.uid)}
-              className="p-1.5 rounded-full hover:bg-red-50 text-red-600 transition-colors"
-            >
-              <X className="h-4 w-4" />
-            </button> */}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                      <button
-                        onClick={handleSendRequest}
-                        disabled={isRequestSent || loading || !selectedArtisanIds.length}
-                        className={cn(
-                          "w-full px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2",
-                          isRequestSent
-                            ? "bg-green-100 text-green-700 cursor-not-allowed"
-                            : "bg-[#f26755] text-white hover:bg-[#f26755]/90"
-                        )}
-                      >
-                        {isRequestSent ? (
-                          <>
-                            <Check className="h-4 w-4" />
-                            Demande envoyée
-                          </>
-                        ) : loading ? (
-                          <>
-                            <span className="loader mr-2"></span>
-                            Envoi en cours...
-                          </>
-                        ) : (
-                          <>
-                            <Send className="h-4 w-4" />
-                            Envoyer la demande
-                          </>
-                        )}
-                      </button>
-                      {/* Sélecteur pour inviter d'autres artisans non déjà assignés */}
-                      <div className="mt-4">
-                        <Select
-                          mode="multiple"
-                          value={selectedArtisanIds}
-                          onValueChange={handleArtisanSelect}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Sélectionner un ou plusieurs artisans à inviter" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {availableArtisans.filter(a => !projectArtisans.some(pa => pa.uid === a.uid)).length === 0 ? (
-                              <div className="p-2 text-sm text-gray-500">Aucun artisan disponible à inviter.</div>
-                            ) : (
-                              availableArtisans
-                                .filter(a => !projectArtisans.some(pa => pa.uid === a.uid))
-                                .map((artisan) => (
-                                  <SelectItem key={artisan.uid} value={artisan.uid}>
-                                    {artisan.displayName}
-                                  </SelectItem>
-                                ))
-                            )}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                  <Select
+                    mode="multiple"
+                    value={selectedArtisanIds}
+                    onValueChange={handleArtisanSelect}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Sélectionner un ou plusieurs artisans à inviter" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableArtisans.length === 0 ? (
+                        <div className="p-2 text-sm text-gray-500">Aucun artisan trouvé pour ce courtier.</div>
+                      ) : (
+                        availableArtisans.map((artisan) => (
+                          <SelectItem key={artisan.uid} value={artisan.uid}>
+                            {artisan.displayName}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {/* Badges des artisans sélectionnés */}
+                  {selectedArtisanIds.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {selectedArtisanIds.map((id) => {
+                        const artisan = availableArtisans.find(a => a.uid === id);
+                        if (!artisan) return null;
+                        return (
+                          <span key={id} className="flex items-center bg-[#f26755]/10 text-[#f26755] px-3 py-1 rounded-full text-xs font-medium">
+                            {artisan.displayName}
+                            <button
+                              type="button"
+                              onClick={() => handleArtisanSelect(selectedArtisanIds.filter(aid => aid !== id))}
+                              className="ml-2 text-[#f26755] hover:text-red-600 focus:outline-none"
+                              title="Retirer"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </span>
+                        );
+                      })}
                     </div>
-                  ) : (
-                    <div className="bg-white p-4 rounded-md border border-gray-100">
-                      <Select
-                        mode="multiple"
-                        value={selectedArtisanIds}
-                        onValueChange={handleArtisanSelect}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Sélectionner un ou plusieurs artisans à inviter" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableArtisans.length === 0 ? (
-                            <div className="p-2 text-sm text-gray-500">Aucun artisan trouvé pour ce courtier.</div>
-                          ) : (
-                            availableArtisans.map((artisan) => (
-                              <SelectItem key={artisan.uid} value={artisan.uid}>
-                                {artisan.displayName}
-                              </SelectItem>
-                            ))
-                          )}
-                        </SelectContent>
-                      </Select>
-                      <button
-                        onClick={handleSendRequest}
-                        disabled={isRequestSent || loading || !selectedArtisanIds.length}
-                        className={cn(
-                          "w-full px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2 mt-4",
-                          isRequestSent
-                            ? "bg-green-100 text-green-700 cursor-not-allowed"
-                            : "bg-[#f26755] text-white hover:bg-[#f26755]/90"
-                        )}
-                      >
-                        {isRequestSent ? (
-                          <>
-                            <Check className="h-4 w-4" />
-                            Demande envoyée
-                          </>
-                        ) : loading ? (
-                          <>
-                            <span className="loader mr-2"></span>
-                            Envoi en cours...
-                          </>
-                        ) : (
-                          <>
-                            <Send className="h-4 w-4" />
-                            Envoyer la demande
-                          </>
-                        )}
-                      </button>
+                  )}
+                  <button
+                    onClick={handleSendRequest}
+                    disabled={isRequestSent || loading || !selectedArtisanIds.length}
+                    className={cn(
+                      "w-full px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2 mt-4",
+                      isRequestSent
+                        ? "bg-green-100 text-green-700 cursor-not-allowed"
+                        : "bg-[#f26755] text-white hover:bg-[#f26755]/90"
+                    )}
+                  >
+                    {isRequestSent ? (
+                      <>
+                        <Check className="h-4 w-4" />
+                        Demande envoyée
+                      </>
+                    ) : loading ? (
+                      <>
+                        <span className="loader mr-2"></span>
+                        Envoi en cours...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="h-4 w-4" />
+                        Envoyer la demande
+                      </>
+                    )}
+                  </button>
+                  {/* Liste des invitations envoyées (hors acceptés) */}
+                  {artisanInvitations.length > 0 && (
+                    <div className="mb-4 mt-4">
+                      <h5 className="text-xs font-bold text-gray-500 mb-2">Artisans invités</h5>
+                      <ul className="flex flex-col gap-2 max-h-[200px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 rounded">
+                        {artisanInvitations.map(invite => (
+                          <li key={invite.id} className="flex items-center gap-3 bg-gray-50 p-2 rounded">
+                            <span className="font-medium text-sm text-[#f26755]">
+                              {invite.artisan?.displayName || invite.artisan?.email || 'Artisan inconnu'}
+                            </span>
+                            <span className={cn(
+                              "text-xs px-2 py-0.5 rounded-full",
+                              invite.status === 'pending' && 'bg-yellow-100 text-yellow-700',
+                              invite.status === 'refusé' && 'bg-red-100 text-red-700',
+                              invite.status === 'rejeté' && 'bg-gray-200 text-gray-600'
+                            )}>
+                              {invite.status === 'pending' && 'En attente'}
+                              {invite.status === 'refusé' && 'Refusé'}
+                              {invite.status === 'rejeté' && 'Rejeté'}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
                   )}
                 </div>
@@ -639,80 +663,79 @@ export default function ProjectDetails() {
             </div>
           </div>
         </div>
-
-        {/* <div className="overflow-x-auto">
-          <table className="min-w-full">
-            <thead>
-              <tr className="border-b">
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Titre</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Type</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Version</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Historique</th>
-                <th className="text-right py-3 px-4 text-sm font-medium text-gray-500">Prix TTC</th>
-                <th className="w-8"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {project.quotes.map((quote) => (
-                <tr key={quote.id} className="border-b last:border-0">
-                  <td className="py-3 px-4">
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium text-gray-900">{quote.title}</span>
-                      {quote.status === "envoyée" && (
-                        <span className="mt-1 inline-flex w-fit px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
-                          ENVOYÉE
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="py-3 px-4 text-sm text-gray-500">{quote.type}</td>
-                  <td className="py-3 px-4 text-sm text-gray-500">{quote.version}</td>
-                  <td className="py-3 px-4">
-                    <div className="text-xs text-gray-500">
-                      <div>Mise à jour le {quote.date}</div>
-                      <div>Créé par Junel</div>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4 text-right text-sm font-medium">
-                    {quote.amount.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
-                  </td>
-                  <td className="py-3 px-4 text-center">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger className="text-gray-400 hover:text-gray-600">
-                        •••
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        <DropdownMenuItem onClick={() => {
-                          setSelectedQuote(quote);
-                          setIsQuoteDialogOpen(true);
-                        }}>
-                          <Eye className="h-4 w-4 mr-2" />
-                          Visualiser le devis
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Download className="h-4 w-4 mr-2" />
-                          Télécharger le devis
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div> */}
       </div>
-
-      <Dialog open={isQuoteDialogOpen} onOpenChange={setIsQuoteDialogOpen}>
-        <DialogContent className="max-w-3xl">
-          <div className="p-6">
-            <h2 className="text-xl font-medium mb-4">{selectedQuote?.title}</h2>
-            <div className="prose max-w-none">
-              <p>{selectedQuote?.content}</p>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <div className="overflow-x-auto">
+        <h4 className="text-base font-semibold mb-2">Liste des devis</h4>
+        <table className="min-w-full">
+          <thead>
+            <tr className="border-b">
+              <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Titre</th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Type</th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Statut</th>
+              <th className="text-right py-3 px-4 text-sm font-medium text-gray-500">Montant</th>
+              <th className="w-8"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {devis.map((devisItem) => (
+              <tr key={devisItem.id} className="border-b last:border-0">
+                <td className="py-3 px-4">
+                  <span className="text-sm font-medium text-gray-900">{devisItem.titre}</span>
+                </td>
+                <td className="py-3 px-4 text-sm text-gray-500">{devisItem.type}</td>
+                <td className="py-3 px-4 text-sm">
+                  <span
+                    className={cn(
+                      "px-2 py-0.5 rounded-full font-semibold",
+                      devisItem.statut === 'Validé' && 'bg-green-100 text-green-700',
+                      devisItem.statut === 'En attente' && 'bg-yellow-100 text-yellow-700',
+                      devisItem.statut === 'Refusé' && 'bg-red-100 text-red-700',
+                      devisItem.statut === 'Annulé' && 'bg-gray-200 text-gray-600',
+                      devisItem.statut === 'Envoyé' && 'bg-blue-100 text-blue-700'
+                    )}
+                    style={{ textTransform: 'capitalize' }}
+                  >
+                    {(() => {
+                      switch (devisItem.statut) {
+                        case 'Validé': return 'Validé';
+                        case 'En attente': return 'En attente';
+                        case 'Refusé': return 'Refusé';
+                        case 'Annulé': return 'Annulé';
+                        case 'Envoyé': return 'Envoyé';
+                        default: return devisItem.statut;
+                      }
+                    })()}
+                  </span>
+                </td>
+                <td className="py-3 px-4 text-right text-sm font-medium">
+                  {devisItem.montant?.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
+                </td>
+                <td className="py-3 px-4 text-center">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger className="text-gray-400 hover:text-gray-600">
+                      •••
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem asChild>
+                        <a href={devisItem.pdfUrl} target="_blank" rel="noopener noreferrer">
+                          <Eye className="h-4 w-4 mr-2" />
+                          Visualiser le PDF
+                        </a>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <a href={devisItem.pdfUrl} target="_blank" rel="noopener noreferrer" download>
+                          <Download className="h-4 w-4 mr-2" />
+                          Télécharger le PDF
+                        </a>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

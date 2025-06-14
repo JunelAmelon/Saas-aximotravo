@@ -1,53 +1,80 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { useParams } from 'next/navigation';
+import { useProjectMedia, ProjectMedia, addMedia } from '@/hooks/useProjectMedia';
+import { CLOUDINARY_UPLOAD_PRESET } from '@/lib/cloudinary';
 import { Search, Filter, Upload, X } from 'lucide-react';
 import Image from 'next/image';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 
-interface Photo {
-  id: number;
-  url: string;
-  title: string;
-  date: string;
-  category: string;
-}
+// On utilise ProjectMedia du hook
 
 export default function ProjectPhotos() {
+  const [addOpen, setAddOpen] = useState(false);
+  const [mediaForm, setMediaForm] = useState({ title: '', tag: '', date: '', file: null as File | null });
+  const [uploading, setUploading] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  
-  const photos: Photo[] = [
-    {
-      id: 1,
-      url: "https://images.pexels.com/photos/1643383/pexels-photo-1643383.jpeg",
-      title: "Photo RT - Salle de bain",
-      date: "27 sept. 2021",
-      category: "Photos RT"
-    },
-    {
-      id: 2,
-      url: "https://images.pexels.com/photos/2724749/pexels-photo-2724749.jpeg",
-      title: "Photo Chantier - Installation",
-      date: "27 sept. 2021",
-      category: "Photos Chantier"
-    }
-  ];
 
-  const categories = ["Photos RT", "Photos Chantier", "Photos SAV"];
+  // Récupération du projectId depuis l'URL
+  const params = useParams();
+  const projectId = Array.isArray(params?.id) ? params.id[0] : params?.id as string;
+  const [photos, setPhotos] = useState<ProjectMedia[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Chargement des médias avec useEffect
+  useEffect(() => {
+    if (!projectId) return;
+    setLoading(true);
+    setError(null);
+    let isMounted = true;
+    (async () => {
+      try {
+        const { fetchProjectMedia } = await import('@/hooks/useProjectMedia');
+        const mediaList = await fetchProjectMedia(projectId);
+        if (isMounted) setPhotos(mediaList);
+      } catch (e) {
+        if (isMounted) setError('Erreur lors du chargement des médias: ' + e);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    })();
+    return () => { isMounted = false; };
+  }, [projectId, addOpen]);
+
+  if (loading) return <div>Chargement...</div>;
+  if (error) return <div>Erreur : {error}</div>;
+
+  const categories = Array.from(new Set(photos.map(photo => photo.tag)));
 
   const filteredPhotos = photos.filter(photo => {
     const matchesSearch = photo.title.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategories = selectedCategories.length === 0 || selectedCategories.includes(photo.category);
-    return matchesSearch && matchesCategories;
+    const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(photo.tag);
+    return matchesSearch && matchesCategory;
   });
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
+        <button
+          className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-[#f26755] to-[#f26755] text-white rounded-lg font-semibold shadow hover:opacity-90 transition"
+          onClick={() => window.history.back()}
+          type="button"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          Retour
+        </button>
         <h2 className="text-lg font-medium text-gray-900">Médiathèque</h2>
-        <button className="inline-flex items-center px-4 py-2 bg-[#f21515] text-white rounded-md text-sm font-medium hover:bg-[#f21515]/90 transition-colors">
+        <button
+          className="inline-flex items-center px-4 py-2 bg-[#f21515] text-white rounded-md text-sm font-medium hover:bg-[#f21515]/90 transition-colors"
+          onClick={() => setAddOpen(true)}
+          type="button"
+        >
           <Upload className="h-4 w-4 mr-2" />
           Ajouter des médias
         </button>
@@ -110,7 +137,7 @@ export default function ProjectPhotos() {
               <div className="mt-2 flex items-center justify-between text-sm">
                 <span className="text-gray-500">{photo.date}</span>
                 <span className="inline-flex px-2 py-1 rounded-full bg-gray-100 text-gray-700 text-xs">
-                  {photo.category}
+                  {photo.tag}
                 </span>
               </div>
             </div>
@@ -130,6 +157,104 @@ export default function ProjectPhotos() {
               />
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog d'ajout de média */}
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent className="max-w-md">
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              setFormError(null);
+              setUploading(true);
+              try {
+                if (!mediaForm.title || !mediaForm.tag || !mediaForm.date || !mediaForm.file) {
+                  setFormError('Tous les champs sont obligatoires.');
+                  setUploading(false);
+                  return;
+                }
+                // Upload Cloudinary
+                const data = new FormData();
+                data.append('file', mediaForm.file);
+                data.append('upload_preset', CLOUDINARY_UPLOAD_PRESET as string);
+                const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+                const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`;
+                const res = await fetch(uploadUrl, {
+                  method: 'POST',
+                  body: data,
+                });
+                const result = await res.json();
+                if (!result.secure_url) throw new Error('Erreur upload Cloudinary');
+                await addMedia({
+                  projectId,
+                  url: result.secure_url,
+                  title: mediaForm.title,
+                  date: mediaForm.date,
+                  tag: mediaForm.tag,
+                });
+                setAddOpen(false);
+                setMediaForm({ title: '', tag: '', date: '', file: null });
+                if (fileInputRef.current) fileInputRef.current.value = '';
+              } catch (err: any) {
+                setFormError('Erreur lors de l\'ajout du média.');
+              } finally {
+                setUploading(false);
+              }
+            }}
+            className="space-y-4"
+          >
+            <h2 className="text-lg font-semibold">Ajouter un média</h2>
+            {formError && <div className="text-red-600 text-sm">{formError}</div>}
+            <div>
+              <label className="block text-sm mb-1">Titre</label>
+              <input
+                type="text"
+                className="w-full border rounded px-3 py-2"
+                value={mediaForm.title}
+                onChange={e => setMediaForm(f => ({ ...f, title: e.target.value }))}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm mb-1">Catégorie</label>
+              <input
+                type="text"
+                className="w-full border rounded px-3 py-2"
+                value={mediaForm.tag}
+                onChange={e => setMediaForm(f => ({ ...f, tag: e.target.value }))}
+                placeholder="Photos Chantier, Photos RT, etc."
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm mb-1">Date</label>
+              <input
+                type="date"
+                className="w-full border rounded px-3 py-2"
+                value={mediaForm.date}
+                onChange={e => setMediaForm(f => ({ ...f, date: e.target.value }))}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm mb-1">Fichier image</label>
+              <input
+                type="file"
+                accept="image/*"
+                ref={fileInputRef}
+                onChange={e => setMediaForm(f => ({ ...f, file: e.target.files?.[0] || null }))}
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              className="w-full bg-[#f21515] text-white py-2 rounded font-semibold hover:bg-[#f21515]/90 transition-colors disabled:opacity-60"
+              disabled={uploading}
+            >
+              {uploading ? 'Ajout en cours...' : 'Ajouter'}
+            </button>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

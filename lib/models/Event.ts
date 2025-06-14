@@ -3,19 +3,16 @@ import { addDocument, deleteDocument, getDocument, queryDocuments, updateDocumen
 
 export interface Event {
   id?: string;
-  title: string;
-  description?: string;
+  name: string; // nom de l'événement
+  address: string;
   projectId: string;
-  date: Date | Timestamp;
-  endDate?: Date | Timestamp;
-  location?: string;
-  participants?: string[];
-  type?: "meeting" | "deadline" | "milestone" | "other";
-  status?: "scheduled" | "completed" | "cancelled";
-  createdBy: string;
-  created_at?: Timestamp;
-  updated_at?: Timestamp;
+  start: string; // ISO string
+  end: string; // ISO string
+  timestamp: any; // Firestore timestamp
+  type: string; // ex: "visite"
+  typeColor: string; // ex: "bg-green-50 text-green-800 border-green-200"
 }
+
 
 const COLLECTION_NAME = "events";
 

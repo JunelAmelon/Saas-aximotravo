@@ -16,9 +16,11 @@ export interface BaseUser {
 
 export interface ArtisanUser extends BaseUser {
   role: 'artisan';
+  email: string;
   companyName: string;
-  siret: string;
+  secteur: string;
   courtierId?: string;
+  specialite?: string;
 }
 
 export interface CourtierUser extends BaseUser {

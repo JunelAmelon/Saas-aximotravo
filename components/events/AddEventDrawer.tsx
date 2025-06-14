@@ -7,9 +7,11 @@ import { fr } from 'date-fns/locale';
 interface AddEventDrawerProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
+  onAddEvent?: (event: any) => Promise<void>;
+  loading?: boolean;
 }
 
-export default function AddEventDrawer({ isOpen, onOpenChange }: AddEventDrawerProps) {
+export default function AddEventDrawer({ isOpen, onOpenChange, onAddEvent, loading }: AddEventDrawerProps) {
   const [eventForm, setEventForm] = useState({
     type: '',
     title: '',
@@ -26,13 +28,53 @@ export default function AddEventDrawer({ isOpen, onOpenChange }: AddEventDrawerP
       vendorRef: { email: 'pose.biganos@test.fr', selected: false }
     }
   });
+  const [error, setError] = useState<string|null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle form submission
-    console.log('Event form submitted:', eventForm);
-    onOpenChange(false);
+    setError(null);
+    setSubmitting(true);
+    try {
+      if (!eventForm.type || !eventForm.title || !eventForm.startDate || !eventForm.endDate || !eventForm.address) {
+        setError("Tous les champs obligatoires doivent être remplis.");
+        setSubmitting(false);
+        return;
+      }
+      // Construction de l'objet event pour Firestore
+      const eventData = {
+        // projectId injecté par le parent via closure ou context (voir ci-dessous)
+        type: eventForm.type,
+        name: eventForm.title,
+        start: eventForm.startDate,
+        end: eventForm.endDate,
+        address: eventForm.address,
+        typeColor: getTypeColor(eventForm.type),
+        // timestamp ajouté côté hook Firestore
+      };
+      if (onAddEvent) {
+        await onAddEvent(eventData);
+      }
+      onOpenChange(false);
+    } catch (err: any) {
+      setError("Erreur lors de l'ajout de l'événement.");
+    } finally {
+      setSubmitting(false);
+    }
   };
+
+  // Utilitaire pour la couleur du type
+  function getTypeColor(type: string) {
+    switch (type) {
+      case 'sav': return 'bg-red-50 text-red-800 border-red-200';
+      case 'visite': return 'bg-green-50 text-green-800 border-green-200';
+      case 'construction': return 'bg-blue-50 text-blue-800 border-blue-200';
+      case 'livraison': return 'bg-orange-50 text-orange-800 border-orange-200';
+      case 'autre': return 'bg-gray-50 text-gray-800 border-gray-200';
+      case 'releve_technique': return 'bg-purple-50 text-purple-800 border-purple-200';
+      default: return '';
+    }
+  }
 
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
@@ -207,14 +249,18 @@ export default function AddEventDrawer({ isOpen, onOpenChange }: AddEventDrawerP
             </div>
           </div>
 
+          {error && (
+            <div className="text-red-600 text-sm pb-2">{error}</div>
+          )}
           <div className="flex justify-end pt-4">
               <button
                 type="submit"
-                className="px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors"
+                className="px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors disabled:opacity-60"
                 aria-label="Enregistrer l'événement"
                 title="Enregistrer l'événement"
+                disabled={loading || submitting}
               >
-                Enregistrer
+                {loading || submitting ? 'Enregistrement...' : 'Enregistrer'}
               </button>
           </div>
         </form>

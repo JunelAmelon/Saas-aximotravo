@@ -252,9 +252,9 @@ export default function CourtierDashboard() {
               <div key={artisan.uid} className="bg-white p-4 rounded-lg shadow hover:shadow-md transition-all">
                 <div className="flex items-start justify-between">
                   <div>
-                    <h3 className="font-bold text-gray-900">{artisan.companyName}</h3>
-                    <p className="text-sm text-gray-500">{artisan.displayName || artisan.email}</p>
-                    <p className="text-xs text-gray-400 mt-1">SIRET: {artisan.siret}</p>
+                    <h3 className="font-bold text-gray-900">{artisan.displayName || artisan.email}</h3>
+                    <p className="text-sm text-gray-500">{artisan.companyName}</p>
+                    <p className="text-sm text-gray-500">{artisan.specialite}</p>
                   </div>
                   <div className="p-2 bg-[#f26755]/10 rounded-full text-[#f26755]">
                     <Users size={16} />

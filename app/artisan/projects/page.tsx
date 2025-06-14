@@ -4,10 +4,7 @@ import { useState, useEffect } from "react";
 import { Search, Filter, X, ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-// Temporary import fix - should be updated with proper Firebase imports
-const projectService = {
-  getByStatus: async () => []
-};
+import { useArtisanProjects } from '@/hooks/useArtisanProjects';
 
 interface Project {
   id?: string;
@@ -32,7 +29,6 @@ export default function ArtisanProjects() {
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const projectsPerPage = 5;
-  const [loading, setLoading] = useState(true);
   const [projects, setProjects] = useState<Project[]>([]);
   
   const statusConfig: Record<Project["status"], StatusConfig> = {
@@ -44,61 +40,25 @@ export default function ArtisanProjects() {
     cloture: { label: "Clôturé", count: 459, color: "#10b981" }
   };
 
-  // Charger les projets depuis Firebase
+  // Charger les projets réels liés à l'artisan
+  const { projects: artisanProjects, loading, error } = useArtisanProjects();
+
   useEffect(() => {
-    async function loadProjects() {
-      try {
-        setLoading(true);
-        // Dans un vrai projet, vous pourriez restreindre les projets par utilisateur ou organisation
-        const projectsData = await projectService.getByStatus("active");
-        
-        // Adapter les données de Firebase à notre interface locale
-        const formattedProjects: Project[] = projectsData.map(p => ({
+    if (artisanProjects) {
+      setProjects(
+        artisanProjects.map((p: any) => ({
           id: p.id,
           name: p.name,
-          clientId: p.clientId,
-          client: p.clientId, // Normalement vous récupéreriez le client à partir de son ID
-          status: (p.status === "active" ? "chantier_en_cours" : "termine") as Project["status"], // Adapter le statut
-          amount: 3979.94, // Dans un vrai projet, ce serait une propriété du projet
-          date: p.startDate ? new Date(p.startDate.seconds * 1000).toLocaleDateString() : undefined,
-          image: "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg" // Placeholder image
-        }));
-        
-        // Si aucun projet n'est trouvé, ajouter un projet de démonstration
-        if (formattedProjects.length === 0) {
-          formattedProjects.push({
-            id: "1",
-            name: "Projet Découverte - Leroy Merlin Biganos",
-            clientId: "client1",
-            client: "LEROY MERLIN BIGANOS",
-            status: "chantier_en_cours",
-            amount: 3979.94,
-            date: "27/09/2021",
-            image: "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg"
-          });
-        }
-        
-        setProjects(formattedProjects);
-      } catch (error) {
-        console.error("Erreur lors du chargement des projets:", error);
-        // En cas d'erreur, ajouter un projet de démonstration
-        setProjects([{
-          id: "1",
-          name: "Projet Découverte - Leroy Merlin Biganos",
-          clientId: "client1",
-          client: "LEROY MERLIN BIGANOS",
-          status: "chantier_en_cours",
-          amount: 3979.94,
-          date: "27/09/2021",
-          image: "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg"
-        }]);
-      } finally {
-        setLoading(false);
-      }
+          clientId: '', // déjà enrichi dans p.client
+          client: p.client,
+          status: p.status as Project["status"],
+          amount: p.budget,
+          image: p.image,
+          date: p.deadline,
+        }))
+      );
     }
-    
-    loadProjects();
-  }, []);
+  }, [artisanProjects]);
 
   const clearFilters = () => {
     setSearchTerm("");
@@ -124,15 +84,6 @@ export default function ArtisanProjects() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-medium text-gray-900">Liste des projets</h1>
-        <Link 
-          href="/artisan/projects/new"
-          className="px-4 py-2 bg-[#f26755] text-white text-sm font-medium rounded-md hover:bg-[#f26755]/90 transition-colors"
-        >
-          Nouveau projet
-        </Link>
-      </div>
 
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
         <div className="w-full sm:w-[32rem] relative">
@@ -229,7 +180,7 @@ export default function ArtisanProjects() {
                     <div className="flex items-start justify-between gap-2">
                       <h3 className="text-base font-medium text-gray-900 truncate">{project.name}</h3>
                       <span className="inline-flex flex-shrink-0 px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full whitespace-nowrap">
-                        {statusConfig[project.status].label}
+                        {statusConfig[project.status]?.label ?? project.status ?? 'Statut inconnu'}
                       </span>
                     </div>
                     <p className="text-sm text-gray-600 truncate mt-1">{project.client}</p>

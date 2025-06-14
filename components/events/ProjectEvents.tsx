@@ -1,53 +1,51 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/lib/contexts/AuthContext';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase/config';
+import { useProjectEvents } from '@/hooks/useProjectEvents';
+import { useParams } from 'next/navigation';
 import { Search, Filter, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import AddEventDrawer from './AddEventDrawer';
 
-interface Event {
-  id: string;
-  startDate: string;
-  endDate: string;
-  type: 'sav' | 'visite' | 'construction' | 'livraison' | 'autre' | 'releve_technique';
-  name: string;
-  location: string;
-}
+// interface Event supprimée : on utilise ProjectEvent du hook
 
 const typeConfig: Record<Event['type'], { label: string; color: string; bg: string; border: string }> = {
-  sav: { 
-    label: 'SAV', 
+  sav: {
+    label: 'SAV',
     color: 'text-red-800',
     bg: 'bg-red-50',
     border: 'border-red-200'
   },
-  visite: { 
-    label: 'Visite', 
+  visite: {
+    label: 'Visite',
     color: 'text-green-800',
     bg: 'bg-green-50',
     border: 'border-green-200'
   },
-  construction: { 
-    label: 'Construction', 
+  construction: {
+    label: 'Construction',
     color: 'text-blue-800',
     bg: 'bg-blue-50',
     border: 'border-blue-200'
   },
-  livraison: { 
-    label: 'Livraison', 
+  livraison: {
+    label: 'Livraison',
     color: 'text-orange-800',
     bg: 'bg-orange-50',
     border: 'border-orange-200'
   },
-  autre: { 
-    label: 'Autre', 
+  autre: {
+    label: 'Autre',
     color: 'text-gray-800',
     bg: 'bg-gray-50',
     border: 'border-gray-200'
   },
-  releve_technique: { 
-    label: 'Relevé Technique', 
+  releve_technique: {
+    label: 'Relevé Technique',
     color: 'text-purple-800',
     bg: 'bg-purple-50',
     border: 'border-purple-200'
@@ -55,62 +53,54 @@ const typeConfig: Record<Event['type'], { label: string; color: string; bg: stri
 };
 
 export default function ProjectEvents() {
+  const { currentUser } = useAuth();
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchRole = async () => {
+      if (currentUser) {
+        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+        if (userDoc.exists()) {
+          setUserRole(userDoc.data().role?.toLowerCase() || null);
+        }
+      }
+    };
+    fetchRole();
+  }, [currentUser]);
+  const params = useParams();
+  const projectId = Array.isArray(params?.id) ? params.id[0] : params?.id as string;
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddEventOpen, setIsAddEventOpen] = useState(false);
-  const [events] = useState<Event[]>([
-    {
-      id: '1',
-      startDate: '2025-03-01T17:00',
-      endDate: '2025-03-01T18:00',
-      type: 'sav',
-      name: 'SAV - Pose Paroi',
-      location: 'Leroy Merlin Biganos'
-    },
-    {
-      id: '2',
-      startDate: '2025-03-01T09:30',
-      endDate: '2025-03-01T12:00',
-      type: 'visite',
-      name: 'Démarrage Chantier',
-      location: 'Leroy Merlin Biganos'
-    },
-    {
-      id: '3',
-      startDate: '2025-03-01T14:30',
-      endDate: '2025-03-01T17:00',
-      type: 'construction',
-      name: 'Date de Pose',
-      location: 'Leroy Merlin Biganos'
-    },
-    {
-      id: '4',
-      startDate: '2025-03-01T19:00',
-      endDate: '2025-03-01T20:00',
-      type: 'livraison',
-      name: 'Livraison',
-      location: 'Leroy Merlin Biganos'
-    },
-    {
-      id: '5',
-      startDate: '2025-03-01T16:30',
-      endDate: '2025-03-01T17:30',
-      type: 'releve_technique',
-      name: 'Relevé Technique',
-      location: 'Leroy Merlin Biganos'
-    }
-  ]);
+  const { events, loading, error, addEvent } = useProjectEvents(projectId);
+
+  // Filtrage local pour la recherche
+  const filteredEvents = events.filter(event =>
+    event.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    event.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (event.address || '').toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-medium text-gray-900">Événements du Projet</h2>
-        <button 
-          onClick={() => setIsAddEventOpen(true)}
-          className="inline-flex items-center px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors"
+        <button
+          className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-[#f26755] to-[#f26755] text-white rounded-lg font-semibold shadow hover:opacity-90 transition"
+          onClick={() => window.history.back()}
+          type="button"
         >
-          <Plus className="h-4 w-4 mr-2" />
-          Ajouter un événement
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          Retour
         </button>
+        <h2 className="text-lg font-medium text-gray-900">Événements du Projet</h2>
+        {userRole === 'artisan' && (
+          <button
+            onClick={() => setIsAddEventOpen(true)}
+            className="inline-flex items-center px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Ajouter un événement
+          </button>
+        )}
       </div>
 
       <div className="flex items-center gap-4">
@@ -155,28 +145,28 @@ export default function ProjectEvents() {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {events.map((event) => (
+            {filteredEvents.map((event) => (
               <tr key={event.id} className="hover:bg-gray-50 group">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900">
-                    {format(new Date(event.startDate), 'dd/MM/yyyy HH:mm', { locale: fr })}
+                    {format(new Date(event.start), 'dd/MM/yyyy HH:mm', { locale: fr })}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900">
-                    {format(new Date(event.endDate), 'dd/MM/yyyy HH:mm', { locale: fr })}
+                    {format(new Date(event.end), 'dd/MM/yyyy HH:mm', { locale: fr })}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-3 py-1 text-sm font-medium rounded-full ${typeConfig[event.type].color} ${typeConfig[event.type].bg} ${typeConfig[event.type].border} border`}>
-                    {typeConfig[event.type].label}
+                  <span className={`px-3 py-1 text-sm font-medium rounded-full ${typeConfig[event.type]?.color || ''} ${typeConfig[event.type]?.bg || ''} ${typeConfig[event.type]?.border || ''} border`}>
+                    {typeConfig[event.type]?.label || event.type}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900">{event.name}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-500">{event.location}</div>
+                  <div className="text-sm text-gray-500">{event.address}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <button className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-gray-400 hover:text-gray-600">•••</button>
@@ -204,9 +194,14 @@ export default function ProjectEvents() {
         </div>
       </div>
 
-      <AddEventDrawer 
+      <AddEventDrawer
         isOpen={isAddEventOpen}
         onOpenChange={setIsAddEventOpen}
+        onAddEvent={async (eventData) => {
+          if (!projectId) return;
+          await addEvent({ ...eventData, projectId });
+        }}
+        loading={loading}
       />
     </div>
   );

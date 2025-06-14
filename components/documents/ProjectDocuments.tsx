@@ -1,6 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
+import { fetchProjectDocuments, addProjectDocument } from '@/hooks/useProjectDocuments';
+
+const CLOUDINARY_UPLOAD_URL = 'https://api.cloudinary.com/v1_1/' + process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME + '/upload';
+const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FileText, Download, Upload, Mail, Check } from 'lucide-react';
@@ -28,26 +33,32 @@ export default function ProjectDocuments() {
   const [isAddDocumentOpen, setIsAddDocumentOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [documentType, setDocumentType] = useState('');
+  const [montant, setMontant] = useState('');
   const [isNotificationSent, setIsNotificationSent] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
-  const [documents] = useState<Document[]>([
-    {
-      id: "1",
-      name: "Devis final",
-      category: "Devis",
-      date: "2024-02-15",
-      size: "1.2 MB",
-      status: "Signé"
-    },
-    {
-      id: "2",
-      name: "Facture acompte",
-      category: "Facture",
-      date: "2024-02-16",
-      size: "856 KB",
-      status: "En attente"
+  // Récupération du projectId depuis l'URL
+const params = useParams();
+const projectId = Array.isArray(params?.id) ? params.id[0] : params?.id as string;
+const [documents, setDocuments] = useState<any[]>([]);
+const [loading, setLoading] = useState(false);
+const [error, setError] = useState<string | null>(null);
+
+useEffect(() => {
+  if (!projectId) return;
+  setLoading(true);
+  setError(null);
+  (async () => {
+    try {
+      const freshDocs = await fetchProjectDocuments(projectId);
+      setDocuments(freshDocs);
+    } catch (e) {
+      setError('Erreur lors du chargement des documents');
+    } finally {
+      setLoading(false);
     }
-  ]);
+  })();
+}, [projectId, isAddDocumentOpen]);
 
   const [recipients] = useState<Recipient[]>([
     {
@@ -83,18 +94,55 @@ export default function ProjectDocuments() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsNotificationSent(true);
-    setTimeout(() => {
-      setIsNotificationSent(false);
-      setIsAddDocumentOpen(false);
-      setSelectedFile(null);
-      setDocumentType('');
-    }, 2000);
+    if (!selectedFile || !documentType || !projectId) return;
+    setUploading(true);
+    try {
+      // Upload Cloudinary
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET || '');
+      const res = await fetch(CLOUDINARY_UPLOAD_URL, {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      const uploadedUrl = data.secure_url;
+      await addProjectDocument({
+        projectId,
+        name: selectedFile.name,
+        category: documentType.charAt(0).toUpperCase() + documentType.slice(1),
+        date: new Date().toISOString().slice(0,10),
+        size: `${(selectedFile.size/1024/1024).toFixed(2)} MB`,
+        status: "en attente",
+        url: uploadedUrl,
+        montant: documentType.toLowerCase() === 'devis' && montant ? Number(montant) : undefined,
+      });
+      setIsNotificationSent(true);
+      setTimeout(() => {
+        setIsNotificationSent(false);
+        setIsAddDocumentOpen(false);
+        setSelectedFile(null);
+        setDocumentType('');
+        setMontant('');
+      }, 2000);
+    } catch (err) {
+      alert('Erreur lors de l\'upload ou de l\'ajout du document');
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
+        <button
+          className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-[#f26755] to-[#f26755] text-white rounded-lg font-semibold shadow hover:opacity-90 transition"
+          onClick={() => window.history.back()}
+          type="button"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          Retour
+        </button>
         <h2 className="text-lg font-medium text-gray-900">Documents du projet</h2>
         <button
           onClick={() => setIsAddDocumentOpen(true)}
@@ -115,7 +163,7 @@ export default function ProjectDocuments() {
                 <FileText className="h-5 w-5 text-gray-400 mr-2" aria-hidden="true" />
                 <span className="text-sm font-medium text-gray-900">{document.name}</span>
               </div>
-              <button 
+              <button
                 className="text-[#f26755] hover:text-[#f26755]/80 p-2"
                 title="Télécharger le document"
                 aria-label="Télécharger le document"
@@ -123,7 +171,7 @@ export default function ProjectDocuments() {
                 <Download className="h-5 w-5" aria-hidden="true" />
               </button>
             </div>
-            
+
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div>
                 <p className="text-gray-500 font-medium">CATÉGORIE</p>
@@ -139,11 +187,10 @@ export default function ProjectDocuments() {
               </div>
               <div>
                 <p className="text-gray-500 font-medium">Statut</p>
-                <span className={`px-2 py-1 inline-flex text-xs leading-none font-semibold rounded-full ${
-                  document.status === "Signé" 
+                <span className={`px-2 py-1 inline-flex text-xs leading-none font-semibold rounded-full ${document.status === "signé"
                     ? "bg-green-100 text-green-800"
                     : "bg-yellow-100 text-yellow-800"
-                }`}>
+                  }`}>
                   {document.status}
                 </span>
               </div>
@@ -151,7 +198,7 @@ export default function ProjectDocuments() {
           </div>
         ))}
       </div>
-      
+
       {/* Version desktop: affichage en tableau */}
       <div className="hidden md:block bg-white rounded-lg shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
@@ -197,16 +244,15 @@ export default function ProjectDocuments() {
                     {document.size}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      document.status === 'Signé' 
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${document.status === 'signé'
                         ? 'bg-green-100 text-green-800'
                         : 'bg-yellow-100 text-yellow-800'
-                    }`}>
+                      }`}>
                       {document.status}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button 
+                    <button
                       className="text-[#f26755] hover:text-[#f26755]/80"
                       title="Télécharger le document"
                       aria-label="Télécharger le document"
@@ -226,7 +272,7 @@ export default function ProjectDocuments() {
           <SheetHeader>
             <SheetTitle>Ajouter un document</SheetTitle>
           </SheetHeader>
-          
+
           <form onSubmit={handleSubmit} className="mt-4 sm:mt-6 space-y-4 sm:space-y-6 max-h-[80vh] overflow-y-auto pr-1">
             <div>
               <label htmlFor="document-type" className="block text-sm font-medium text-gray-700 mb-2">
@@ -267,6 +313,21 @@ export default function ProjectDocuments() {
                 </span>
               </label>
             </div>
+            {documentType.toLowerCase() === 'devis' && (
+              <div>
+                <label htmlFor="montant" className="block text-sm font-medium text-gray-700 mb-2">Montant du devis (€)</label>
+                <input
+                  id="montant"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={montant}
+                  onChange={e => setMontant(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-[#f26755] focus:border-[#f26755]"
+                  placeholder="Saisir le montant"
+                />
+              </div>
+            )}
 
             <div>
               <div className="flex items-center gap-2 mb-3">
@@ -275,8 +336,8 @@ export default function ProjectDocuments() {
                   Notifier par email
                 </span>
               </div>
-              
-              <div className="space-y-3">
+
+              {/* <div className="space-y-3">
                 {recipients.map((recipient) => (
                   <div key={recipient.id} className="flex items-center gap-2">
                     <Checkbox
@@ -300,20 +361,26 @@ export default function ProjectDocuments() {
                     </label>
                   </div>
                 ))}
-              </div>
+              </div> */}
             </div>
 
             <div className="flex justify-end pt-4">
               <button
                 type="submit"
-                disabled={isNotificationSent || !selectedFile || !documentType}
-                className={`px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 ${
-                  isNotificationSent
+                disabled={isNotificationSent || uploading || !selectedFile || !documentType || (documentType.toLowerCase() === 'devis' && !montant)}
+                className={`px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 ${isNotificationSent
                     ? "bg-green-100 text-green-700 cursor-not-allowed"
-                    : "bg-[#f26755] text-white hover:bg-[#f26755]/90"
-                }`}
+                    : uploading
+                      ? "bg-gray-200 text-gray-400 cursor-wait"
+                      : "bg-[#f26755] text-white hover:bg-[#f26755]/90"
+                  }`}
               >
-                {isNotificationSent ? (
+                {uploading ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4 mr-2 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>
+                    Envoi en cours...
+                  </>
+                ) : isNotificationSent ? (
                   <>
                     <Check className="h-4 w-4" />
                     Document envoyé

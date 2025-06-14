@@ -3,11 +3,20 @@
 import { useState } from 'react';
 import { Send, Upload } from 'lucide-react';
 
+import { ProjectNote } from "@/hooks/useProjectNotes";
+import { useRef } from "react";
+import { useAuth } from "@/lib/contexts/AuthContext";
+import { CLOUDINARY_UPLOAD_PRESET } from '@/lib/cloudinary';
+
+const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/auto/upload`;
+
 interface ProjectNoteFormProps {
   onClose?: () => void;
+  onAddNote?: (note: Omit<ProjectNote, 'id' | 'date' | 'timestamp'>) => Promise<void>;
+  projectId?: string;
 }
 
-export default function ProjectNoteForm({ onClose }: ProjectNoteFormProps) {
+export default function ProjectNoteForm({ onClose, onAddNote, projectId }: ProjectNoteFormProps) {
   const [note, setNote] = useState({
     title: '',
     content: '',
@@ -15,18 +24,75 @@ export default function ProjectNoteForm({ onClose }: ProjectNoteFormProps) {
     notifyArtisan: false,
     notifyPilot: false,
     notifyVendor: false,
-    emails: [] as string[]
+    emails: [] as string[],
+    attachments: [] as string[],
   });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { currentUser } = useAuth();
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Handle form submission
-    console.log('Note submitted:', note);
-    onClose?.();
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setFiles(Array.from(e.target.files));
+    }
   };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    try {
+      let uploadedUrls: string[] = [];
+      if (files.length > 0) {
+        for (const file of files) {
+          const data = new FormData();
+          data.append("file", file);
+          data.append("upload_preset", CLOUDINARY_UPLOAD_PRESET as string);
+          const res = await fetch(CLOUDINARY_UPLOAD_URL, {
+            method: "POST",
+            body: data
+          });
+          const result = await res.json();
+          if (result.secure_url) {
+            uploadedUrls.push(result.secure_url);
+          }
+        }
+      }
+      if (!projectId) {
+        setError("Impossible d'ajouter la note : projectId manquant.");
+        setLoading(false);
+        return;
+      }
+      if (onAddNote) {
+        const recipients: string[] = note.emails.filter(Boolean);
+        let author = 'Utilisateur inconnu';
+        if (currentUser) {
+          author = currentUser.displayName || currentUser.email || 'Utilisateur inconnu';
+        }
+        const noteToAdd = {
+          projectId,
+          title: note.title,
+          content: note.content,
+          author,
+          recipients,
+          attachments: uploadedUrls,
+        };
+        await onAddNote(noteToAdd);
+      }
+      onClose?.();
+    } catch (err: any) {
+      setError("Erreur lors de l'ajout de la note: ");
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6 max-h-[80vh] overflow-y-auto px-1 w-full">
+      {error && <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">{error}</div>}
       <div>
         <label htmlFor="note-title" className="block text-sm text-gray-700 mb-1">
           Titre de la note <span className="text-gray-400">(facultatif)</span>
@@ -73,16 +139,22 @@ export default function ProjectNoteForm({ onClose }: ProjectNoteFormProps) {
 
       <div>
         <label className="block text-sm text-gray-700 mb-2">Ajouter des pièces jointes</label>
-        <button
-          type="button"
-          className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50"
-          title="Télécharger des images"
-          aria-label="Télécharger des images"
-        >
-          <Upload className="h-4 w-4 mr-2" aria-hidden="true" />
-          Télécharger image(s)
-        </button>
-      </div>
+        <input
+          type="file"
+          multiple
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          className="block w-full text-sm text-gray-700 border border-gray-300 rounded-md cursor-pointer file:mr-4 file:py-2 file:px-4 file:border-0 file:text-sm file:font-semibold file:bg-gray-50 file:text-gray-700 hover:file:bg-gray-100"
+          aria-label="Télécharger des fichiers"
+        />
+        {files.length > 0 && (
+          <ul className="mt-2 text-xs text-gray-600 space-y-1">
+            {files.map((file, idx) => (
+              <li key={idx}>{file.name}</li>
+            ))}
+          </ul>
+        )}
+      </div> 
 
       <div>
         <label className="block text-sm text-gray-700 mb-2">Envoyer cette note par mail</label>
@@ -157,11 +229,16 @@ export default function ProjectNoteForm({ onClose }: ProjectNoteFormProps) {
       <div className="flex justify-end pt-4">
         <button
           type="submit"
-          className="inline-flex items-center px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors"
+          className="inline-flex items-center px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors disabled:opacity-50"
           aria-label="Enregistrer la note"
           title="Enregistrer la note"
+          disabled={loading}
         >
-          <Send className="h-4 w-4 mr-2" aria-hidden="true" />
+          {loading ? (
+            <span className="loader mr-2"></span>
+          ) : (
+            <Send className="h-4 w-4 mr-2" aria-hidden="true" />
+          )}
           Enregistrer
         </button>
       </div>
