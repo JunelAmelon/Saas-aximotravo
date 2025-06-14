@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/contexts/AuthContext";
-import { Users, Search, Plus, UserPlus, Check } from "lucide-react";
+import { Users, Search, Plus, UserPlus, Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { useCreateArtisan } from '@/hooks/useCreateArtisan';
 import {
@@ -14,7 +14,6 @@ import {
 } from "@/lib/firebase/users";
 
 export default function CourtierArtisans() {
-  // Modal état
   const [openAddModal, setOpenAddModal] = useState(false);
   const [form, setForm] = useState({
     companyName: '',
@@ -29,17 +28,18 @@ export default function CourtierArtisans() {
   });
   const { createArtisan, loading: formLoading, error: formError, success: formSuccess } = useCreateArtisan();
 
-  // Handler formulaire
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const artisansPerPage = 8;
+
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setForm(f => ({ ...f, [name]: value }));
   };
 
-  // Création artisan
   const handleAddArtisan = async (e: React.FormEvent) => {
     e.preventDefault();
     await createArtisan(form);
-    // Rafraîchir la liste si succès (succès = string)
     if (!formError) {
       setForm({
         companyName: '',
@@ -52,7 +52,6 @@ export default function CourtierArtisans() {
         email: '',
         specialite: '',
       });
-      // Recharge la liste des artisans après ajout
       if (typeof window !== 'undefined') {
         setTimeout(() => window.location.reload(), 1000);
       }
@@ -69,7 +68,6 @@ export default function CourtierArtisans() {
   const [searchTerm, setSearchTerm] = useState("");
   const [assigning, setAssigning] = useState<{ [key: string]: boolean }>({});
 
-  // Charger les artisans
   useEffect(() => {
     async function loadArtisans() {
       if (!currentUser) return;
@@ -77,17 +75,12 @@ export default function CourtierArtisans() {
       try {
         setLoading(true);
         setError(null);
-
-        // Récupérer mes artisans
         const courtierArtisans = await getArtisansByCourtierId(currentUser.uid);
-
-        // Récupérer les artisans non assignés
         const availableArtisans = await getUnassignedArtisans();
-
         setMyArtisans(courtierArtisans);
         setUnassignedArtisans(availableArtisans);
       } catch (err: any) {
-        console.error('Erreur lors du chargement des artisans:', err);
+        console.error('Erreur:', err);
         setError('Impossible de charger la liste des artisans.');
       } finally {
         setLoading(false);
@@ -97,40 +90,31 @@ export default function CourtierArtisans() {
     loadArtisans();
   }, [currentUser]);
 
-  // Assigner un artisan
   const handleAssignArtisan = async (artisanId: string) => {
     if (!currentUser) return;
 
     try {
       setAssigning(prev => ({ ...prev, [artisanId]: true }));
-
       await assignArtisanToCourtier(artisanId, currentUser.uid);
-
-      // Mise à jour de l'UI
       const artisan = unassignedArtisans.find(a => a.uid === artisanId);
       if (artisan) {
         setMyArtisans(prev => [...prev, artisan]);
         setUnassignedArtisans(prev => prev.filter(a => a.uid !== artisanId));
       }
     } catch (err: any) {
-      console.error('Erreur lors de l\'assignation de l\'artisan:', err);
-      alert('Une erreur est survenue lors de l\'association de l\'artisan.');
+      console.error('Erreur:', err);
+      alert('Erreur lors de l\'association.');
     } finally {
       setAssigning(prev => ({ ...prev, [artisanId]: false }));
     }
   };
 
-  // Filtrer les artisans par recherche
-  const filteredUnassignedArtisans = searchTerm
-    ? unassignedArtisans.filter(artisan =>
-      artisan.companyName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      artisan.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      artisan.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      artisan.specialite?.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    : unassignedArtisans;
+  // Pagination logic
+  const indexOfLastArtisan = currentPage * artisansPerPage;
+  const indexOfFirstArtisan = indexOfLastArtisan - artisansPerPage;
+  const currentArtisans = myArtisans.slice(indexOfFirstArtisan, indexOfLastArtisan);
+  const totalPages = Math.ceil(myArtisans.length / artisansPerPage);
 
-  // Afficher un indicateur de chargement
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -146,17 +130,18 @@ export default function CourtierArtisans() {
           onClick={() => router.push('/courtier/dashboard')}
           className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors"
         >
-          Retour au tableau de bord
+          Retour
         </button>
         <h1 className="text-2xl font-bold text-gray-900">Gestion des artisans</h1>
         <button
           onClick={() => setOpenAddModal(true)}
           className="flex items-center gap-2 px-4 py-2 bg-[#f26755] text-white rounded-md font-semibold shadow hover:opacity-90 transition"
         >
-          <Plus className="h-4 w-4" /> Ajouter un artisan
+          <Plus className="h-4 w-4" /> Ajouter 
         </button>
       </div>
 
+      {/* Modal d'ajout (inchangé) */}
       <Dialog open={openAddModal} onOpenChange={setOpenAddModal}>
         <DialogContent className="max-w-lg w-full">
           <form onSubmit={handleAddArtisan} className="flex flex-col gap-3">
@@ -168,7 +153,7 @@ export default function CourtierArtisans() {
               <input name="phoneNumber" value={form.phoneNumber} onChange={handleFormChange} placeholder="Téléphone" required className="border p-2 rounded" />
               <input name="codePostal" value={form.codePostal} onChange={handleFormChange} placeholder="Code postal" required className="border p-2 rounded" />
               <input name="ville" value={form.ville} onChange={handleFormChange} placeholder="Ville" required className="border p-2 rounded" />
-              <input name="secteur" value={form.secteur} onChange={handleFormChange} placeholder="Secteur géographique" required className="border p-2 rounded" />
+              <input name="secteur" value={form.secteur} onChange={handleFormChange} placeholder="Secteur" required className="border p-2 rounded" />
               <input type="email" name="email" value={form.email} onChange={handleFormChange} placeholder="Email" required className="border p-2 rounded col-span-2" />
               <input name="specialite" value={form.specialite} onChange={handleFormChange} placeholder="Spécialité" required className="border p-2 rounded col-span-2" />
             </div>
@@ -207,37 +192,66 @@ export default function CourtierArtisans() {
 
         {myArtisans.length === 0 ? (
           <div className="bg-white p-6 rounded-lg shadow text-center">
-            <p className="text-gray-500">Vous n'avez pas encore d'artisans associés à votre compte.</p>
+            <p className="text-gray-500">Aucun artisan associé à votre compte.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {myArtisans.map((artisan) => (
-              <div key={artisan.uid} className="bg-white p-4 rounded-lg shadow hover:shadow-md transition-all">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="font-bold text-gray-900">{artisan.displayName || artisan.email}</h3>
-                    <p className="text-sm text-gray-500">{artisan.companyName}</p>
-                    <p className="text-xs text-gray-400 mt-1">Email: {artisan.email}</p>
-                    <p className="text-xs text-gray-400 mt-1">Spécialité: {artisan.specialite}</p>
-                    {artisan.phoneNumber && (
-                      <p className="text-xs text-gray-400 mt-1">Tél: {artisan.phoneNumber}</p>
-                    )}
-                  </div>
-                  <div className="p-2 bg-green-100 rounded-full text-green-600">
-                    <Check size={16} />
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {currentArtisans.map((artisan) => (
+                <div key={artisan.uid} className="bg-white p-4 rounded-lg shadow hover:shadow-md transition-all">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className="font-bold text-gray-900">{artisan.displayName || artisan.email}</h3>
+                      <p className="text-sm text-gray-500">{artisan.companyName}</p>
+                      <p className="text-xs text-gray-400 mt-1">Email: {artisan.email}</p>
+                      <p className="text-xs text-gray-400 mt-1">Spécialité: {artisan.specialite}</p>
+                      {artisan.phoneNumber && (
+                        <p className="text-xs text-gray-400 mt-1">Tél: {artisan.phoneNumber}</p>
+                      )}
+                    </div>
+                    <div className="p-2 bg-green-100 rounded-full text-green-600">
+                      <Check size={16} />
+                    </div>
                   </div>
                 </div>
-                <div className="mt-3 flex justify-end">
+              ))}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex justify-center mt-6 gap-2">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="p-2 rounded-full border border-gray-200 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                
+                {Array.from({ length: totalPages }).map((_, index) => (
                   <button
-                    onClick={() => router.push(`/courtier/artisans/${artisan.uid}`)}
-                    className="text-xs text-[#f21515] hover:underline"
+                    key={index}
+                    onClick={() => setCurrentPage(index + 1)}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                      currentPage === index + 1 
+                        ? 'bg-[#f26755] text-white' 
+                        : 'text-gray-600 hover:bg-gray-100'
+                    }`}
                   >
-                    Voir les projets
+                    {index + 1}
                   </button>
-                </div>
+                ))}
+                
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className="p-2 rounded-full border border-gray-200 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </div>
     </div>

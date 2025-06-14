@@ -49,6 +49,12 @@ export default function Sidebar({ userRole }: SidebarProps) {
         current: pathname === `${roleBasePath}/projects`,
       },
       {
+        name: "Artisans",
+        href: `${roleBasePath}/artisans`,
+        icon: Users, // ou Hammer pour une icône plus métier
+        current: pathname === `${roleBasePath}/artisans`,
+      },
+      {
         name: "Événements",
         href: `${roleBasePath}/events`,
         icon: Calendar,

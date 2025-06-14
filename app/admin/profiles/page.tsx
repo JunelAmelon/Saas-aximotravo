@@ -179,28 +179,32 @@ export default function ProfilerPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 sm:p-6">
       {/* En-tête */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Gestion des utilisateurs</h1>
-        
-        <div className="flex gap-3">
-          <Button 
-            onClick={() => openModal("admin")} 
-            className="bg-[#f26755] hover:bg-[#f26755]/90"
-          >
-            <PlusCircle className="h-4 w-4 mr-2" />
-            Créer un admin
-          </Button>
-          <Button 
-            onClick={() => openModal("courtier")} 
-            className="bg-[#f26755] hover:bg-[#f26755]/90"
-          >
-            <PlusCircle className="h-4 w-4 mr-2" />
-            Créer un courtier
-          </Button>
-        </div>
-      </div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+  {/* Titre */}
+  <h1 className="text-xl sm:text-2xl font-bold text-gray-900 whitespace-nowrap">
+    Gestion des utilisateurs
+  </h1>
+  
+  {/* Boutons - ligne sur desktop, colonne sur mobile */}
+  <div className="flex flex-col sm:flex-row gap-3">
+    <Button 
+      onClick={() => openModal("admin")} 
+      className="bg-[#f26755] hover:bg-[#f26755]/90 whitespace-nowrap"
+    >
+      <PlusCircle className="h-4 w-4 mr-2" />
+      Créer un admin
+    </Button>
+    <Button 
+      onClick={() => openModal("courtier")} 
+      className="bg-[#f26755] hover:bg-[#f26755]/90 whitespace-nowrap"
+    >
+      <PlusCircle className="h-4 w-4 mr-2" />
+      Créer un courtier
+    </Button>
+  </div>
+</div>
 
       {/* Barre de recherche */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
