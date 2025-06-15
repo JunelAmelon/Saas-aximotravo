@@ -43,12 +43,10 @@ export default function NewProject() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Vérifier qu'un fichier image est sélectionné
     if (!imageFile) {
       alert("Veuillez sélectionner une image pour le projet.");
       return;
     }
-    // Upload vers Cloudinary
     const data = new FormData();
     data.append("file", imageFile);
     data.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET as string);
@@ -94,152 +92,174 @@ export default function NewProject() {
     }
   };
 
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6 max-w-6xl mx-auto">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-medium text-gray-900">Nouveau projet</h1>
+        <h1 className="text-2xl font-bold text-gray-800">Nouveau projet</h1>
         <button
           onClick={() => router.back()}
-          className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2"
+          className="px-4 py-2 bg-[#f26755] text-white rounded-lg hover:bg-[#e05a48] transition-colors flex items-center gap-2 shadow-md"
         >
           <ChevronLeft size={16} />
           Retour
         </button>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-6">
+      <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-lg p-8 border border-gray-100">
         {error && (
-          <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-md">
+          <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-lg border border-red-200">
             {error.message}
           </div>
         )}
         {success && (
-          <div className="mb-4 p-3 bg-green-50 text-green-700 rounded-md">
+          <div className="mb-6 p-4 bg-green-50 text-green-700 rounded-lg border border-green-200">
             Projet créé avec succès !
           </div>
         )}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Upload image Cloudinary */}
-          <div className="space-y-2 md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700">Image du projet *</label>
+          <div className="space-y-3 md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Image du projet *</label>
             <div className="flex items-center gap-4">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={e => {
-                  if (e.target.files && e.target.files[0]) {
-                    setImageFile(e.target.files[0]);
-                  } else {
-                    setImageFile(null);
-                  }
-                }}
-                required
-                className="block text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
-              />
-              {imageFile && (
-                <img
-                  src={URL.createObjectURL(imageFile)}
-                  alt="Aperçu du projet"
-                  className="h-16 w-16 object-cover rounded border"
+              <label className="flex flex-col items-center justify-center w-full max-w-xs cursor-pointer">
+                <div className="flex flex-col items-center justify-center pt-5 pb-6 px-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-[#f26755] transition-colors group">
+                  <ImageIcon className="w-8 h-8 mb-3 text-gray-400 group-hover:text-[#f26755]" />
+                  <p className="mb-2 text-sm text-gray-500">
+                    <span className="font-semibold">Cliquez pour uploader</span> ou glissez-déposez
+                  </p>
+                  <p className="text-xs text-gray-500">PNG, JPG (MAX. 5MB)</p>
+                </div>
+                <input 
+                  type="file" 
+                  accept="image/*"
+                  onChange={e => e.target.files && e.target.files[0] && setImageFile(e.target.files[0])}
+                  className="hidden"
+                  required
                 />
+              </label>
+              {imageFile && (
+                <div className="relative">
+                  <img
+                    src={URL.createObjectURL(imageFile)}
+                    alt="Aperçu du projet"
+                    className="h-32 w-32 object-cover rounded-lg border-2 border-gray-200 shadow-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setImageFile(null)}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                </div>
               )}
             </div>
           </div>
+
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">Nom du projet *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Nom du projet *</label>
             <input
               type="text"
               name="name"
               value={form.name}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#f21515] focus:border-transparent"
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f26755] focus:border-transparent transition-all shadow-sm"
               placeholder="Ex: Rénovation appartement Paris 15"
               required
             />
           </div>
 
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">Email du client *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email du client *</label>
             <input
               type="email"
               name="clientEmail"
               value={form.clientEmail}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#f21515] focus:border-transparent"
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f26755] focus:border-transparent transition-all shadow-sm"
               placeholder="client@exemple.com"
               required
             />
           </div>
 
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">Budget estimé (€) *</label>
-            <input
-              type="number"
-              name="budget"
-              value={form.budget}
-              onChange={handleChange}
-              step="0.01"
-              min="0"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#f21515] focus:border-transparent"
-              placeholder="Ex: 10000.50"
-              required
-            />
+            <label className="block text-sm font-medium text-gray-700 mb-1">Budget estimé (€) *</label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">€</span>
+              <input
+                type="number"
+                name="budget"
+                value={form.budget}
+                onChange={handleChange}
+                step="0.01"
+                min="0"
+                className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f26755] focus:border-transparent transition-all shadow-sm"
+                placeholder="10000.50"
+                required
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">Date de début</label>
-            <input
-              type="date"
-              name="startDate"
-              value={form.startDate}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#f21515] focus:border-transparent"
-            />
+            <label className="block text-sm font-medium text-[#4CAF50] mb-1">Date de début</label>
+            <div className="relative">
+              <input
+                type="date"
+                name="startDate"
+                value={form.startDate}
+                onChange={handleChange}
+                className="w-full px-4 py-2.5 border border-[#4CAF50] text-[#2E7D32] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4CAF50] focus:border-transparent transition-all shadow-sm"
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">Date de fin estimée</label>
-            <input
-              type="date"
-              name="estimatedEndDate"
-              value={form.estimatedEndDate}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#f21515] focus:border-transparent"
-            />
+            <label className="block text-sm font-medium text-[#f26755] mb-1">Date de fin estimée</label>
+            <div className="relative">
+              <input
+                type="date"
+                name="estimatedEndDate"
+                value={form.estimatedEndDate}
+                onChange={handleChange}
+                className="w-full px-4 py-2.5 border border-[#f26755] text-[#d32f2f] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f26755] focus:border-transparent transition-all shadow-sm"
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">Type de projet</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Type de projet</label>
             <input
               type="text"
               name="type"
               value={form.type}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#f21515] focus:border-transparent"
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f26755] focus:border-transparent transition-all shadow-sm"
               placeholder="Ex: Rénovation, Extension..."
             />
           </div>
 
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">Localisation</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Localisation</label>
             <input
               type="text"
               name="location"
               value={form.location}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#f21515] focus:border-transparent"
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f26755] focus:border-transparent transition-all shadow-sm"
               placeholder="Adresse ou ville"
             />
           </div>
 
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">% premier acompte *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">% premier acompte *</label>
             <select
               name="firstDepositPercent"
               value={form.firstDepositPercent}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#f21515] focus:border-transparent"
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f26755] focus:border-transparent transition-all shadow-sm appearance-none bg-white bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJsdWNpZGUgbHVjaWRlLWNoZXZyb24tZG93biI+PHBhdGggZD0ibTYgOSA2IDYgNi02Ii8+PC9zdmc+')] bg-no-repeat bg-[center_right_1rem]"
               required
             >
               <option value="">Choisir le pourcentage</option>
@@ -250,32 +270,32 @@ export default function NewProject() {
           </div>
 
           <div className="space-y-2 md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700">Description du projet</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Description du projet</label>
             <textarea
               name="description"
               value={form.description}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#f21515] focus:border-transparent"
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f26755] focus:border-transparent transition-all shadow-sm"
               placeholder="Décrivez le projet en quelques mots..."
               rows={4}
             />
           </div>
         </div>
 
-        <div className="mt-6 flex justify-end">
+        <div className="mt-8 flex justify-end border-t border-gray-100 pt-6">
           <button
             type="submit"
             disabled={isLoading}
-            className={`px-6 py-2 ${isLoading ? "bg-gray-400" : "bg-[#f21515] hover:bg-[#d41414]"} text-white rounded-lg transition-colors flex items-center gap-2`}
+            className={`px-6 py-3 rounded-lg transition-all flex items-center gap-2 shadow-md ${isLoading ? "bg-gray-400" : "bg-[#f26755] hover:bg-[#e05a48]"} text-white font-medium`}
           >
             {isLoading ? (
               <>
-                <div className="animate-spin h-4 w-4 border-2 border-white rounded-full border-t-transparent"></div>
+                <div className="animate-spin h-5 w-5 border-2 border-white rounded-full border-t-transparent"></div>
                 Création en cours...
               </>
             ) : (
               <>
-                <Save size={16} />
+                <Save size={18} />
                 Créer le projet
               </>
             )}

@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Euro, Check, X, Clock, Mail, Upload, Send } from 'lucide-react';
+import { Euro, Check, X, Clock, Mail, Upload, Send, ChevronRight } from 'lucide-react';
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -11,8 +11,6 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Checkbox } from "@/components/ui/checkbox";
 
 import type { ProjectPayment } from "@/hooks/useProjectPayments";
-
-// ProjectPayment est utilisé partout dans ce composant désormais
 
 interface Recipient {
   id: string;
@@ -31,7 +29,6 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 
 const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/auto/upload`;
-
 
 interface PaymentRequestsProps {
   projectId?: string;
@@ -52,10 +49,10 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
     };
     fetchRole();
   }, [currentUser]);
-  // Récupération de l'id projet dynamiquement si non fourni
+
   const params = useParams();
-  const resolvedProjectId = projectId || (Array.isArray(params?.id) ? params.id[0] : params?.id as string);
-  const { payments: requests, loading, error } = useProjectPayments(resolvedProjectId);
+const resolvedProjectId = projectId || (Array.isArray(params?.id) ? params.id[0] : params?.id as string);
+const { payments: requests, loading, error } = useProjectPayments(resolvedProjectId);
 
   const [selectedRequest, setSelectedRequest] = useState<ProjectPayment | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -90,14 +87,14 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
     recipients.filter(r => r.required).map(r => r.id)
   );
 
-  // Rendu dynamique géré ci-dessus avec resolvedProjectId
-
   const getStatusStyle = (status: ProjectPayment["status"]) => {
     switch (status) {
       case "validé":
-        return "bg-green-50 text-green-700 border-green-200";
+        return "bg-green-100/80 text-green-800 border-green-200";
+      case "refusé":
+        return "bg-red-100/80 text-red-800 border-red-200";
       default:
-        return "bg-yellow-50 text-yellow-700 border-yellow-200";
+        return "bg-amber-100/80 text-amber-800 border-amber-200";
     }
   };
 
@@ -105,6 +102,8 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
     switch (status) {
       case "validé":
         return <Check className="h-4 w-4" />;
+      case "refusé":
+        return <X className="h-4 w-4" />;
       default:
         return <Clock className="h-4 w-4" />;
     }
@@ -134,7 +133,6 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
   };
 
   const [openAddModal, setOpenAddModal] = useState(false);
-  // --- Formulaire d'ajout d'acompte (HOOKS EN PREMIER) ---
   const [form, setForm] = useState({
     title: '',
     description: '',
@@ -144,17 +142,6 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  if (loading) {
-    return <div className="py-8 text-center text-gray-500">Chargement des acomptes...</div>;
-  }
-  if (error) {
-    return <div className="py-8 text-center text-red-500">{error}</div>;
-  }
-  // Affichage fallback si aucun acompte
-  if (!requests || requests.length === 0) {
-    return <div className="py-8 text-center text-gray-400">Aucun acompte trouvé pour ce projet.</div>;
-  }
-
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, files } = e.target as any;
     if (name === 'file' || name === 'files') {
@@ -163,7 +150,6 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
       setForm(f => ({ ...f, [name]: value }));
     }
   };
-
 
   const handleAddPayment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -192,7 +178,6 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
         dateValidation: '',
       });
       setForm({ title: '', description: '', amount: '', files: [] });
-      // Forcer le refresh :
       if (typeof window !== 'undefined') window.location.reload();
     } catch (err) {
       setFormError("Erreur lors de l'ajout de l'acompte");
@@ -207,9 +192,27 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
   if (error) {
     return <div className="py-8 text-center text-red-500">{error}</div>;
   }
-  // Affichage fallback si aucun acompte
   if (!requests || requests.length === 0) {
-    return <div className="py-8 text-center text-gray-400">Aucun acompte trouvé pour ce projet.</div>;
+    return (
+      <div className="py-12 text-center">
+        <div className="mx-auto max-w-md p-6 bg-white rounded-xl shadow-sm border border-gray-100">
+          <div className="flex flex-col items-center justify-center space-y-3">
+            <Euro className="h-12 w-12 text-gray-400" />
+            <h3 className="text-lg font-medium text-gray-900">Aucun acompte enregistré</h3>
+            <p className="text-sm text-gray-500">Aucune demande d'acompte n'a été effectuée pour ce projet.</p>
+            {userRole === 'artisan' && (
+              <button
+                className="mt-4 inline-flex items-center px-4 py-2 bg-[#f26755] text-white rounded-lg font-medium hover:bg-[#f26755]/90 transition-colors"
+                onClick={() => setOpenAddModal(true)}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Faire une demande
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -226,7 +229,7 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
                 value={form.title}
                 onChange={handleFormChange}
                 placeholder="Titre"
-                className="w-full sm:w-1/3 border border-gray-300 rounded px-3 py-2 text-sm"
+                className="w-full sm:w-1/3 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-[#f26755] focus:border-[#f26755]"
               />
               <input
                 name="amount"
@@ -237,7 +240,7 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
                 value={form.amount}
                 onChange={handleFormChange}
                 placeholder="Montant (€)"
-                className="w-full sm:w-1/4 border border-gray-300 rounded px-3 py-2 text-sm"
+                className="w-full sm:w-1/4 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-[#f26755] focus:border-[#f26755]"
               />
             </div>
             <textarea
@@ -245,7 +248,7 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
               value={form.description}
               onChange={handleFormChange}
               placeholder="Description"
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-[#f26755] focus:border-[#f26755]"
               rows={2}
             />
             <div className="flex items-center gap-3">
@@ -255,18 +258,13 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
                 accept="image/*"
                 multiple
                 onChange={handleFormChange}
-                className="block text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:border-0 file:text-sm file:font-semibold file:bg-gray-50 file:text-gray-700 hover:file:bg-gray-100"
+                className="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
               />
-              {form.files && form.files.length > 0 && (
-                <span className="text-xs text-gray-600">
-                  {form.files.map(f => f.name).join(', ')}
-                </span>
-              )}
             </div> 
-            <div className="flex justify-end">
+            <div className="flex justify-end pt-2">
               <button
                 type="submit"
-                className="inline-flex items-center px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors disabled:opacity-50"
+                className="inline-flex items-center px-4 py-2 bg-[#f26755] text-white rounded-lg text-sm font-medium hover:bg-[#f26755]/90 transition-colors disabled:opacity-50"
                 disabled={formLoading}
               >
                 {formLoading ? (
@@ -280,19 +278,20 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
           </form>
         </DialogContent>
       </Dialog>
+
       <div className="flex items-center justify-between">
         <button
-          className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-[#f26755] to-[#f26755] text-white rounded-lg font-semibold shadow hover:opacity-90 transition"
+          className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-[#f26755] to-[#f26755]/90 text-white rounded-lg font-semibold shadow hover:opacity-90 transition"
           onClick={() => window.history.back()}
           type="button"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" /></svg>
           Retour
         </button>
-        <h2 className="text-lg font-medium text-gray-900">Demandes d'acompte</h2>
+        <h2 className="text-xl font-semibold text-gray-800">Demandes d'acompte</h2>
         {userRole === 'artisan' && (
           <button
-            className="flex items-center gap-2 px-4 py-2 bg-[#f26755] text-white rounded-md font-semibold shadow hover:opacity-90 transition"
+            className="flex items-center gap-2 px-4 py-2 bg-[#f26755] text-white rounded-lg font-semibold shadow hover:opacity-90 transition"
             onClick={() => setOpenAddModal(true)}
             type="button"
           >
@@ -301,55 +300,87 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
         )}
       </div>
 
-      <div className="flex flex-col gap-2">
+      <div className="grid gap-4">
         {requests.map((request) => (
-          <Card key={request.id} className="border border-gray-200">
-            <CardContent className="p-4 flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-gray-900">{request.title}</span>
-                    <span className={`ml-2 text-xs font-semibold rounded-full px-2 py-0.5 border ${getStatusStyle(request.status)}`}>
+          <div 
+            key={request.id} 
+            className="group relative bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow overflow-hidden"
+          >
+            <div className="absolute inset-y-0 left-0 w-1.5 bg-gradient-to-b from-[#f26755] to-[#f26755]/70"></div>
+            
+            <div className="p-5">
+              <div className="flex justify-between items-start">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-3">
+                    <h3 className="text-lg font-semibold text-gray-900 truncate">
+                      {request.title}
+                    </h3>
+                    <span className={`inline-flex items-center gap-1 text-xs font-medium rounded-full px-2.5 py-0.5 border ${getStatusStyle(request.status)}`}>
                       {getStatusIcon(request.status)}
-                      {request.status === 'validé' ? 'Validé' : 'En attente'}
+                      {request.status === 'validé' ? 'Validé' : request.status === 'refusé' ? 'Refusé' : 'En attente'}
                     </span>
                   </div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    {format(new Date(request.date), "PPP", { locale: fr })}
+                  
+                  <div className="mt-1 flex items-center text-sm text-gray-500">
+                    <span>{format(new Date(request.date), "PPP", { locale: fr })}</span>
                   </div>
                 </div>
-                <div className="text-right text-lg font-bold text-[#f21515]">
-                  {request.amount.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
+                
+                <div className="ml-4 flex-shrink-0">
+                  <div className="text-xl font-bold text-[#f26755]">
+                    {request.amount.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
+                  </div>
                 </div>
               </div>
-              <div className="text-sm text-gray-700 mt-1">
-                {request.description}
-              </div>
-              {request.images && request.images.length > 0 && (
-                <div className="flex gap-3 mt-2 overflow-x-auto">
-                  {request.images.map((img, idx) => (
-                    <Image
-                      key={idx}
-                      src={img}
-                      alt={`Justificatif ${idx + 1}`}
-                      width={200}
-                      height={200}
-                      className="h-60 w-60 object-cover rounded border cursor-pointer transition-transform hover:scale-105"
-                      onClick={() => setSelectedImage(img)}
-                    />
-                  ))}
-                </div> 
+              
+              {request.description && (
+                <div className="mt-3 text-sm text-gray-700">
+                  {request.description}
+                </div>
               )}
-              {/* <div className="flex justify-end mt-4">
+              
+              {request.images && request.images.length > 0 && (
+                <div className="mt-4">
+                  <div className="flex gap-3 overflow-x-auto pb-2 -mx-5 px-5">
+                    {request.images.map((img, idx) => (
+                      <div key={idx} className="relative flex-shrink-0">
+                        <Image
+                          src={img}
+                          alt={`Justificatif ${idx + 1}`}
+                          width={160}
+                          height={120}
+                          className="h-32 w-40 object-cover rounded-lg border border-gray-200 cursor-pointer hover:ring-2 hover:ring-[#f26755] transition-all"
+                          onClick={() => setSelectedImage(img)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              <div className="mt-4 flex justify-between items-center">
+              {userRole === 'courtier' && request.status === 'en_attent' && (
                 <button
-                  className="px-3 py-1 rounded bg-[#f21515] text-white text-xs font-semibold hover:bg-[#f21515]/90"
+                  className="text-sm font-medium text-[#f26755] hover:text-[#f26755]/80 flex items-center gap-1"
                   onClick={() => handleValidation(request)}
                 >
-                  Valider / Notifier
+                  Voir les détails
+                  <ChevronRight className="h-4 w-4" />
                 </button>
-              </div> */}
-            </CardContent>
-          </Card>
+                   )}
+                {userRole === 'courtier' && request.status === 'en_attent' && (
+                  <div className="flex gap-2">
+                    <button className="px-3 py-1.5 text-xs font-medium rounded-lg bg-green-100 text-green-800 hover:bg-green-200">
+                      Valider
+                    </button>
+                    <button className="px-3 py-1.5 text-xs font-medium rounded-lg bg-red-100 text-red-800 hover:bg-red-200">
+                      Refuser
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         ))}
       </div>
 
@@ -360,7 +391,7 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
               <Image
                 src={selectedImage}
                 alt="Image agrandie"
-                width={600}
+                width={800}
                 height={600}
                 className="w-full h-full object-contain"
               />
@@ -370,7 +401,7 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
       </Dialog>
 
       <Sheet open={isValidationDrawerOpen} onOpenChange={setIsValidationDrawerOpen}>
-        <SheetContent className="w-[500px] sm:w-[540px] overflow-y-auto">
+        <SheetContent className="w-full sm:w-[540px] overflow-y-auto">
           <SheetHeader>
             <SheetTitle>Valider la demande d'acompte</SheetTitle>
           </SheetHeader>
@@ -384,7 +415,7 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 rows={4}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-[#f21515] focus:border-[#f21515]"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-[#f26755] focus:border-[#f26755]"
                 placeholder="Ajouter un message..."
               />
             </div>
@@ -393,7 +424,7 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Documents
               </label>
-              <label className="block w-full border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#f21515] cursor-pointer">
+              <label className="block w-full border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#f26755] cursor-pointer">
                 <input
                   type="file"
                   className="hidden"
@@ -436,7 +467,7 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
                       <span className="text-gray-700">{recipient.name}</span>
                       <span className="text-gray-500 ml-2">- {recipient.email}</span>
                       {recipient.required && (
-                        <span className="ml-2 text-xs text-[#f21515]">(Obligatoire)</span>
+                        <span className="ml-2 text-xs text-[#f26755]">(Obligatoire)</span>
                       )}
                     </label>
                   </div>
@@ -444,14 +475,22 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
               </div>
             </div>
 
-            <div className="flex justify-end pt-4">
+            <div className="flex justify-end pt-4 gap-3">
+              <button
+                type="button"
+                onClick={() => setIsValidationDrawerOpen(false)}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100"
+              >
+                Annuler
+              </button>
               <button
                 type="submit"
                 disabled={isNotificationSent}
-                className={`px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 ${isNotificationSent
+                className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${
+                  isNotificationSent
                     ? 'bg-green-100 text-green-700 cursor-not-allowed'
-                    : 'bg-[#f21515] text-white hover:bg-[#f21515]/90'
-                  }`}
+                    : 'bg-[#f26755] text-white hover:bg-[#f26755]/90'
+                }`}
               >
                 {isNotificationSent ? (
                   <>

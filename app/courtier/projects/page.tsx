@@ -9,7 +9,6 @@ import { useAuth } from "@/lib/contexts/AuthContext";
 import { getProjectsByCourtier, Project as FirebaseProject } from "@/lib/firebase/projects";
 import { getUserById } from "@/lib/firebase/users";
 
-// 1. Type des statuts avec vérification stricte
 type ProjectStatus = 
   | "en_attente"
   | "en_cours"
@@ -21,19 +20,17 @@ type ProjectStatus =
   | "termine"
   | "cloture";
 
-// 2. Interface avec conversion depuis Firebase
 interface Project {
   id: string;
   name: string;
   client_id: string;
-  clientName: string;
+  clientName?: string; // Rendons clientName optionnel
   status: ProjectStatus;
   amount: number;
   image?: string;
   date?: string;
 }
 
-// 3. Configuration complète des statuts
 const statusConfig = {
   en_attente: {
     label: "En attente",
@@ -77,19 +74,16 @@ const statusConfig = {
   }
 };
 
-// 4. Fonction de conversion sécurisée
 function convertFirebaseProject(project: FirebaseProject): Project {
-  // Liste des statuts valides
   const validStatuses: ProjectStatus[] = [
     "en_attente", "en_cours", "terminé", 
     "equipe_assignee", "chantier_planifie", 
     "chantier_en_cours", "sav", "termine", "cloture"
   ];
 
-  // Vérification et conversion du statut
   const status: ProjectStatus = validStatuses.includes(project.status as ProjectStatus) 
     ? project.status as ProjectStatus 
-    : "en_attente"; // Valeur par défaut
+    : "en_attente";
 
   return {
     id: project.id,
@@ -115,7 +109,6 @@ export default function CourtierProjects() {
   const projectsPerPage = 3;
   const [projects, setProjects] = useState<Project[]>([]);
 
-  // 5. Chargement des projets avec conversion sécurisée
   async function loadProjects() {
     if (!currentUser) return;
 
@@ -124,13 +117,10 @@ export default function CourtierProjects() {
       setError(null);
 
       const courtierProjects = await getProjectsByCourtier(currentUser.uid);
-      console.log("Projets bruts:", courtierProjects); // Debug
-
       const projectsWithClientNames = await Promise.all(
         courtierProjects.map(async (project) => {
           const converted = convertFirebaseProject(project);
           
-          // Récupération du nom du client si nécessaire
           if (converted.client_id) {
             const user = await getUserById(converted.client_id);
             if (user?.lastName) {
@@ -143,7 +133,6 @@ export default function CourtierProjects() {
       );
 
       setProjects(projectsWithClientNames);
-      console.log("Projets convertis:", projectsWithClientNames); // Debug
     } catch (err) {
       console.error('Erreur:', err);
       setError('Impossible de charger les projets');
@@ -156,17 +145,11 @@ export default function CourtierProjects() {
     loadProjects();
   }, [currentUser]);
 
-  // 6. Vérification des statuts au chargement
-  useEffect(() => {
-    if (projects.length > 0) {
-      const uniqueStatuses = [...new Set(projects.map(p => p.status))];
-      console.log("Statuts présents:", uniqueStatuses);
-    }
-  }, [projects]);
-
   const filteredProjects = projects.filter(project => {
+    // Correction : vérification que clientName existe avant toLowerCase()
+    const clientName = project.clientName || "";
     const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      project.clientName.toLowerCase().includes(searchTerm.toLowerCase());
+      clientName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = !statusFilter || project.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -195,7 +178,6 @@ export default function CourtierProjects() {
 
   return (
     <div className="space-y-6 p-4">
-      {/* En-tête */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-gray-900">Liste des projets</h1>
         <button
@@ -207,7 +189,6 @@ export default function CourtierProjects() {
         </button>
       </div>
 
-      {/* Barre de recherche et filtres */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
@@ -220,13 +201,20 @@ export default function CourtierProjects() {
           />
         </div>
         
-        {/* Filtre par statut */}
+        {/* Filtre par statut avec style amélioré */}
         <div className="relative">
           <button
             onClick={() => setIsStatusDropdownOpen(!isStatusDropdownOpen)}
             className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all"
           >
-            <span>Statut: {statusFilter ? statusConfig[statusFilter].label : "Tous"}</span>
+            <span>Statut: {statusFilter ? (
+              <span className="flex items-center">
+                <span 
+                  className={`w-3 h-3 rounded-full mr-2 ${statusConfig[statusFilter]?.className.split(' ')[0]}`}
+                ></span>
+                {statusConfig[statusFilter]?.label}
+              </span>
+            ) : "Tous"}</span>
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path d="m6 9 6 6 6-6" strokeWidth="2" strokeLinecap="round"/>
             </svg>
@@ -238,20 +226,24 @@ export default function CourtierProjects() {
                   setStatusFilter("");
                   setIsStatusDropdownOpen(false);
                 }}
-                className={`w-full text-left px-4 py-2 hover:bg-gray-50 ${!statusFilter ? 'bg-gray-100' : ''}`}
+                className={`w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center ${!statusFilter ? 'bg-gray-100' : ''}`}
               >
+                <span className="w-3 h-3 rounded-full mr-2 bg-gray-300"></span>
                 Tous les statuts
               </button>
-              {Object.keys(statusConfig).map((status) => (
+              {Object.entries(statusConfig).map(([statusKey, config]) => (
                 <button
-                  key={status}
+                  key={statusKey}
                   onClick={() => {
-                    setStatusFilter(status as ProjectStatus);
+                    setStatusFilter(statusKey as ProjectStatus);
                     setIsStatusDropdownOpen(false);
                   }}
-                  className={`w-full text-left px-4 py-2 hover:bg-gray-50 ${statusFilter === status ? 'bg-gray-100' : ''}`}
+                  className={`w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center ${statusFilter === statusKey ? 'bg-gray-100' : ''}`}
                 >
-                  {statusConfig[status as ProjectStatus].label}
+                  <span 
+                    className={`w-3 h-3 rounded-full mr-2 ${config.className.split(' ')[0]}`}
+                  ></span>
+                  {config.label}
                 </button>
               ))}
             </div>
@@ -259,7 +251,6 @@ export default function CourtierProjects() {
         </div>
       </div>
 
-      {/* Liste des projets */}
       {paginatedProjects.length === 0 ? (
         <div className="bg-white p-8 rounded-lg shadow-sm text-center">
           <p className="text-gray-500 mb-4">Aucun projet trouvé</p>
@@ -278,7 +269,7 @@ export default function CourtierProjects() {
               return (
                 <div key={project.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 hover:shadow-md transition-all">
                   <div className="flex items-start gap-4 mb-4">
-                  <div className="relative w-16 h-16 flex-shrink-0 rounded-full overflow-hidden border-2 border-[#f26755] group-hover:border-[#f26755]/80 transition-colors duration-200">
+                    <div className="relative w-16 h-16 flex-shrink-0 rounded-full overflow-hidden border-2 border-[#f26755] group-hover:border-[#f26755]/80 transition-colors duration-200">
                       <Image
                         src={project.image || "/default-project.jpg"}
                         alt={project.name}
@@ -291,7 +282,6 @@ export default function CourtierProjects() {
                       <h3 className="text-lg font-medium text-gray-900 truncate">{project.name}</h3>
 
                       
-                      {/* Badge de statut */}
                       <div className="mt-2">
                         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${statusInfo.className}`}>
                           {statusInfo.icon && <span className="mr-1">{statusInfo.icon}</span>}
@@ -302,7 +292,7 @@ export default function CourtierProjects() {
                   </div>
                   <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
                         <User className="h-4 w-4 text-[#f26755]" />
-                        <p className="text-sm text-gray-600 truncate">{project.clientName}</p>
+                        <p className="text-sm text-gray-600 truncate">{project.clientName || "Non spécifié"}</p>
                       </div>
                   <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
                     <Calendar className="h-4 w-4 text-[#f26755]" />
@@ -317,32 +307,31 @@ export default function CourtierProjects() {
                   </div>
 
                   <Link
-  href={`/courtier/projects/${project.id}`}
-  className="inline-flex items-center gap-2 px-4 py-2 bg-[#f26755] text-white rounded-md hover:bg-[#f26755]/90 transition-all text-sm group"
->
-  Voir le projet
-  <svg 
-    xmlns="http://www.w3.org/2000/svg" 
-    width="16" 
-    height="16" 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    strokeWidth="2" 
-    strokeLinecap="round" 
-    strokeLinejoin="round"
-    className="transition-transform group-hover:translate-x-1 group-hover:-translate-y-0.5"
-  >
-    <path d="M7 7l10 10" />
-    <path d="M17 7v10H7" />
-  </svg>
-</Link>
+                    href={`/courtier/projects/${project.id}`}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-[#f26755] text-white rounded-md hover:bg-[#f26755]/90 transition-all text-sm group"
+                  >
+                    Voir le projet
+                    <svg 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      width="16" 
+                      height="16" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      strokeWidth="2" 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round"
+                      className="transition-transform group-hover:translate-x-1 group-hover:-translate-y-0.5"
+                    >
+                      <path d="M7 7l10 10" />
+                      <path d="M17 7v10H7" />
+                    </svg>
+                  </Link>
                 </div>
               );
             })}
           </div>
 
-          {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex justify-center gap-2 mt-8">
               <button
