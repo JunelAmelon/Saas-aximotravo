@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Filter, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Filter, X, ChevronLeft, ChevronRight, User, Calendar} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useArtisanProjects } from '@/hooks/useArtisanProjects';
@@ -164,44 +164,67 @@ export default function ArtisanProjects() {
               Aucun projet trouvé. Ajoutez votre premier projet en cliquant sur "Nouveau projet".
             </div>
           ) : paginatedProjects.map((project) => (
-            <div key={project.id} className="bg-white rounded-lg shadow-sm overflow-hidden h-[210px] flex w-full max-w-[410px]">
-              <div className="flex flex-col w-full p-4">
-                <div className="flex items-start gap-4">
-                  <div className="relative w-[60px] h-[60px] flex-shrink-0">
-                    <Image
-                      src={project.image || "https://via.placeholder.com/60"}
-                      alt={project.name}
-                      fill
-                      className="object-cover rounded-lg"
-                    />
-                  </div>
-                  
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <h3 className="text-base font-medium text-gray-900 truncate">{project.name}</h3>
-                      <span className="inline-flex flex-shrink-0 px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full whitespace-nowrap">
-                        {statusConfig[project.status]?.label ?? project.status ?? 'Statut inconnu'}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-600 truncate mt-1">{project.client}</p>
-                  </div>
-                </div>
-              
-                <div className="mt-4">
-                  <p className="text-sm text-gray-500">Montant prospecté</p>
-                  <p className="text-lg font-semibold">{project.amount ? project.amount.toLocaleString('fr-FR', { minimumFractionDigits: 2 }) + ' €' : 'N/A'}</p>
-                </div>
+<div key={project.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 hover:shadow-md transition-all">
+  <div className="flex items-start gap-4 mb-4">
+    <div className="relative w-16 h-16 flex-shrink-0 rounded-full overflow-hidden border-2 border-[#f26755] group-hover:border-[#f26755]/80 transition-colors duration-200">
+      <Image
+        src={project.image || "/default-project.jpg"}
+        alt={project.name}
+        fill
+        className="object-cover"
+        sizes="64px"
+      />
+    </div>
+    <div className="flex-1 min-w-0">
+      <div className="flex items-start justify-between gap-2">
+        <h3 className="text-lg font-medium text-gray-900 truncate">{project.name}</h3>
+        <span className="inline-flex flex-shrink-0 px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full whitespace-nowrap">
+          {statusConfig[project.status]?.label ?? project.status ?? 'Statut inconnu'}
+        </span>
+      </div>
+    </div>
+  </div>
 
-                <div className="mt-auto pt-4">
-                  <Link 
-                    href={`/artisan/projects/${project.id}`}
-                    className="block w-full px-4 py-2 bg-[#f26755] text-white text-sm font-medium rounded-md hover:bg-[#f26755]/90 transition-colors text-center"
-                  >
-                    Voir le projet
-                  </Link>
-                </div>
-              </div>
-            </div>
+  <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
+    <User className="h-4 w-4 text-[#f26755]" />
+    <p className="text-sm text-gray-600 truncate">{project.client || "Non spécifié"}</p>
+  </div>
+  <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
+                    <Calendar className="h-4 w-4 text-[#f26755]" />
+                    <span>Créé le {project.date}</span>
+                  </div>
+
+  <div className="mb-4 p-3 bg-gradient-to-r from-gray-50 to-white rounded-lg border border-gray-100">
+    <p className="text-xs text-gray-500 mb-1">Montant prospecté</p>
+    <p className="text-xl font-semibold text-gray-800">
+      {project.amount ? project.amount.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }) : 'N/A'}
+    </p>
+  </div>
+
+  <div className="flex justify-start">
+  <Link
+    href={`/artisan/projects/${project.id}`}
+    className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#f26755] text-white rounded-md hover:bg-[#f26755]/90 transition-all text-sm group"
+  >
+    Voir le projet
+    <svg 
+      xmlns="http://www.w3.org/2000/svg" 
+      width="14" 
+      height="14" 
+      viewBox="0 0 24 24" 
+      fill="none" 
+      stroke="currentColor" 
+      strokeWidth="2" 
+      strokeLinecap="round" 
+      strokeLinejoin="round"
+      className="transition-transform group-hover:-translate-y-1 group-hover:translate-x-1 rotate-45 origin-center"
+    >
+      <path d="M5 12h14" /> {/* Ligne horizontale (corps de l'avion) */}
+      <path d="M12 5l7 7-7 7" /> {/* Flèche pointant vers le haut */}
+    </svg>
+  </Link>
+</div>
+</div>
           ))}
         </div>
       )}

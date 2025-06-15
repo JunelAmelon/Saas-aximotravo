@@ -306,27 +306,27 @@ export default function CourtierProjects() {
                     </p>
                   </div>
 
-                  <Link
-                    href={`/courtier/projects/${project.id}`}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-[#f26755] text-white rounded-md hover:bg-[#f26755]/90 transition-all text-sm group"
-                  >
-                    Voir le projet
-                    <svg 
-                      xmlns="http://www.w3.org/2000/svg" 
-                      width="16" 
-                      height="16" 
-                      viewBox="0 0 24 24" 
-                      fill="none" 
-                      stroke="currentColor" 
-                      strokeWidth="2" 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round"
-                      className="transition-transform group-hover:translate-x-1 group-hover:-translate-y-0.5"
-                    >
-                      <path d="M7 7l10 10" />
-                      <path d="M17 7v10H7" />
-                    </svg>
-                  </Link>
+  <Link
+    href={`/artisan/projects/${project.id}`}
+    className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#f26755] text-white rounded-md hover:bg-[#f26755]/90 transition-all text-sm group"
+  >
+    Voir le projet
+    <svg 
+      xmlns="http://www.w3.org/2000/svg" 
+      width="14" 
+      height="14" 
+      viewBox="0 0 24 24" 
+      fill="none" 
+      stroke="currentColor" 
+      strokeWidth="2" 
+      strokeLinecap="round" 
+      strokeLinejoin="round"
+      className="transition-transform group-hover:-translate-y-1 group-hover:translate-x-1 rotate-45 origin-center"
+    >
+      <path d="M5 12h14" /> {/* Ligne horizontale (corps de l'avion) */}
+      <path d="M12 5l7 7-7 7" /> {/* Flèche pointant vers le haut */}
+    </svg>
+  </Link>
                 </div>
               );
             })}
