@@ -18,8 +18,10 @@ export type ProjectStatus = 'En attente' | 'En cours' | 'Terminé';
 
 export interface Project {
   id: string;
+  client_id: string;
   name: string;
   description: string;
+  image?: string;
   paidAmount: number;
   clientName: string;
   clientPhone?: string;
@@ -28,7 +30,7 @@ export interface Project {
   progress: number;
   deadline?: string;
   budget?: number;
-  address?: string;
+  location?: string;
   city?: string;
   postalCode?: string;
   courtierId: string;
@@ -36,10 +38,12 @@ export interface Project {
   notes?: string;
   createdAt: any;
   updatedAt: any;
+  firstDepositPercent: number;
+  broker: any;
 }
 
 // Créer un nouveau projet
-export async function createProject(projectData: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>) {
+export async function createProject(projectData: Omit<Project, 'id' | 'createdAt' | 'updatedAt' | 'artisanIds' | 'courtierId' | 'clientName'>) {
   try {
     const projectRef = collection(db, 'projects');
     const projectWithTimestamp = {

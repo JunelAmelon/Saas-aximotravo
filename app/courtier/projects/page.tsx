@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Search, ChevronLeft, ChevronRight, PlusCircle, User, Calendar } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Search, ChevronLeft, ChevronRight, PlusCircle, User, Calendar, MapPin } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -9,7 +9,7 @@ import { useAuth } from "@/lib/contexts/AuthContext";
 import { getProjectsByCourtier, Project as FirebaseProject } from "@/lib/firebase/projects";
 import { getUserById } from "@/lib/firebase/users";
 
-type ProjectStatus = 
+type ProjectStatus =
   | "en_attente"
   | "en_cours"
   | "terminé"
@@ -29,6 +29,7 @@ interface Project {
   amount: number;
   image?: string;
   date?: string;
+  location?: string;
 }
 
 const statusConfig = {
@@ -38,7 +39,7 @@ const statusConfig = {
     icon: "⏳"
   },
   en_cours: {
-    label: "En cours", 
+    label: "En cours",
     className: "bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200",
     icon: "🚧"
   },
@@ -76,24 +77,25 @@ const statusConfig = {
 
 function convertFirebaseProject(project: FirebaseProject): Project {
   const validStatuses: ProjectStatus[] = [
-    "en_attente", "en_cours", "terminé", 
-    "equipe_assignee", "chantier_planifie", 
+    "en_attente", "en_cours", "terminé",
+    "equipe_assignee", "chantier_planifie",
     "chantier_en_cours", "sav", "termine", "cloture"
   ];
 
-  const status: ProjectStatus = validStatuses.includes(project.status as ProjectStatus) 
-    ? project.status as ProjectStatus 
+  const status: ProjectStatus = validStatuses.includes(project.status as ProjectStatus)
+    ? project.status as ProjectStatus
     : "en_attente";
 
   return {
     id: project.id,
-    name: project.name,
     client_id: project.client_id,
+    name: project.name,
     clientName: project.clientName,
     status,
     amount: project.budget || 0,
+    image: project.image || "/default-project.jpg",
     date: project.createdAt?.toDate?.()?.toLocaleDateString('fr-FR') || "Non spécifiée",
-    image: project.image || "/default-project.jpg"
+    location: project.location || "Non spécifié"
   };
 }
 
@@ -109,7 +111,7 @@ export default function CourtierProjects() {
   const projectsPerPage = 3;
   const [projects, setProjects] = useState<Project[]>([]);
 
-  async function loadProjects() {
+  const loadProjects = useCallback(async () => {
     if (!currentUser) return;
 
     try {
@@ -120,11 +122,15 @@ export default function CourtierProjects() {
       const projectsWithClientNames = await Promise.all(
         courtierProjects.map(async (project) => {
           const converted = convertFirebaseProject(project);
-          
+
           if (converted.client_id) {
             const user = await getUserById(converted.client_id);
-            if (user?.lastName) {
-              converted.clientName = user.lastName;
+            if (user?.lastName && user?.firstName) {
+              converted.clientName = `${user.lastName} ${user.firstName}`;
+            } else if (user?.email) {
+              converted.clientName = user.email;
+            } else {
+              converted.clientName = "Non spécifié";
             }
           }
 
@@ -139,11 +145,11 @@ export default function CourtierProjects() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [currentUser]);
 
   useEffect(() => {
     loadProjects();
-  }, [currentUser]);
+  }, [loadProjects]);
 
   const filteredProjects = projects.filter(project => {
     // Correction : vérification que clientName existe avant toLowerCase()
@@ -200,7 +206,7 @@ export default function CourtierProjects() {
             className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f26755] focus:border-transparent transition-all"
           />
         </div>
-        
+
         {/* Filtre par statut avec style amélioré */}
         <div className="relative">
           <button
@@ -209,14 +215,14 @@ export default function CourtierProjects() {
           >
             <span>Statut: {statusFilter ? (
               <span className="flex items-center">
-                <span 
-                  className={`w-3 h-3 rounded-full mr-2 ${statusConfig[statusFilter]?.className.split(' ')[0]}`}
+                <span
+                  className={`w-3 h-3 rounded-full mr-2 ${statusConfig[statusFilter as keyof typeof statusConfig]?.className.split(' ')[0]}`}
                 ></span>
-                {statusConfig[statusFilter]?.label}
+                {statusConfig[statusFilter as keyof typeof statusConfig]?.label}
               </span>
             ) : "Tous"}</span>
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path d="m6 9 6 6 6-6" strokeWidth="2" strokeLinecap="round"/>
+              <path d="m6 9 6 6 6-6" strokeWidth="2" strokeLinecap="round" />
             </svg>
           </button>
           {isStatusDropdownOpen && (
@@ -240,7 +246,7 @@ export default function CourtierProjects() {
                   }}
                   className={`w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center ${statusFilter === statusKey ? 'bg-gray-100' : ''}`}
                 >
-                  <span 
+                  <span
                     className={`w-3 h-3 rounded-full mr-2 ${config.className.split(' ')[0]}`}
                   ></span>
                   {config.label}
@@ -265,7 +271,7 @@ export default function CourtierProjects() {
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {paginatedProjects.map((project) => {
-              const statusInfo = statusConfig[project.status];
+              const statusInfo = statusConfig[project.status as keyof typeof statusConfig];
               return (
                 <div key={project.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 hover:shadow-md transition-all">
                   <div className="flex items-start gap-4 mb-4">
@@ -281,7 +287,7 @@ export default function CourtierProjects() {
                     <div className="flex-1 min-w-0">
                       <h3 className="text-lg font-medium text-gray-900 truncate">{project.name}</h3>
 
-                      
+
                       <div className="mt-2">
                         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${statusInfo.className}`}>
                           {statusInfo.icon && <span className="mr-1">{statusInfo.icon}</span>}
@@ -291,12 +297,16 @@ export default function CourtierProjects() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
-                        <User className="h-4 w-4 text-[#f26755]" />
-                        <p className="text-sm text-gray-600 truncate">{project.clientName || "Non spécifié"}</p>
-                      </div>
+                    <User className="h-4 w-4 text-[#f26755]" />
+                    <p className="text-sm text-gray-600 truncate">{project.clientName || "Non spécifié"}</p>
+                  </div>
                   <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
                     <Calendar className="h-4 w-4 text-[#f26755]" />
                     <span>Créé le {project.date}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
+                    <MapPin className="h-4 w-4 text-[#f26755]" />
+                    <span>{project.location}</span>
                   </div>
 
                   <div className="mb-4 p-3 bg-gradient-to-r from-gray-50 to-white rounded-lg border border-gray-100">
@@ -306,27 +316,27 @@ export default function CourtierProjects() {
                     </p>
                   </div>
 
-  <Link
-    href={`/artisan/projects/${project.id}`}
-    className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#f26755] text-white rounded-md hover:bg-[#f26755]/90 transition-all text-sm group"
-  >
-    Voir le projet
-    <svg 
-      xmlns="http://www.w3.org/2000/svg" 
-      width="14" 
-      height="14" 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      stroke="currentColor" 
-      strokeWidth="2" 
-      strokeLinecap="round" 
-      strokeLinejoin="round"
-      className="transition-transform group-hover:-translate-y-1 group-hover:translate-x-1 rotate-45 origin-center"
-    >
-      <path d="M5 12h14" /> {/* Ligne horizontale (corps de l'avion) */}
-      <path d="M12 5l7 7-7 7" /> {/* Flèche pointant vers le haut */}
-    </svg>
-  </Link>
+                  <Link
+                    href={`projects/${project.id}`}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#f26755] text-white rounded-md hover:bg-[#f26755]/90 transition-all text-sm group"
+                  >
+                    Voir le projet
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="transition-transform group-hover:-translate-y-1 group-hover:translate-x-1 rotate-45 origin-center"
+                    >
+                      <path d="M5 12h14" /> {/* Ligne horizontale (corps de l'avion) */}
+                      <path d="M12 5l7 7-7 7" /> {/* Flèche pointant vers le haut */}
+                    </svg>
+                  </Link>
                 </div>
               );
             })}

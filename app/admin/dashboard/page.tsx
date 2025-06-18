@@ -47,7 +47,7 @@ export default function AdminDashboard() {
             company: data.company || "Société non spécifiée",
             email: data.email || "Email non spécifié",
             region: data.region || "Région non spécifiée",
-            avatar: data.avatar || "/default-avatar.png",
+            avatar: data.image || "/default-avatar.png",
             stats: {
               activeProjects: data.activeProjects || 0,
               totalArtisans: data.totalArtisans || 0,

@@ -66,6 +66,27 @@ export function useCreateArtisan() {
           createdAt: serverTimestamp(),
         };
         await setDoc(doc(db, "users", uid), userDoc);
+        // Envoi du mail d'identifiants
+        try {
+          await fetch("/api/send-email", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              to: artisanData.email,
+              subject: "Bienvenue sur Aximotravo - Accès artisan",
+              html: `<p>Bonjour ${artisanData.firstName || ''} ${artisanData.lastName || ''},</p>
+        <p>Votre compte artisan a été créé sur <b>Aximotravo</b>.</p>
+        <ul>
+          <li><b>Email :</b> ${artisanData.email}</li>
+          <li><b>Mot de passe :</b> ${password}</li>
+        </ul>
+        <p>Vous pouvez vous connecter à la plateforme dès maintenant.</p>
+        <p><i>Merci de changer votre mot de passe après la première connexion.</i></p>`
+            })
+          });
+        } catch (e) {
+          console.error("Erreur lors de l'envoi du mail d'identifiants artisan:", e);
+        }
         // 3. Envoyer le mot de passe par mail (exemple: via un endpoint /api/send-artisan-password)
         // await fetch("/api/send-artisan-password", {
         //   method: "POST",

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useParams } from 'next/navigation';
 import { ChevronLeft, Calendar, FileText, Camera, FileSpreadsheet, FileBox, Scale, Crown, User, Eye, Download, Phone, Mail, MapPin, Plus, X, Send, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -204,7 +205,7 @@ export default function ProjectDetails() {
   // ...
   const [devis, setDevis] = useState<any[]>([]);
   const params = useParams<{ id: string; tab?: string }>();
-  const { id } = params;
+  const { id } = params ?? {};
   const [project, setProject] = useState<ProjectDetails | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -218,7 +219,8 @@ export default function ProjectDetails() {
   // Récupérer l'ID de l'utilisateur connecté (artisan)
   const currentUserId = useCurrentUserId();
   // Vérifier s'il y a une invitation pending pour cet artisan sur ce projet
-  const pendingInvitation = usePendingArtisanInvitation(currentUserId || '', id);
+  const pendingInvitation = usePendingArtisanInvitation(currentUserId || '', id || '');
+const router = useRouter();
 
 
   useEffect(() => {
@@ -226,6 +228,11 @@ export default function ProjectDetails() {
       setLoading(true);
       setError(null);
       try {
+        if (!id) {
+          setError("ID du projet manquant.");
+          setLoading(false);
+          return;
+        }
         const data = await getProjectDetail(id);
         setProject(data);
         if (!data) setError("Projet introuvable");
@@ -264,7 +271,12 @@ export default function ProjectDetails() {
       );
       return users.filter(Boolean);
     }
-    getAcceptedArtisansForProject(id).then(setProjectArtisans);
+    if (id) {
+      getAcceptedArtisansForProject(id).then(filteredUsers => setProjectArtisans(filteredUsers as User[]));
+    } else {
+      // Handle the case where id is undefined, e.g., set an error or clear artisans
+      setProjectArtisans([]); 
+    }
   }, [id]);
 
   const handleArtisanSelect = (artisanIds: string[] | string) => {
@@ -274,6 +286,15 @@ export default function ProjectDetails() {
       setSelectedArtisanIds(artisanIds);
     }
   };
+   // Redirection après refus
+   React.useEffect(() => {
+    if (pendingInvitation.refused) {
+      const timeout = setTimeout(() => {
+        router.push("/artisan/projects");
+      }, 1200); // Laisse le temps d'afficher le message
+      return () => clearTimeout(timeout);
+    }
+  }, [pendingInvitation.refused, router]);
 
   const handleSendRequest = async () => {
     if (!selectedArtisanIds.length || !project?.id) return;
@@ -316,7 +337,7 @@ export default function ProjectDetails() {
     { id: "photos", icon: Camera, label: "Photos RT, chantier, etc" },
     { id: "plans", icon: FileSpreadsheet, label: "Plans" },
     { id: "documents", icon: FileBox, label: "Documents" },
-    { id: "payment-requests", icon: Scale, label: "Demandes d'acompte" }
+    { id: "accounting", icon: Scale, label: "Demandes d'acompte" }
   ];
 
   if (loading) {
@@ -347,7 +368,7 @@ export default function ProjectDetails() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link
-            href="/courtier/projects"
+            href="/artisan/projects"
             className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700"
           >
             <ChevronLeft className="h-4 w-4 mr-1" />
@@ -394,11 +415,11 @@ export default function ProjectDetails() {
                 <div className="flex gap-2 mt-4">
                   <button className="inline-flex items-center px-2.5 py-1 bg-emerald-500 text-white rounded text-xs font-medium hover:bg-emerald-600 transition-colors">
                     <Calendar className="h-3 w-3 mr-1" />
-                    {new Date(project?.startDate).toLocaleDateString('fr-FR')}
+                    Date de début: {new Date(project?.startDate).toLocaleDateString('fr-FR')}
                   </button>
                   <button className="inline-flex items-center px-2.5 py-1 bg-red-500 text-white rounded text-xs font-medium hover:bg-red-600 transition-colors">
                     <Calendar className="h-3 w-3 mr-1" />
-                    {new Date(project?.estimatedEndDate).toLocaleDateString('fr-FR')}
+                    Date de fin: {new Date(project?.estimatedEndDate).toLocaleDateString('fr-FR')}
                   </button>
                 </div>
               )}
@@ -531,36 +552,66 @@ export default function ProjectDetails() {
                             </span>
                           </h4>
                           <div className="bg-white p-4 rounded-md border border-gray-100 flex flex-col gap-4 items-center">
-                            <span className="text-sm text-gray-600">Vous avez été invité sur ce projet. Acceptez l'invitation pour participer.</span>
-                            <button
-                              onClick={pendingInvitation.acceptInvitation}
-                              disabled={pendingInvitation.accepting || pendingInvitation.accepted}
-                              className={cn(
-                                "w-full px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2 mt-2",
-                                pendingInvitation.accepted
-                                  ? "bg-green-100 text-green-700 cursor-not-allowed"
-                                  : "bg-[#f26755] text-white hover:bg-[#f26755]/90"
-                              )}
-                            >
-                              {pendingInvitation.accepted ? (
-                                <>
-                                  <Check className="h-4 w-4" />
-                                  Invitation acceptée
-                                </>
-                              ) : pendingInvitation.accepting ? (
-                                <>
-                                  <span className="loader mr-2"></span>
-                                  Acceptation...
-                                </>
-                              ) : (
-                                <>
-                                  <Send className="h-4 w-4" />
-                                  Accepter l'invitation
-                                </>
-                              )}
-                            </button>
-                            {pendingInvitation.error && (
-                              <span className="text-xs text-red-500 mt-2">{pendingInvitation.error}</span>
+                            <span className="text-sm text-gray-600 text-center">Vous avez été invité sur ce projet. Acceptez ou refusez l&apos;invitation pour participer.</span>
+                            {pendingInvitation.refused ? (
+                              <div className="w-full flex flex-col items-center">
+                                <span className="text-sm text-red-600 flex items-center gap-2"><X className="h-4 w-4" /> Invitation refusée</span>
+                              </div>
+                            ) : (
+                              <>
+                                <div className="flex flex-col md:flex-row gap-2 w-full">
+                                  <button
+                                    onClick={pendingInvitation.acceptInvitation}
+                                    disabled={pendingInvitation.accepting || pendingInvitation.accepted || pendingInvitation.refusing}
+                                    className={cn(
+                                      "w-full px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2",
+                                      pendingInvitation.accepted
+                                        ? "bg-green-100 text-green-700 cursor-not-allowed"
+                                        : "bg-[#f26755] text-white hover:bg-[#f26755]/90"
+                                    )}
+                                  >
+                                    {pendingInvitation.accepted ? (
+                                      <>
+                                        <Check className="h-4 w-4" />
+                                        Invitation acceptée
+                                      </>
+                                    ) : pendingInvitation.accepting ? (
+                                      <>
+                                        <span className="loader mr-2"></span>
+                                        Acceptation...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Send className="h-4 w-4" />
+                                        Accepter l&apos;invitation
+                                      </>
+                                    )}
+                                  </button>
+                                  <button
+                                    onClick={pendingInvitation.refuseInvitation}
+                                    disabled={pendingInvitation.refusing || pendingInvitation.refused || pendingInvitation.accepted}
+                                    className={cn(
+                                      "w-full px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2 border border-red-500 text-red-600 bg-white hover:bg-red-50",
+                                      (pendingInvitation.refusing || pendingInvitation.refused || pendingInvitation.accepted) && "opacity-60 cursor-not-allowed"
+                                    )}
+                                  >
+                                    {pendingInvitation.refusing ? (
+                                      <>
+                                        <span className="loader mr-2"></span>
+                                        Refus en cours...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <X className="h-4 w-4" />
+                                        Refuser l&apos;invitation
+                                      </>
+                                    )}
+                                  </button>
+                                </div>
+                                {pendingInvitation.error && (
+                                  <span className="text-xs text-red-500 mt-2">{pendingInvitation.error}</span>
+                                )}
+                              </>
                             )}
                           </div>
                         </div>
@@ -569,6 +620,7 @@ export default function ProjectDetails() {
                     return null;
                   })()
                 )}
+
 
               </div>
             </div>

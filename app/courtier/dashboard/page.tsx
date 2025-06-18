@@ -7,10 +7,9 @@ import StatCard from "@/components/dashboard/StatCard";
 import ProjectsTable from "@/components/dashboard/ProjectsTable";
 import ActivityFeed from "@/components/dashboard/ActivityFeed";
 import { useAuth } from "@/lib/contexts/AuthContext";
-import { getRecentProjectsByCourtier, getCourtierProjectStats } from "@/lib/firebase/projects";
-import { getRecentActivitiesByCourtier } from "@/lib/firebase/activities";
-import { getArtisansByCourtierId, getUserById } from "@/lib/firebase/users";
-import { ArtisanUser } from "@/lib/firebase/users";
+import { getRecentProjectsByCourtier, getCourtierProjectStats, Project } from "@/lib/firebase/projects";
+import { getRecentActivitiesByCourtier, Activity } from "@/lib/firebase/activities";
+import { getArtisansByCourtierId, getUserById, ArtisanUser } from "@/lib/firebase/users";
 
 export default function CourtierDashboard() {
   const { currentUser } = useAuth();
@@ -51,7 +50,8 @@ export default function CourtierDashboard() {
         }
         
         // Récupérer les projets récents
-        let recentProjects = [];
+        
+let recentProjects: Project[] = [];
         try {
           recentProjects = await getRecentProjectsByCourtier(currentUser.uid, 5);
         } catch (err) {
@@ -73,7 +73,7 @@ export default function CourtierDashboard() {
         }
         
         // Récupérer les activités récentes
-        let recentActivities = [];
+let recentActivities: Activity[] = [];
         try {
           recentActivities = await getRecentActivitiesByCourtier(currentUser.uid, 10);
         } catch (err) {
@@ -81,7 +81,7 @@ export default function CourtierDashboard() {
         }
         
         // Récupérer les artisans associés au courtier
-        let courtierArtisans = [];
+let courtierArtisans: ArtisanUser[] = [];
         try {
           courtierArtisans = await getArtisansByCourtierId(currentUser.uid);
         } catch (err) {
@@ -94,7 +94,7 @@ export default function CourtierDashboard() {
           name: project.name,
           client: project.clientName,
           status: project.status,
-          deadline: project.estimatedEndDate || 'Non défini',
+          deadline: project.deadline || 'Non défini',
         }));
         
         // Formater les activités pour l'affichage

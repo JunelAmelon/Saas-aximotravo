@@ -58,35 +58,40 @@ export default function QontoDashboard() {
         
         const querySnapshot = await getDocs(q);
         const transactionsData = await Promise.all(
-          querySnapshot.docs.map(async (doc) => {
-            const data = doc.data();
-            
+          querySnapshot.docs.map(async (snapshot) => {
+            const data = snapshot.data();
+
             // Get project details
-            const projectDoc = await getDoc(doc(db, "projects", data.projectId));
-            const projectData = projectDoc.data();
-            
+            const projectRef = doc(db, "projects", data.projectId);
+            const projectDoc = await getDoc(projectRef);
+            const projectData = projectDoc.exists() ? projectDoc.data() : {};
+
             // Get broker and artisan details
+            const brokerId = projectData?.brokerId || '';
+            const artisanId = projectData?.artisanId || '';
             const [brokerDoc, artisanDoc] = await Promise.all([
-              getDoc(doc(db, "users", projectData?.brokerId || '')),
-              getDoc(doc(db, "users", projectData?.artisanId || ''))
+              brokerId ? getDoc(doc(db, "users", brokerId)) : null,
+              artisanId ? getDoc(doc(db, "users", artisanId)) : null,
             ]);
-            
+            const brokerData = brokerDoc?.exists() ? brokerDoc.data() : {};
+            const artisanData = artisanDoc?.exists() ? artisanDoc.data() : {};
+
             return {
-              id: doc.id,
+              id: snapshot.id,
               amount: data.amount,
-              date: data.date.toDate().toISOString(),
+              date: data.date?.toDate().toISOString() ?? "",
               senderName: data.senderName,
               projectId: data.projectId,
               projectName: projectData?.name || "Projet inconnu",
               broker: {
-                name: brokerDoc?.data()?.name || "Courtier inconnu",
-                company: brokerDoc?.data()?.company || "",
-                avatar: brokerDoc?.data()?.avatar || "/default-avatar.png"
+                name: brokerData?.name || "Courtier inconnu",
+                company: brokerData?.company || "",
+                avatar: brokerData?.avatar || "/default-avatar.png"
               },
               artisan: {
-                name: artisanDoc?.data()?.name || "Artisan inconnu",
-                company: artisanDoc?.data()?.company || "",
-                avatar: artisanDoc?.data()?.avatar || "/default-avatar.png"
+                name: artisanData?.name || "Artisan inconnu",
+                company: artisanData?.company || "",
+                avatar: artisanData?.avatar || "/default-avatar.png"
               },
               status: data.status,
               reference: data.reference
@@ -144,19 +149,17 @@ export default function QontoDashboard() {
     currentPage * transactionsPerPage
   );
 
-  const StatusBadge = ({ status }: { status: string }) => {
-    const statusMap = {
-      completed: { color: 'bg-green-100 text-green-800', label: 'Complété' },
-      pending: { color: 'bg-amber-100 text-amber-800', label: 'En attente' },
-      failed: { color: 'bg-red-100 text-red-800', label: 'Échoué' }
-    };
-    
-    return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusMap[status].color}`}>
-        {statusMap[status].label}
-      </span>
-    );
-  };
+  const statusMap = {
+    completed: { color: 'bg-green-100 text-green-800', label: 'Complété' },
+    pending: { color: 'bg-amber-100 text-amber-800', label: 'En attente' },
+    failed: { color: 'bg-red-100 text-red-800', label: 'Échoué' }
+  } as const;
+  type StatusKey = keyof typeof statusMap;
+  const StatusBadge = ({ status }: { status: StatusKey }) => (
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusMap[status].color}`}>
+      {statusMap[status].label}
+    </span>
+  );
 
   if (loading) {
     return (

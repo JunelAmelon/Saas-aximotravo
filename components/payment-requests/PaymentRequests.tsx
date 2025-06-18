@@ -50,8 +50,8 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
     fetchRole();
   }, [currentUser]);
 
-  const params = useParams();
-const resolvedProjectId = projectId || (Array.isArray(params?.id) ? params.id[0] : params?.id as string);
+  const params = useParams() ?? {};
+  const resolvedProjectId = projectId || (Array.isArray(params.id) ? params.id[0] : params.id as string);
 const { payments: requests, loading, error } = useProjectPayments(resolvedProjectId);
 
   const [selectedRequest, setSelectedRequest] = useState<ProjectPayment | null>(null);
@@ -91,8 +91,6 @@ const { payments: requests, loading, error } = useProjectPayments(resolvedProjec
     switch (status) {
       case "validé":
         return "bg-green-100/80 text-green-800 border-green-200";
-      case "refusé":
-        return "bg-red-100/80 text-red-800 border-red-200";
       default:
         return "bg-amber-100/80 text-amber-800 border-amber-200";
     }
@@ -102,8 +100,6 @@ const { payments: requests, loading, error } = useProjectPayments(resolvedProjec
     switch (status) {
       case "validé":
         return <Check className="h-4 w-4" />;
-      case "refusé":
-        return <X className="h-4 w-4" />;
       default:
         return <Clock className="h-4 w-4" />;
     }
@@ -199,8 +195,7 @@ const { payments: requests, loading, error } = useProjectPayments(resolvedProjec
           <div className="flex flex-col items-center justify-center space-y-3">
             <Euro className="h-12 w-12 text-gray-400" />
             <h3 className="text-lg font-medium text-gray-900">Aucun acompte enregistré</h3>
-            <p className="text-sm text-gray-500">Aucune demande d'acompte n'a été effectuée pour ce projet.</p>
-            {userRole === 'artisan' && (
+            <p className="text-sm text-gray-500">Aucune demande d&apos;acompte n&apos;a été effectuée pour ce projet.</p>
               <button
                 className="mt-4 inline-flex items-center px-4 py-2 bg-[#f26755] text-white rounded-lg font-medium hover:bg-[#f26755]/90 transition-colors"
                 onClick={() => setOpenAddModal(true)}
@@ -208,7 +203,6 @@ const { payments: requests, loading, error } = useProjectPayments(resolvedProjec
                 <Upload className="h-4 w-4 mr-2" />
                 Faire une demande
               </button>
-            )}
           </div>
         </div>
       </div>
@@ -288,16 +282,14 @@ const { payments: requests, loading, error } = useProjectPayments(resolvedProjec
           <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" /></svg>
           Retour
         </button>
-        <h2 className="text-xl font-semibold text-gray-800">Demandes d'acompte</h2>
-        {userRole === 'artisan' && (
+        <h2 className="text-xl font-semibold text-gray-800">Demandes d&apos;acompte</h2>
           <button
             className="flex items-center gap-2 px-4 py-2 bg-[#f26755] text-white rounded-lg font-semibold shadow hover:opacity-90 transition"
             onClick={() => setOpenAddModal(true)}
             type="button"
           >
-            <Upload className="h-4 w-4" /> Demande d'acompte
+            <Upload className="h-4 w-4" /> Demande d&apos;acompte
           </button>
-        )}
       </div>
 
       <div className="grid gap-4">
@@ -317,7 +309,7 @@ const { payments: requests, loading, error } = useProjectPayments(resolvedProjec
                     </h3>
                     <span className={`inline-flex items-center gap-1 text-xs font-medium rounded-full px-2.5 py-0.5 border ${getStatusStyle(request.status)}`}>
                       {getStatusIcon(request.status)}
-                      {request.status === 'validé' ? 'Validé' : request.status === 'refusé' ? 'Refusé' : 'En attente'}
+                      {request.status === 'validé' ? 'Validé' : 'En attente'}
                     </span>
                   </div>
                   
@@ -358,8 +350,8 @@ const { payments: requests, loading, error } = useProjectPayments(resolvedProjec
                 </div>
               )}
               
-              <div className="mt-4 flex justify-between items-center">
-              {userRole === 'courtier' && request.status === 'en_attent' && (
+              {/* <div className="mt-4 flex justify-between items-center">
+              {userRole === 'courtier' && request.status === 'en_attente' && (
                 <button
                   className="text-sm font-medium text-[#f26755] hover:text-[#f26755]/80 flex items-center gap-1"
                   onClick={() => handleValidation(request)}
@@ -368,7 +360,7 @@ const { payments: requests, loading, error } = useProjectPayments(resolvedProjec
                   <ChevronRight className="h-4 w-4" />
                 </button>
                    )}
-                {userRole === 'courtier' && request.status === 'en_attent' && (
+                {userRole === 'courtier' && request.status === 'en_attente' && (
                   <div className="flex gap-2">
                     <button className="px-3 py-1.5 text-xs font-medium rounded-lg bg-green-100 text-green-800 hover:bg-green-200">
                       Valider
@@ -378,7 +370,7 @@ const { payments: requests, loading, error } = useProjectPayments(resolvedProjec
                     </button>
                   </div>
                 )}
-              </div>
+              </div> */}
             </div>
           </div>
         ))}
@@ -403,7 +395,7 @@ const { payments: requests, loading, error } = useProjectPayments(resolvedProjec
       <Sheet open={isValidationDrawerOpen} onOpenChange={setIsValidationDrawerOpen}>
         <SheetContent className="w-full sm:w-[540px] overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>Valider la demande d'acompte</SheetTitle>
+            <SheetTitle>Valider la demande d&apos;acompte</SheetTitle>
           </SheetHeader>
 
           <form onSubmit={handleSubmitValidation} className="mt-6 space-y-6">
@@ -419,26 +411,69 @@ const { payments: requests, loading, error } = useProjectPayments(resolvedProjec
                 placeholder="Ajouter un message..."
               />
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Documents
-              </label>
-              <label className="block w-full border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#f26755] cursor-pointer">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Documents
+            </label>
+            <div
+              className={`border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center transition-colors cursor-pointer hover:border-[#f26755] bg-gray-50 relative ${selectedFile ? 'border-[#f26755]' : 'border-gray-300'}`}
+              onClick={() => document.getElementById('payment-requests-upload-input')?.click()}
+                onDrop={e => {
+                  e.preventDefault();
+                  const file = e.dataTransfer.files?.[0] || null;
+                  if (file && (file.type.startsWith('image/') || file.type === 'application/pdf')) {
+                    setSelectedFile(file);
+                  }
+                }}
+                onDragOver={e => e.preventDefault()}
+                style={{ minHeight: 120 }}
+              >
+                {!selectedFile ? (
+                  <>
+                    <Upload className="h-12 w-12 text-[#f26755] mb-2" />
+                    <span className="block text-sm text-gray-500 text-center">Cliquez ou glissez une image ou un PDF ici</span>
+                    <span className="mt-1 block text-sm text-gray-500">Image ou PDF jusqu&apos;à 10MB</span>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center w-full">
+                    {selectedFile.type.startsWith('image/') ? (
+                      <Image
+                        src={URL.createObjectURL(selectedFile)}
+                        alt="Aperçu document"
+                        width={100}
+                        height={100}
+                        className="rounded shadow max-h-32 object-contain mb-2"
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center w-full mb-2">
+                        <span className="inline-block px-3 py-2 bg-gray-200 rounded text-xs text-gray-700">{selectedFile.name}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between w-full">
+                      <span className="text-xs text-gray-700 truncate">{selectedFile.name}</span>
+                      <button
+                        type="button"
+                        className="ml-2 px-2 py-1 text-xs bg-red-100 text-red-600 rounded hover:bg-red-200"
+                        onClick={e => {
+                          e.stopPropagation();
+                          setSelectedFile(null);
+                          if (document.getElementById('payment-requests-upload-input')) (document.getElementById('payment-requests-upload-input') as HTMLInputElement).value = '';
+                        }}
+                        title="Supprimer la sélection"
+                      >
+                        Supprimer
+                      </button>
+                    </div>
+                  </div>
+                )}
                 <input
+                  id="payment-requests-upload-input"
                   type="file"
+                  accept="image/*,application/pdf"
+                  capture="environment"
                   className="hidden"
                   onChange={handleFileChange}
                 />
-                <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                <span className="mt-2 block text-sm font-medium text-gray-900">
-                  {selectedFile ? selectedFile.name : "Cliquez pour télécharger"}
-                </span>
-                <span className="mt-1 block text-sm text-gray-500">
-                  PDF, DOC jusqu'à 10MB
-                </span>
-              </label>
-            </div>
+              </div>
 
             <div>
               <div className="flex items-center gap-2 mb-3">

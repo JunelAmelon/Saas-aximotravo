@@ -53,14 +53,21 @@ export default function ArtisanDashboard() {
         />
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-3">
           <h2 className="text-lg font-medium text-gray-900 mb-4">Projets récents</h2>
           <ProjectsTable projects={projects} />
         </div>
-        <div>
+        {/* <div>
           <h2 className="text-lg font-medium text-gray-900 mb-4">Activités</h2>
-          <ActivityFeed activities={activities} />
-        </div>
+          <ActivityFeed activities={activities.map(activity => ({
+            id: activity.id,
+            type: activity.type,
+            content: activity.content,
+            date: activity.createdAt,
+            project: activity.projectName,
+            user: activity.userName
+          }))} />
+        </div> */}
       </div>
     </div>
   );

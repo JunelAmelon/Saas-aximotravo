@@ -23,8 +23,8 @@ export default function ProjectPlans() {
   const plansPerPage = 2;
 
   // Récupération du projectId depuis l'URL
-  const params = useParams();
-  const projectId = Array.isArray(params?.id) ? params.id[0] : params?.id as string;
+  const params = useParams() ?? {};
+  const projectId = Array.isArray(params.id) ? params.id[0] : params.id as string;
   const [plans, setPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -242,34 +242,120 @@ export default function ProjectPlans() {
               {/* Plan existant */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Image du plan existant</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0] || null;
-                    setPlanForm(f => ({ ...f, files: [file, f.files[1]] }));
+                <div
+                  className={`border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center transition-colors cursor-pointer hover:border-[#f26755] bg-gray-50 relative ${planForm.files[0] ? 'border-[#f26755]' : 'border-gray-300'}`}
+                  onClick={() => document.getElementById('plan-existant-input')?.click()}
+                  onDrop={e => {
+                    e.preventDefault();
+                    const file = e.dataTransfer.files?.[0] || null;
+                    if (file && file.type.startsWith('image/')) {
+                      setPlanForm(f => ({ ...f, files: [file, f.files[1]] }));
+                    }
                   }}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2"
-                />
-                {planForm.files[0] && (
-                  <div className="mt-2 text-xs text-gray-600">{planForm.files[0].name}</div>
-                )}
+                  onDragOver={e => e.preventDefault()}
+                  style={{ minHeight: 120 }}
+                >
+                  {!planForm.files[0] ? (
+                    <>
+                      <Upload className="h-8 w-8 text-[#f26755] mb-2" />
+                      <span className="text-sm text-gray-500 text-center">Cliquez ou glissez une image ici<br/>(plan existant)</span>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center w-full">
+                      <Image
+                        src={URL.createObjectURL(planForm.files[0])}
+                        alt="Aperçu plan existant"
+                        width={100}
+                        height={100}
+                        className="rounded shadow max-h-32 object-contain mb-2"
+                      />
+                      <div className="flex items-center justify-between w-full">
+                        <span className="text-xs text-gray-700 truncate">{planForm.files[0].name}</span>
+                        <button
+                          type="button"
+                          className="ml-2 px-2 py-1 text-xs bg-red-100 text-red-600 rounded hover:bg-red-200"
+                          onClick={e => {
+                            e.stopPropagation();
+                            setPlanForm(f => ({ ...f, files: [null, f.files[1]] }));
+                          }}
+                          title="Supprimer la sélection"
+                        >
+                          Supprimer
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  <input
+                    id="plan-existant-input"
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={e => {
+                      const file = e.target.files?.[0] || null;
+                      setPlanForm(f => ({ ...f, files: [file, f.files[1]] }));
+                    }}
+                    className="hidden"
+                  />
+                </div>
               </div>
               {/* Plan d'exécution */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Image du plan d&apos;exécution</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0] || null;
-                    setPlanForm(f => ({ ...f, files: [f.files[0], file] }));
+                <div
+                  className={`border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center transition-colors cursor-pointer hover:border-[#f26755] bg-gray-50 relative ${planForm.files[1] ? 'border-[#f26755]' : 'border-gray-300'}`}
+                  onClick={() => document.getElementById('plan-execution-input')?.click()}
+                  onDrop={e => {
+                    e.preventDefault();
+                    const file = e.dataTransfer.files?.[0] || null;
+                    if (file && file.type.startsWith('image/')) {
+                      setPlanForm(f => ({ ...f, files: [f.files[0], file] }));
+                    }
                   }}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2"
-                />
-                {planForm.files[1] && (
-                  <div className="mt-2 text-xs text-gray-600">{planForm.files[1].name}</div>
-                )}
+                  onDragOver={e => e.preventDefault()}
+                  style={{ minHeight: 120 }}
+                >
+                  {!planForm.files[1] ? (
+                    <>
+                      <Upload className="h-8 w-8 text-[#f26755] mb-2" />
+                      <span className="text-sm text-gray-500 text-center">Cliquez ou glissez une image ici<br/>(plan d&apos;exécution)</span>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center w-full">
+                      <Image
+                        src={URL.createObjectURL(planForm.files[1])}
+                        alt="Aperçu plan d'exécution"
+                        width={100}
+                        height={100}
+                        className="rounded shadow max-h-32 object-contain mb-2"
+                      />
+                      <div className="flex items-center justify-between w-full">
+                        <span className="text-xs text-gray-700 truncate">{planForm.files[1].name}</span>
+                        <button
+                          type="button"
+                          className="ml-2 px-2 py-1 text-xs bg-red-100 text-red-600 rounded hover:bg-red-200"
+                          onClick={e => {
+                            e.stopPropagation();
+                            setPlanForm(f => ({ ...f, files: [f.files[0], null] }));
+                          }}
+                          title="Supprimer la sélection"
+                        >
+                          Supprimer
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  <input
+                    id="plan-execution-input"
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={e => {
+                      const file = e.target.files?.[0] || null;
+                      setPlanForm(f => ({ ...f, files: [f.files[0], file] }));
+                    }}
+                    className="hidden"
+                  />
+                </div>
               </div>
             </div>
 

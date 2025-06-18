@@ -50,5 +50,23 @@ export function usePendingArtisanInvitation(artisanId: string, projectId: string
     }
   }
 
-  return { pending, loading, error, acceptInvitation, accepting, accepted };
+  // Refuser l'invitation
+  const [refusing, setRefusing] = useState(false);
+  const [refused, setRefused] = useState(false);
+  async function refuseInvitation() {
+    if (!pending) return;
+    setRefusing(true);
+    setError(null);
+    try {
+      await updateDoc(doc(db, "artisan_projet", pending.invitationId), { status: "refusé" });
+      setRefused(true);
+      setPending(null);
+    } catch (e: any) {
+      setError(e.message || "Erreur lors du refus");
+    } finally {
+      setRefusing(false);
+    }
+  }
+
+  return { pending, loading, error, acceptInvitation, accepting, accepted, refuseInvitation, refusing, refused };
 }

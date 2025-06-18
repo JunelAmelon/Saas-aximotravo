@@ -10,8 +10,8 @@ import ProjectNoteForm from "./ProjectNoteForm";
 import { useParams } from "next/navigation";
 
 export default function ProjectNotes() {
-  const params = useParams();
-  const projectId = Array.isArray(params?.id) ? params.id[0] : params?.id as string;
+  const params = useParams() ?? {};
+  const projectId = Array.isArray(params.id) ? params.id[0] : params.id as string;
   const [isAddNoteOpen, setIsAddNoteOpen] = useState(false);
   const { notes, loading, error, addNote } = useProjectNotes(projectId);
   return (
@@ -41,8 +41,8 @@ export default function ProjectNotes() {
         <div className="flex items-start">
           <Info className="h-5 w-5 text-blue-500 mt-0.5 mr-3 flex-shrink-0" />
           <div className="text-sm text-blue-700">
-            <p className="mb-1">- type "fil d'actualité", le plus récent est en haut</p>
-            <p>- permet de comprendre l'historique d'un projet</p>
+            <p className="mb-1">- type &quot;fil d&apos;actualité&quot;, le plus récent est en haut</p>
+            <p>- permet de comprendre l&apos;historique d&apos;un projet</p>
           </div>
         </div>
       </div>

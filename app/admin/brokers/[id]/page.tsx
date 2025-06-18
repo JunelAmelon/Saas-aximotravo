@@ -60,17 +60,17 @@ export default function BrokerDetails({ params }: { params: { id: string } }) {
         const projectsSnapshot = await getDocs(projectsQuery);
         
         const projects: Project[] = await Promise.all(
-          projectsSnapshot.docs.map(async (doc) => {
-            const projectData = doc.data();
+          projectsSnapshot.docs.map(async (projectDoc) => {
+            const projectData = projectDoc.data();
             let artisan = null;
 
             // Si le projet a un artisan associé, récupérer ses infos
             if (projectData.artisanId) {
               const artisanDoc = await getDoc(doc(db, "users", projectData.artisanId));
               if (artisanDoc.exists()) {
-                const artisanData = artisanDoc.data();
+                const artisanData = artisanDoc.data() as Record<string, any>;
                 artisan = {
-                  name: artisanData.name || `${artisanData.firstName} ${artisanData.lastName}`,
+                  name: artisanData.name || `${artisanData.firstName ?? ''} ${artisanData.lastName ?? ''}`.trim(),
                   company: artisanData.company || "Société non spécifiée",
                   avatar: artisanData.avatar || "/default-avatar.png"
                 };
@@ -78,7 +78,7 @@ export default function BrokerDetails({ params }: { params: { id: string } }) {
             }
 
             return {
-              id: doc.id,
+              id: projectDoc.id,
               name: projectData.name || "Projet sans nom",
               status: projectData.status || "Non spécifié",
               startDate: projectData.startDate || "",

@@ -17,12 +17,21 @@ export default function ProjectPhotos() {
   const [formError, setFormError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
+  // Type for a photo (single media item)
+type Photo = {
+  id: string;
+  url: string;
+  title: string;
+  date: string;
+  tag: string;
+};
+
+const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
   // Récupération du projectId depuis l'URL
-  const params = useParams();
-  const projectId = Array.isArray(params?.id) ? params.id[0] : params?.id as string;
+  const params = useParams() ?? {};
+    const projectId = Array.isArray(params.id) ? params.id[0] : params.id as string;
   const [photos, setPhotos] = useState<ProjectMedia[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -238,15 +247,62 @@ export default function ProjectPhotos() {
               />
             </div>
             <div>
-              <label className="block text-sm mb-1">Fichier image</label>
-              <input
-                type="file"
-                accept="image/*"
-                ref={fileInputRef}
-                onChange={e => setMediaForm(f => ({ ...f, file: e.target.files?.[0] || null }))}
-                required
-              />
-            </div>
+  <label className="block text-sm mb-1">Photo</label>
+  <div
+    className={`border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center transition-colors cursor-pointer hover:border-[#f21515] bg-gray-50 relative ${mediaForm.file ? 'border-[#f21515]' : 'border-gray-300'}`}
+    onClick={() => fileInputRef.current?.click()}
+    onDrop={e => {
+      e.preventDefault();
+      const file = e.dataTransfer.files?.[0] || null;
+      if (file && file.type.startsWith('image/')) {
+        setMediaForm(f => ({ ...f, file }));
+      }
+    }}
+    onDragOver={e => e.preventDefault()}
+    style={{ minHeight: 120 }}
+  >
+    {!mediaForm.file ? (
+      <>
+        <Upload className="h-8 w-8 text-[#f21515] mb-2" />
+        <span className="text-sm text-gray-500 text-center">Cliquez ou glissez une image ici</span>
+      </>
+    ) : (
+      <div className="flex flex-col items-center w-full">
+        <Image
+          src={URL.createObjectURL(mediaForm.file)}
+          alt="Aperçu photo"
+          width={100}
+          height={100}
+          className="rounded shadow max-h-32 object-contain mb-2"
+        />
+        <div className="flex items-center justify-between w-full">
+          <span className="text-xs text-gray-700 truncate">{mediaForm.file.name}</span>
+          <button
+            type="button"
+            className="ml-2 px-2 py-1 text-xs bg-red-100 text-red-600 rounded hover:bg-red-200"
+            onClick={e => {
+              e.stopPropagation();
+              setMediaForm(f => ({ ...f, file: null }));
+              if (fileInputRef.current) fileInputRef.current.value = '';
+            }}
+            title="Supprimer la sélection"
+          >
+            Supprimer
+          </button>
+        </div>
+      </div>
+    )}
+    <input
+      type="file"
+      accept="image/*"
+      capture="environment"
+      ref={fileInputRef}
+      onChange={e => setMediaForm(f => ({ ...f, file: e.target.files?.[0] || null }))}
+      className="hidden"
+      required
+    />
+  </div>
+</div>
             <button
               type="submit"
               className="w-full bg-[#f21515] text-white py-2 rounded font-semibold hover:bg-[#f21515]/90 transition-colors disabled:opacity-60"

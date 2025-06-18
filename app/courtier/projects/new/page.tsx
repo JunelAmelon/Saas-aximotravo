@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { ChevronLeft, Save, Image as ImageIcon } from "lucide-react";
@@ -69,7 +70,8 @@ export default function NewProject() {
       paidAmount: Number(form.paidAmount),
       progress: Number(form.progress),
       firstDepositPercent: Number(form.firstDepositPercent),
-      image: imageUrl
+      image: imageUrl,
+      status: "En attente"
     });
     if (!error) {
       setForm({
@@ -108,7 +110,7 @@ export default function NewProject() {
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-lg p-8 border border-gray-100">
         {error && (
           <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-lg border border-red-200">
-            {error.message}
+            {typeof error === 'object' && error !== null && 'message' in error ? (error as any).message : String(error)}
           </div>
         )}
         {success && (
@@ -140,7 +142,7 @@ export default function NewProject() {
               </label>
               {imageFile && (
                 <div className="relative">
-                  <img
+                  <Image
                     src={URL.createObjectURL(imageFile)}
                     alt="Aperçu du projet"
                     className="h-32 w-32 object-cover rounded-lg border-2 border-gray-200 shadow-sm"

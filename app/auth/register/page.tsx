@@ -114,7 +114,7 @@ export default function RegisterPage() {
               href="/auth/register"
               className="px-4 py-2 text-sm font-medium text-white bg-[#f21515] rounded-md hover:bg-[#f21515]/90 transition-colors"
             >
-              S'inscrire
+              S&apos;inscrire
             </Link>
           </div>
         </div>
@@ -130,7 +130,7 @@ export default function RegisterPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nom de l'entreprise
+                  Nom de l&apos;entreprise
                 </label>
                 <input
                   type="text"

@@ -11,6 +11,7 @@ export interface Event {
   timestamp: any; // Firestore timestamp
   type: string; // ex: "visite"
   typeColor: string; // ex: "bg-green-50 text-green-800 border-green-200"
+  status: "planned" | "in_progress" | "completed" | "cancelled";
 }
 
 

@@ -34,7 +34,7 @@ export default function TestEmail() {
 
   return (
     <div className="max-w-md mx-auto mt-16 p-6 bg-white rounded shadow">
-      <h1 className="text-2xl font-bold mb-4">Test d'envoi d'e-mail</h1>
+      <h1 className="text-2xl font-bold mb-4">Test d&apos;envoi d&apos;e-mail</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium mb-1">Destinataire</label>

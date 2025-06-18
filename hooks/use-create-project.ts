@@ -17,7 +17,7 @@ export interface CreateProjectInput {
   paidAmount: number;
   startDate: string;
   estimatedEndDate: string;
-  status: "En cours" | "En attente" | "Terminé" | "Annulé";
+  status: "En cours" | "En attente" | "Terminé"; // Removed "Annulé" to match ProjectStatus
   progress: number;
   type: string;
   location: string;
@@ -100,7 +100,7 @@ export function useCreateProject() {
         client_id: clientUid,
         firstDepositPercent,
         broker,
-        image: image || null,
+        image: image || undefined,
       });
       // 6. Créer automatiquement le premier accompte (nouvelle structure)
       const accompteAmount = data.budget * (data.firstDepositPercent / 100);

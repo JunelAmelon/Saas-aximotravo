@@ -138,6 +138,49 @@ export const inviteArtisanToProject = async (
       status: "pending", // EN ATTENTE
       createdAt: serverTimestamp(),
     });
+
+    // Envoi d'email à l'artisan invité
+    try {
+      // Récupérer les infos projet et artisan
+      const [projectSnap, artisanSnap] = await Promise.all([
+        getDoc(doc(db, "projects", projetId)),
+        getDoc(doc(db, "users", artisanId)),
+      ]);
+      if (projectSnap.exists() && artisanSnap.exists()) {
+        const projectData = projectSnap.data();
+        const artisanData = artisanSnap.data();
+        // Récupérer le client
+        let clientName = "";
+        if (projectData.client_id) {
+          const clientSnap = await getDoc(doc(db, "users", projectData.client_id));
+          if (clientSnap.exists()) {
+            const c = clientSnap.data();
+            clientName = (c.firstName || "") + " " + (c.lastName || "");
+          }
+        }
+        const email = artisanData.email;
+        const subject = `Invitation à un projet : ${projectData.name}`;
+        const html = `
+          <p>Bonjour ${artisanData.firstName || ""} ${artisanData.lastName || ""},</p>
+          <p>Vous avez été invité à participer au projet <b>${projectData.name}</b>.</p>
+          <ul>
+            <li><b>Nom du projet :</b> ${projectData.name}</li>
+            <li><b>Localisation :</b> ${projectData.location || "Non spécifiée"}</li>
+            <li><b>Client :</b> ${clientName || "Non spécifié"}</li>
+          </ul>
+          <p>Merci de vous connecter à votre espace pour accepter ou refuser l'invitation.</p>
+        `;
+        // Appel API Next.js pour envoyer le mail
+        await fetch("/api/send-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ to: email, subject, html }),
+        });
+      }
+    } catch (mailError) {
+      console.error("Erreur lors de l'envoi de l'email d'invitation artisan:", mailError);
+    }
+
     return docRef.id;
   } catch (error) {
     console.error("Erreur lors de l'invitation de l'artisan :", error);
@@ -202,7 +245,7 @@ export default function ProjectDetails() {
   // ...
   const [devis, setDevis] = useState<any[]>([]);
   const params = useParams<{ id: string; tab?: string }>();
-  const { id } = params;
+  const { id } = params || {};
   const [project, setProject] = useState<ProjectDetails | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -265,6 +308,11 @@ export default function ProjectDetails() {
       setLoading(true);
       setError(null);
       try {
+        if (!id) {
+          setError("ID du projet manquant.");
+          setLoading(false);
+          return;
+        }
         const data = await getProjectDetail(id);
         setProject(data);
         if (!data) setError("Projet introuvable");
@@ -298,20 +346,16 @@ export default function ProjectDetails() {
       const users = await Promise.all(
         artisanIds.map(async (uid) => {
           const userDoc = await getDoc(doc(db, "users", uid));
-          return userDoc.exists() ? userDoc.data() : null;
+          return userDoc.exists() ? (userDoc.data() as User) : null;
         })
       );
-      return users.filter(Boolean);
+      return users.filter((u): u is User => u !== null);
     }
     getAcceptedArtisansForProject(id).then(setProjectArtisans);
   }, [id]);
 
-  const handleArtisanSelect = (artisanIds: string[] | string) => {
-    if (typeof artisanIds === "string") {
-      setSelectedArtisanIds([artisanIds]);
-    } else {
-      setSelectedArtisanIds(artisanIds);
-    }
+  const handleArtisanSelect = (artisanIds: string[]) => {
+    setSelectedArtisanIds(artisanIds);
   };
 
   const handleSendRequest = async () => {
@@ -433,11 +477,11 @@ export default function ProjectDetails() {
                 <div className="flex gap-2 mt-4">
                   <button className="inline-flex items-center px-2.5 py-1 bg-emerald-500 text-white rounded text-xs font-medium hover:bg-emerald-600 transition-colors">
                     <Calendar className="h-3 w-3 mr-1" />
-                    {new Date(project?.startDate).toLocaleDateString('fr-FR')}
+                    Date de début: {new Date(project?.startDate).toLocaleDateString('fr-FR')}
                   </button>
                   <button className="inline-flex items-center px-2.5 py-1 bg-red-500 text-white rounded text-xs font-medium hover:bg-red-600 transition-colors">
                     <Calendar className="h-3 w-3 mr-1" />
-                    {new Date(project?.estimatedEndDate).toLocaleDateString('fr-FR')}
+                    Date de fin: {new Date(project?.estimatedEndDate).toLocaleDateString('fr-FR')}
                   </button>
                 </div>
               )}
@@ -565,9 +609,7 @@ export default function ProjectDetails() {
                     </span>
                   </h4>
                   <Select
-                    mode="multiple"
-                    value={selectedArtisanIds}
-                    onValueChange={handleArtisanSelect}
+                    onValueChange={(selectedVal) => handleArtisanSelect(selectedVal ? [selectedVal] : [])}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Sélectionner un ou plusieurs artisans à inviter" />

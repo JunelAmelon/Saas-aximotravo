@@ -67,7 +67,7 @@ export default function Header({ userRole }: HeaderProps) {
   const handleLogout = async () => {
     try {
       await logout();
-      window.location.href = "/";
+      window.location.href = "/auth/login";
     } catch (error) {
       console.error("Erreur lors de la déconnexion:", error);
     }

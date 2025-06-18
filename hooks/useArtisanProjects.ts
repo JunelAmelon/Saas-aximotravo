@@ -8,6 +8,7 @@ export interface ArtisanProject {
   client: string;
   status: string;
   deadline: string;
+  location: string;
 }
 
 export function useArtisanProjects() {
@@ -61,6 +62,7 @@ export function useArtisanProjects() {
                 deadline: p.estimatedEndDate || 'Non défini',
                 budget: p.budget,
                 image: p.image,
+                location: p.location,
               } as ArtisanProject;
             })
         );

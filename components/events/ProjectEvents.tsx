@@ -67,8 +67,8 @@ export default function ProjectEvents() {
     };
     fetchRole();
   }, [currentUser]);
-  const params = useParams();
-  const projectId = Array.isArray(params?.id) ? params.id[0] : params?.id as string;
+  const params = useParams() ?? {};
+  const projectId = Array.isArray(params.id) ? params.id[0] : params.id as string;
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddEventOpen, setIsAddEventOpen] = useState(false);
   const { events, loading, error, addEvent } = useProjectEvents(projectId);
@@ -134,7 +134,7 @@ export default function ProjectEvents() {
                 Type
               </th>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Nom de l'événement
+                Nom de l&apos;événement
               </th>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Adresse

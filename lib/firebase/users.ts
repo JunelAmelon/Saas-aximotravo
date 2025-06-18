@@ -7,11 +7,14 @@ export type UserRole = 'admin' | 'courtier' | 'artisan';
 export interface BaseUser {
   uid: string;
   email: string;
+  lastName?: string;
+  firstName?: string;
   displayName?: string;
   phoneNumber?: string;
   role: UserRole;
   createdAt: Date | null;
   updatedAt: Date | null;
+  photoURL?: string;
 }
 
 export interface ArtisanUser extends BaseUser {
@@ -44,7 +47,7 @@ export async function createUser(
   try {
     // Créer l'utilisateur dans Firebase Auth
     const userCredential = await firebaseCreateUser(email, password);
-    const uid = userCredential.user.uid;
+    const uid = userCredential.uid;
 
     // Préparer les données utilisateur avec les timestamps
     const userWithTimestamp = {
@@ -58,7 +61,7 @@ export async function createUser(
     // Enregistrer dans Firestore selon le rôle
     await setDoc(doc(db, 'users', uid), userWithTimestamp);
 
-    return { uid, ...userWithTimestamp };
+    return userWithTimestamp;
   } catch (error) {
     console.error('Erreur lors de la création du utilisateur:', error);
     throw error;

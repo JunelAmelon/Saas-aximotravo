@@ -10,6 +10,6 @@ export function generateStaticParams() {
   ];
 }
 
-export default function ProjectPage({ params }: { params: { id: string } }) {
-  return <ProjectDetails id={params.id} />;
+export default function ProjectPage() {
+  return <ProjectDetails />;
 }
