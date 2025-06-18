@@ -92,7 +92,6 @@ export default function ProjectEvents() {
           Retour
         </button>
         <h2 className="text-lg font-medium text-gray-900">Événements du Projet</h2>
-        {userRole === 'artisan' && (
           <button
             onClick={() => setIsAddEventOpen(true)}
             className="inline-flex items-center px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors"
@@ -100,7 +99,6 @@ export default function ProjectEvents() {
             <Plus className="h-4 w-4 mr-2" />
             Ajouter un événement
           </button>
-        )}
       </div>
 
       <div className="flex items-center gap-4">

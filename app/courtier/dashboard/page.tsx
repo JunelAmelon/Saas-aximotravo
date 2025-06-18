@@ -94,7 +94,7 @@ let courtierArtisans: ArtisanUser[] = [];
           name: project.name,
           client: project.clientName,
           status: project.status,
-          deadline: project.deadline || 'Non défini',
+          deadline: project.estimatedEndDate || 'Non défini',
         }));
         
         // Formater les activités pour l'affichage

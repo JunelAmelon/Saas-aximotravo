@@ -145,6 +145,8 @@ export default function NewProject() {
                   <Image
                     src={URL.createObjectURL(imageFile)}
                     alt="Aperçu du projet"
+                    width={128}
+                    height={128}
                     className="h-32 w-32 object-cover rounded-lg border-2 border-gray-200 shadow-sm"
                   />
                   <button
