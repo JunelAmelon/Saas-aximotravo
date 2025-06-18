@@ -16,12 +16,11 @@ interface Project {
   amount: number;
   validatedPayments: number;
   pendingPayments: number;
-  artisanId?: string;
-  artisan?: {
+  artisans?: {
     name: string;
     company: string;
     avatar: string;
-  } | null;
+  }[];
 }
 
 interface Broker {
@@ -31,6 +30,52 @@ interface Broker {
   email: string;
   avatar: string;
   projects: Project[];
+}
+
+// Composant dropdown artisanal local
+function ArtisanDropdown({ artisans }: { artisans: { name: string; company: string; avatar: string }[] }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative">
+      <button type="button" className="flex items-center gap-2" onClick={() => setOpen((v) => !v)}>
+        <div className="relative w-8 h-8 rounded-full overflow-hidden">
+          <Image
+            src={artisans[0].avatar}
+            alt={artisans[0].name}
+            width={32}
+            height={32}
+            className="object-cover"
+          />
+        </div>
+        <div>
+          <div className="text-sm font-medium text-gray-900">{artisans[0].name}</div>
+          <div className="text-sm text-gray-500">{artisans[0].company}</div>
+        </div>
+        <svg className="w-4 h-4 ml-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+      </button>
+      {open && (
+        <div className="absolute z-10 left-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg">
+          {artisans.slice(1).map((artisan, idx) => (
+            <div key={idx} className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50">
+              <div className="relative w-8 h-8 rounded-full overflow-hidden">
+                <Image
+                  src={artisan.avatar}
+                  alt={artisan.name}
+                  width={32}
+                  height={32}
+                  className="object-cover"
+                />
+              </div>
+              <div>
+                <div className="text-sm font-medium text-gray-900">{artisan.name}</div>
+                <div className="text-sm text-gray-500">{artisan.company}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function BrokerDetails({ params }: { params: { id: string } }) {
@@ -55,25 +100,33 @@ export default function BrokerDetails({ params }: { params: { id: string } }) {
         // Récupérer les projets associés à ce courtier
         const projectsQuery = query(
           collection(db, "projects"),
-          where("brokerId", "==", params.id)
+          where("broker.id", "==", params.id)
         );
         const projectsSnapshot = await getDocs(projectsQuery);
-        
+
         const projects: Project[] = await Promise.all(
           projectsSnapshot.docs.map(async (projectDoc) => {
             const projectData = projectDoc.data();
-            let artisan = null;
+            let artisans: { name: string; company: string; avatar: string }[] = [];
 
-            // Si le projet a un artisan associé, récupérer ses infos
-            if (projectData.artisanId) {
-              const artisanDoc = await getDoc(doc(db, "users", projectData.artisanId));
+            // Chercher TOUS les artisans ayant accepté l'invitation via la table de jointure artisan_projet
+            const artisanProjetQuery = query(
+              collection(db, "artisan_projet"),
+              where("projetId", "==", projectDoc.id),
+              where("status", "==", "accepté")
+            );
+            const artisanProjetSnap = await getDocs(artisanProjetQuery);
+            for (const docSnap of artisanProjetSnap.docs) {
+              const artisanProjetData = docSnap.data();
+              const artisanId = artisanProjetData.artisanId;
+              const artisanDoc = await getDoc(doc(db, "users", artisanId));
               if (artisanDoc.exists()) {
                 const artisanData = artisanDoc.data() as Record<string, any>;
-                artisan = {
-                  name: artisanData.name || `${artisanData.firstName ?? ''} ${artisanData.lastName ?? ''}`.trim(),
-                  company: artisanData.company || "Société non spécifiée",
-                  avatar: artisanData.avatar || "/default-avatar.png"
-                };
+                artisans.push({
+                  name: artisanData.displayName || `${artisanData.firstName ?? ''} ${artisanData.lastName ?? ''}`.trim(),
+                  company: artisanData.companyName || "Société non spécifiée",
+                  avatar: artisanData.image || "/default-avatar.png"
+                });
               }
             }
 
@@ -82,21 +135,21 @@ export default function BrokerDetails({ params }: { params: { id: string } }) {
               name: projectData.name || "Projet sans nom",
               status: projectData.status || "Non spécifié",
               startDate: projectData.startDate || "",
-              endDate: projectData.endDate || "",
-              amount: projectData.amount || 0,
-              validatedPayments: projectData.validatedPayments || 0,
-              pendingPayments: projectData.pendingPayments || 0,
-              artisan
+              endDate: projectData.estimatedEndDate || "",
+              amount: projectData.budget || 0,
+              validatedPayments: projectData.paidAmount || 0,
+              pendingPayments: (projectData.budget - projectData.paidAmount) || 0,
+              artisans
             };
           })
         );
 
         setBroker({
           id: params.id,
-          name: brokerData.name || `${brokerData.firstName} ${brokerData.lastName}`,
-          company: brokerData.company || "Société non spécifiée",
+          name: brokerData.displayName || `${brokerData.firstName} ${brokerData.lastName}`,
+          company: brokerData.companyName || "Société non spécifiée",
           email: brokerData.email || "Email non spécifié",
-          avatar: brokerData.avatar || "/default-avatar.png",
+          avatar: brokerData.image || "/default-avatar.png",
           projects
         });
         setLoading(false);
@@ -208,13 +261,12 @@ export default function BrokerDetails({ params }: { params: { id: string } }) {
                     <div className="text-sm font-medium text-gray-900">{project.name}</div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`inline-flex px-2.5 py-0.5 text-xs font-medium rounded-full ${
-                      project.status === "En cours" 
+                    <span className={`inline-flex px-2.5 py-0.5 text-xs font-medium rounded-full ${project.status === "En cours"
                         ? "bg-[#f26755]/10 text-[#f26755]"
                         : project.status === "Terminé"
-                        ? "bg-green-100 text-green-800"
-                        : "bg-yellow-100 text-yellow-800"
-                    }`}>
+                          ? "bg-green-100 text-green-800"
+                          : "bg-yellow-100 text-yellow-800"
+                      }`}>
                       {project.status}
                     </span>
                   </td>
@@ -223,38 +275,40 @@ export default function BrokerDetails({ params }: { params: { id: string } }) {
                       <div className="flex items-center gap-1">
                         <Calendar className="h-4 w-4" />
                         <span>
-                          {project.startDate 
-                            ? new Date(project.startDate).toLocaleDateString('fr-FR') 
+                          {project.startDate
+                            ? new Date(project.startDate).toLocaleDateString('fr-FR')
                             : "Non spécifié"} au{' '}
-                          {project.endDate 
-                            ? new Date(project.endDate).toLocaleDateString('fr-FR') 
+                          {project.endDate
+                            ? new Date(project.endDate).toLocaleDateString('fr-FR')
                             : "Non spécifié"}
                         </span>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    {project.artisan ? (
+                    {(!project.artisans || project.artisans.length === 0) ? (
+                      <div className="text-sm text-yellow-800 flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4" />
+                        <span>Non assigné</span>
+                      </div>
+                    ) : project.artisans.length === 1 ? (
                       <div className="flex items-center gap-3">
                         <div className="relative w-8 h-8 rounded-full overflow-hidden">
                           <Image
-                            src={project.artisan.avatar}
-                            alt={project.artisan.name}
+                            src={project.artisans[0].avatar}
+                            alt={project.artisans[0].name}
                             width={32}
                             height={32}
                             className="object-cover"
                           />
                         </div>
                         <div>
-                          <div className="text-sm font-medium text-gray-900">{project.artisan.name}</div>
-                          <div className="text-sm text-gray-500">{project.artisan.company}</div>
+                          <div className="text-sm font-medium text-gray-900">{project.artisans[0].name}</div>
+                          <div className="text-sm text-gray-500">{project.artisans[0].company}</div>
                         </div>
                       </div>
                     ) : (
-                      <div className="text-sm text-yellow-800 flex items-center gap-2">
-                        <AlertTriangle className="h-4 w-4" />
-                        <span>Non assigné</span>
-                      </div>
+                      <ArtisanDropdown artisans={project.artisans} />
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
@@ -267,8 +321,8 @@ export default function BrokerDetails({ params }: { params: { id: string } }) {
                       {project.validatedPayments.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
                     </div>
                     <div className="mt-1 bg-green-200/50 rounded-full h-1.5">
-                      <div 
-                        className="bg-green-600 h-1.5 rounded-full" 
+                      <div
+                        className="bg-green-600 h-1.5 rounded-full"
                         style={{ width: `${project.amount > 0 ? (project.validatedPayments / project.amount) * 100 : 0}%` }}
                       />
                     </div>
@@ -278,8 +332,8 @@ export default function BrokerDetails({ params }: { params: { id: string } }) {
                       {project.pendingPayments.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
                     </div>
                     <div className="mt-1 bg-yellow-200/50 rounded-full h-1.5">
-                      <div 
-                        className="bg-yellow-600 h-1.5 rounded-full" 
+                      <div
+                        className="bg-yellow-600 h-1.5 rounded-full"
                         style={{ width: `${project.amount > 0 ? (project.pendingPayments / project.amount) * 100 : 0}%` }}
                       />
                     </div>

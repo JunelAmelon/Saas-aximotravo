@@ -43,8 +43,8 @@ export default function AdminDashboard() {
           const data = doc.data();
           brokersData.push({
             id: doc.id,
-            name: data.name || `${data.firstName} ${data.lastName}` || "Nom inconnu",
-            company: data.company || "Société non spécifiée",
+            name: data.displayName || `${data.firstName} ${data.lastName}` || "Nom inconnu",
+            company: data.companyName || "Société non spécifiée",
             email: data.email || "Email non spécifié",
             region: data.region || "Région non spécifiée",
             avatar: data.image || "/default-avatar.png",

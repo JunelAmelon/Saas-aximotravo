@@ -90,7 +90,7 @@ export function useCreateProject() {
           rating: (brokerUser as any).rating || null,
           projectsCount: (brokerUser as any).projectsCount || null,
           specialties: (brokerUser as any).specialties || [],
-          image: brokerUser.photoURL || '',
+          image: brokerUser.image || '',
         } : null;
       }
       // 5. Créer le projet
