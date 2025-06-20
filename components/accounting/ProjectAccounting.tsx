@@ -51,8 +51,8 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
   }, [currentUser]);
 
   const params = useParams() ?? {};
-const resolvedProjectId = projectId || (Array.isArray(params.id) ? params.id[0] : params.id as string);
-const { payments: requests, loading, error } = useProjectPayments(resolvedProjectId);
+  const resolvedProjectId = projectId || (Array.isArray(params.id) ? params.id[0] : params.id as string);
+  const { payments: requests, loading, error } = useProjectPayments(resolvedProjectId);
 
   const [selectedRequest, setSelectedRequest] = useState<ProjectPayment | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -256,7 +256,7 @@ const { payments: requests, loading, error } = useProjectPayments(resolvedProjec
                 onChange={handleFormChange}
                 className="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
               />
-            </div> 
+            </div>
             <div className="flex justify-end pt-2">
               <button
                 type="submit"
@@ -275,35 +275,39 @@ const { payments: requests, loading, error } = useProjectPayments(resolvedProjec
         </DialogContent>
       </Dialog>
 
-      <div className="flex items-center justify-between">
-        <button
-          className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-[#f26755] to-[#f26755]/90 text-white rounded-lg font-semibold shadow hover:opacity-90 transition"
-          onClick={() => window.history.back()}
-          type="button"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" /></svg>
-          Retour
-        </button>
-        <h2 className="text-xl font-semibold text-gray-800">Demandes d&apos;acompte</h2>
-        {userRole === 'artisan' && (
+      <div className="flex flex-wrap items-center gap-2 sm:gap-4 justify-between w-full mb-2">
+        <div className="flex items-center flex-shrink-0">
           <button
-            className="flex items-center gap-2 px-4 py-2 bg-[#f26755] text-white rounded-lg font-semibold shadow hover:opacity-90 transition"
-            onClick={() => setOpenAddModal(true)}
+            className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-[#f26755] to-[#f26755]/90 text-white rounded-lg font-semibold shadow hover:opacity-90 transition"
+            onClick={() => window.history.back()}
             type="button"
           >
-            <Upload className="h-4 w-4" /> Demande d&apos;acompte
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            Retour
           </button>
-        )}
+        </div>
+        <h2 className="text-xl font-semibold text-gray-800 flex-1 text-center min-w-[160px] truncate order-2 sm:order-none">Demandes d&apos;acompte</h2>
+        <div className="flex items-center flex-shrink-0">
+          {userRole === 'artisan' && (
+            <button
+              className="flex items-center gap-2 px-4 py-2 bg-[#f26755] text-white rounded-lg font-semibold shadow hover:opacity-90 transition"
+              onClick={() => setOpenAddModal(true)}
+              type="button"
+            >
+            <Upload className="h-4 w-4" /> Demande d&apos;acompte
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="grid gap-4">
         {requests.map((request) => (
-          <div 
-            key={request.id} 
+          <div
+            key={request.id}
             className="group relative bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow overflow-hidden"
           >
             <div className="absolute inset-y-0 left-0 w-1.5 bg-gradient-to-b from-[#f26755] to-[#f26755]/70"></div>
-            
+
             <div className="p-5">
               <div className="flex justify-between items-start">
                 <div className="flex-1 min-w-0">
@@ -316,25 +320,25 @@ const { payments: requests, loading, error } = useProjectPayments(resolvedProjec
                       {request.status === 'validé' ? 'Validé' : 'En attente'}
                     </span>
                   </div>
-                  
+
                   <div className="mt-1 flex items-center text-sm text-gray-500">
                     <span>{format(new Date(request.date), "PPP", { locale: fr })}</span>
                   </div>
                 </div>
-                
+
                 <div className="ml-4 flex-shrink-0">
                   <div className="text-xl font-bold text-[#f26755]">
                     {request.amount.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
                   </div>
                 </div>
               </div>
-              
+
               {request.description && (
                 <div className="mt-3 text-sm text-gray-700">
                   {request.description}
                 </div>
               )}
-              
+
               {request.images && request.images.length > 0 && (
                 <div className="mt-4">
                   <div className="flex gap-3 overflow-x-auto pb-2 -mx-5 px-5">
@@ -353,7 +357,7 @@ const { payments: requests, loading, error } = useProjectPayments(resolvedProjec
                   </div>
                 </div>
               )}
-              
+
               {/* <div className="mt-4 flex justify-between items-center">
               {userRole === 'courtier' && request.status === 'en_attente' && (
                 <button
@@ -528,11 +532,10 @@ const { payments: requests, loading, error } = useProjectPayments(resolvedProjec
               <button
                 type="submit"
                 disabled={isNotificationSent}
-                className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${
-                  isNotificationSent
+                className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${isNotificationSent
                     ? 'bg-green-100 text-green-700 cursor-not-allowed'
                     : 'bg-[#f26755] text-white hover:bg-[#f26755]/90'
-                }`}
+                  }`}
               >
                 {isNotificationSent ? (
                   <>

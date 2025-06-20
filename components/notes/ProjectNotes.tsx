@@ -17,25 +17,28 @@ export default function ProjectNotes() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <button
-          className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-[#f26755] to-[#f26755] text-white rounded-lg font-semibold shadow hover:opacity-90 transition"
-          onClick={() => window.history.back()}
-          type="button"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" /></svg>
-          Retour
-        </button>
-        <h2 className="text-lg font-medium text-gray-900">Notes du projet</h2>
-        <button
-          onClick={() => setIsAddNoteOpen(true)}
-          className="inline-flex items-center px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Ajouter une note
-        </button>
+      <div className="flex flex-wrap items-center gap-2 sm:gap-4 justify-between w-full mb-2">
+        <div className="flex items-center flex-shrink-0">
+          <button
+            className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-[#f26755] to-[#f26755] text-white rounded-lg font-semibold shadow hover:opacity-90 transition"
+            onClick={() => window.history.back()}
+            type="button"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            Retour
+          </button>
+        </div>
+        <h2 className="text-lg font-medium text-gray-900 flex-1 text-center min-w-[160px] truncate order-2 sm:order-none">Notes du projet</h2>
+        <div className="flex items-center flex-shrink-0">
+          <button
+            onClick={() => setIsAddNoteOpen(true)}
+            className="inline-flex items-center px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Ajouter une note
+          </button>
+        </div>
       </div>
-
       {/* Info box */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <div className="flex items-start">

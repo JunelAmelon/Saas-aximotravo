@@ -18,20 +18,20 @@ export default function ProjectPhotos() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [searchTerm, setSearchTerm] = useState('');
   // Type for a photo (single media item)
-type Photo = {
-  id: string;
-  url: string;
-  title: string;
-  date: string;
-  tag: string;
-};
+  type Photo = {
+    id: string;
+    url: string;
+    title: string;
+    date: string;
+    tag: string;
+  };
 
-const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
+  const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
   // Récupération du projectId depuis l'URL
   const params = useParams() ?? {};
-    const projectId = Array.isArray(params.id) ? params.id[0] : params.id as string;
+  const projectId = Array.isArray(params.id) ? params.id[0] : params.id as string;
   const [photos, setPhotos] = useState<ProjectMedia[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -69,26 +69,28 @@ const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <button
-          className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-[#f26755] to-[#f26755] text-white rounded-lg font-semibold shadow hover:opacity-90 transition"
-          onClick={() => window.history.back()}
-          type="button"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" /></svg>
-          Retour
-        </button>
-        <h2 className="text-lg font-medium text-gray-900">Médiathèque</h2>
-        <button
-          className="inline-flex items-center px-4 py-2 bg-[#f21515] text-white rounded-md text-sm font-medium hover:bg-[#f21515]/90 transition-colors"
-          onClick={() => setAddOpen(true)}
-          type="button"
-        >
-          <Upload className="h-4 w-4 mr-2" />
-          Ajouter des médias
-        </button>
+      <div className="flex flex-wrap items-center gap-2 sm:gap-4 justify-between w-full mb-2">
+        <div className="flex items-center flex-shrink-0">
+          <button
+            className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-[#f26755] to-[#f26755] text-white rounded-lg font-semibold shadow hover:opacity-90 transition"
+            onClick={() => window.history.back()}
+            type="button"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            Retour
+          </button>
+        </div>
+        <h2 className="text-lg font-medium text-gray-900 flex-1 text-center min-w-[160px] truncate order-2 sm:order-none">Médiathèque</h2>
+        <div className="flex items-center flex-shrink-0">
+          <button
+            onClick={() => setAddOpen(true)}
+            className="inline-flex items-center px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors"
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            Ajouter une photo
+          </button>
+        </div>
       </div>
-
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
         <div className="w-full sm:w-[32rem] relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
@@ -247,62 +249,62 @@ const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
               />
             </div>
             <div>
-  <label className="block text-sm mb-1">Photo</label>
-  <div
-    className={`border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center transition-colors cursor-pointer hover:border-[#f21515] bg-gray-50 relative ${mediaForm.file ? 'border-[#f21515]' : 'border-gray-300'}`}
-    onClick={() => fileInputRef.current?.click()}
-    onDrop={e => {
-      e.preventDefault();
-      const file = e.dataTransfer.files?.[0] || null;
-      if (file && file.type.startsWith('image/')) {
-        setMediaForm(f => ({ ...f, file }));
-      }
-    }}
-    onDragOver={e => e.preventDefault()}
-    style={{ minHeight: 120 }}
-  >
-    {!mediaForm.file ? (
-      <>
-        <Upload className="h-8 w-8 text-[#f21515] mb-2" />
-        <span className="text-sm text-gray-500 text-center">Cliquez ou glissez une image ici</span>
-      </>
-    ) : (
-      <div className="flex flex-col items-center w-full">
-        <Image
-          src={URL.createObjectURL(mediaForm.file)}
-          alt="Aperçu photo"
-          width={100}
-          height={100}
-          className="rounded shadow max-h-32 object-contain mb-2"
-        />
-        <div className="flex items-center justify-between w-full">
-          <span className="text-xs text-gray-700 truncate">{mediaForm.file.name}</span>
-          <button
-            type="button"
-            className="ml-2 px-2 py-1 text-xs bg-red-100 text-red-600 rounded hover:bg-red-200"
-            onClick={e => {
-              e.stopPropagation();
-              setMediaForm(f => ({ ...f, file: null }));
-              if (fileInputRef.current) fileInputRef.current.value = '';
-            }}
-            title="Supprimer la sélection"
-          >
-            Supprimer
-          </button>
-        </div>
-      </div>
-    )}
-    <input
-      type="file"
-      accept="image/*"
-      capture="environment"
-      ref={fileInputRef}
-      onChange={e => setMediaForm(f => ({ ...f, file: e.target.files?.[0] || null }))}
-      className="hidden"
-      required
-    />
-  </div>
-</div>
+              <label className="block text-sm mb-1">Photo</label>
+              <div
+                className={`border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center transition-colors cursor-pointer hover:border-[#f21515] bg-gray-50 relative ${mediaForm.file ? 'border-[#f21515]' : 'border-gray-300'}`}
+                onClick={() => fileInputRef.current?.click()}
+                onDrop={e => {
+                  e.preventDefault();
+                  const file = e.dataTransfer.files?.[0] || null;
+                  if (file && file.type.startsWith('image/')) {
+                    setMediaForm(f => ({ ...f, file }));
+                  }
+                }}
+                onDragOver={e => e.preventDefault()}
+                style={{ minHeight: 120 }}
+              >
+                {!mediaForm.file ? (
+                  <>
+                    <Upload className="h-8 w-8 text-[#f21515] mb-2" />
+                    <span className="text-sm text-gray-500 text-center">Cliquez ou glissez une image ici</span>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center w-full">
+                    <Image
+                      src={URL.createObjectURL(mediaForm.file)}
+                      alt="Aperçu photo"
+                      width={100}
+                      height={100}
+                      className="rounded shadow max-h-32 object-contain mb-2"
+                    />
+                    <div className="flex items-center justify-between w-full">
+                      <span className="text-xs text-gray-700 truncate">{mediaForm.file.name}</span>
+                      <button
+                        type="button"
+                        className="ml-2 px-2 py-1 text-xs bg-red-100 text-red-600 rounded hover:bg-red-200"
+                        onClick={e => {
+                          e.stopPropagation();
+                          setMediaForm(f => ({ ...f, file: null }));
+                          if (fileInputRef.current) fileInputRef.current.value = '';
+                        }}
+                        title="Supprimer la sélection"
+                      >
+                        Supprimer
+                      </button>
+                    </div>
+                  </div>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  ref={fileInputRef}
+                  onChange={e => setMediaForm(f => ({ ...f, file: e.target.files?.[0] || null }))}
+                  className="hidden"
+                  required
+                />
+              </div>
+            </div>
             <button
               type="submit"
               className="w-full bg-[#f21515] text-white py-2 rounded font-semibold hover:bg-[#f21515]/90 transition-colors disabled:opacity-60"

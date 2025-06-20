@@ -68,25 +68,27 @@ export default function ProjectPlans() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <button
-          className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-[#f26755] to-[#f26755] text-white rounded-lg font-semibold shadow hover:opacity-90 transition"
-          onClick={() => window.history.back()}
-          type="button"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" /></svg>
-          Retour
-        </button>
-        <h2 className="text-lg font-medium text-gray-900">Plans du projet</h2>
-        <button
-          onClick={() => setIsAddPlanOpen(true)}
-          className="inline-flex items-center px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors"
-          aria-label="Ajouter un nouveau plan"
-          title="Ajouter un plan"
-        >
-          <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
-          Ajouter un plan
-        </button>
+      <div className="flex flex-wrap items-center gap-2 sm:gap-4 justify-between w-full mb-2">
+        <div className="flex items-center flex-shrink-0">
+          <button
+            className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-[#f26755] to-[#f26755] text-white rounded-lg font-semibold shadow hover:opacity-90 transition"
+            onClick={() => window.history.back()}
+            type="button"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            Retour
+          </button>
+        </div>
+        <h2 className="text-lg font-medium text-gray-900 flex-1 text-center min-w-[160px] truncate order-2 sm:order-none">Plans du projet</h2>
+        <div className="flex items-center flex-shrink-0">
+          <button
+            onClick={() => setIsAddPlanOpen(true)}
+            className="inline-flex items-center px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Ajouter un plan
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6">
@@ -258,7 +260,7 @@ export default function ProjectPlans() {
                   {!planForm.files[0] ? (
                     <>
                       <Upload className="h-8 w-8 text-[#f26755] mb-2" />
-                      <span className="text-sm text-gray-500 text-center">Cliquez ou glissez une image ici<br/>(plan existant)</span>
+                      <span className="text-sm text-gray-500 text-center">Cliquez ou glissez une image ici<br />(plan existant)</span>
                     </>
                   ) : (
                     <div className="flex flex-col items-center w-full">
@@ -317,7 +319,7 @@ export default function ProjectPlans() {
                   {!planForm.files[1] ? (
                     <>
                       <Upload className="h-8 w-8 text-[#f26755] mb-2" />
-                      <span className="text-sm text-gray-500 text-center">Cliquez ou glissez une image ici<br/>(plan d&apos;exécution)</span>
+                      <span className="text-sm text-gray-500 text-center">Cliquez ou glissez une image ici<br />(plan d&apos;exécution)</span>
                     </>
                   ) : (
                     <div className="flex flex-col items-center w-full">

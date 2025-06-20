@@ -26,7 +26,16 @@ export function useCreateArtisan() {
    * @param artisanData - infos artisan (hors mot de passe)
    * @param courtierId - id du courtier connecté
    */
-  const createArtisan = useCallback(async (artisanData: Omit<any, 'password'>, courtierId?: string) => {
+  const createArtisan = useCallback(async (
+  artisanData: Omit<any, 'password'>,
+  courtierId?: string,
+  files?: {
+    certificationFile?: File | null,
+    insuranceFile?: File | null,
+    fiscalFile?: File | null,
+    kbisFile?: File | null
+  }
+) => {
     setLoading(true);
     setError(null);
     setSuccess(null);
@@ -53,10 +62,11 @@ export function useCreateArtisan() {
           throw new Error(errorData.message || "Erreur API create-client");
         }
       }
-      // 2. Créer ou maj le doc Firestore
+      // 2. Upload des fichiers si présents et création/màj du doc Firestore
       if (uid) {
         const { setDoc, doc, serverTimestamp } = await import("firebase/firestore");
         const { db } = await import("../lib/firebase/config");
+        // Les URLs sont déjà uploadées sur Cloudinary et passées dans artisanData
         const userDoc = {
           ...artisanData,
           uid,
