@@ -10,6 +10,9 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 // On utilise ProjectMedia du hook
 
+// Mode lecture seule pour l'admin
+const readonly = true;
+
 export default function ProjectPhotos() {
   const [addOpen, setAddOpen] = useState(false);
   const [mediaForm, setMediaForm] = useState({ title: '', tag: '', date: '', file: null as File | null });
@@ -84,7 +87,7 @@ export default function ProjectPhotos() {
         <div className="flex items-center flex-shrink-0">
           <button
             onClick={() => setAddOpen(true)}
-            className="inline-flex items-center px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors"
+            className={`inline-flex items-center px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors${readonly ? ' hidden' : ''}`}
           >
             <Upload className="h-4 w-4 mr-2" />
             Ajouter une photo

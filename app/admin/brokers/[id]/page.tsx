@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { ChevronLeft, Calendar, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 
@@ -79,6 +80,7 @@ function ArtisanDropdown({ artisans }: { artisans: { name: string; company: stri
 }
 
 export default function BrokerDetails({ params }: { params: { id: string } }) {
+  const router = useRouter();
   const [broker, setBroker] = useState<Broker | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -256,9 +258,14 @@ export default function BrokerDetails({ params }: { params: { id: string } }) {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {broker.projects.map((project) => (
-                <tr key={project.id} className="hover:bg-gray-50">
+                <tr
+                  key={project.id}
+                  className="hover:bg-gray-100"
+                >
                   <td className="px-6 py-4">
-                    <div className="text-sm font-medium text-gray-900">{project.name}</div>
+                    <Link href={`/admin/projects/${project.id}`} className="text-sm font-medium text-blue-600 no-underline hover:no-underline hover:text-blue-600">
+                      {project.name}
+                    </Link>
                   </td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex px-2.5 py-0.5 text-xs font-medium rounded-full ${project.status === "En cours"

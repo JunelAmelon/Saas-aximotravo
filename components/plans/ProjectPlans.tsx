@@ -17,6 +17,9 @@ interface Plan {
   status: 'validé' | 'en_attente';
 }
 
+// Mode lecture seule pour l'admin
+const readonly = true;
+
 export default function ProjectPlans() {
   const [isAddPlanOpen, setIsAddPlanOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -83,7 +86,7 @@ export default function ProjectPlans() {
         <div className="flex items-center flex-shrink-0">
           <button
             onClick={() => setIsAddPlanOpen(true)}
-            className="inline-flex items-center px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors"
+            className={`inline-flex items-center px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors${readonly ? ' hidden' : ''}`}
           >
             <Plus className="h-4 w-4 mr-2" />
             Ajouter un plan

@@ -9,6 +9,9 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import ProjectNoteForm from "./ProjectNoteForm";
 import { useParams } from "next/navigation";
 
+// Mode lecture seule pour l'admin
+const readonly = true;
+
 export default function ProjectNotes() {
   const params = useParams() ?? {};
   const projectId = Array.isArray(params.id) ? params.id[0] : params.id as string;
@@ -29,15 +32,18 @@ export default function ProjectNotes() {
           </button>
         </div>
         <h2 className="text-lg font-medium text-gray-900 flex-1 text-center min-w-[160px] truncate order-2 sm:order-none">Notes du projet</h2>
-        <div className="flex items-center flex-shrink-0">
-          <button
-            onClick={() => setIsAddNoteOpen(true)}
-            className="inline-flex items-center px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Ajouter une note
-          </button>
-        </div>
+        {/* Bouton d'ajout masqué en mode readonly */}
+        {!readonly && (
+          <div className="flex items-center flex-shrink-0">
+            <button
+              onClick={() => setIsAddNoteOpen(true)}
+              className={`inline-flex items-center px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors${readonly ? ' hidden' : ''}`}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Ajouter une note
+            </button>
+          </div>
+        )}
       </div>
       {/* Info box */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">

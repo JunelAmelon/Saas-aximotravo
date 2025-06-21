@@ -29,6 +29,9 @@ interface Recipient {
   required?: boolean;
 }
 
+// Mode lecture seule pour l'admin
+const readonly = true;
+
 export default function ProjectDocuments() {
   const [isAddDocumentOpen, setIsAddDocumentOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -134,24 +137,31 @@ useEffect(() => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <button
-          className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-[#f26755] to-[#f26755] text-white rounded-lg font-semibold shadow hover:opacity-90 transition"
-          onClick={() => window.history.back()}
-          type="button"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" /></svg>
-          Retour
-        </button>
-        <h2 className="text-lg font-medium text-gray-900">Documents du projet</h2>
-        <button
-          onClick={() => setIsAddDocumentOpen(true)}
-          className="inline-flex items-center px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors"
-          aria-label="Ajouter un nouveau document"
-        >
-          <Upload className="h-4 w-4 mr-2" aria-hidden="true" />
-          Ajouter un document
-        </button>
+      <div className="grid grid-cols-3 items-center">
+        <div>
+          <button
+            className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-[#f26755] to-[#f26755] text-white rounded-lg font-semibold shadow hover:opacity-90 transition"
+            onClick={() => window.history.back()}
+            type="button"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            Retour
+          </button>
+        </div>
+        <div>
+          <h2 className="text-lg font-medium text-gray-900 text-center">Documents du projet</h2>
+        </div>
+        <div className="flex justify-end">
+          {!readonly && (
+            <button
+              onClick={() => setIsAddDocumentOpen(true)}
+              className="inline-flex items-center px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors mb-4"
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Ajouter un document
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Version mobile: affichage en cartes */}
@@ -268,7 +278,8 @@ useEffect(() => {
       </div>
 
       <Sheet open={isAddDocumentOpen} onOpenChange={setIsAddDocumentOpen}>
-        <SheetContent className="w-full sm:max-w-md md:max-w-lg overflow-y-auto p-4 sm:p-6">
+        <div style={{display: readonly ? 'none' : undefined}}>
+          <SheetContent className="w-full sm:max-w-md md:max-w-lg overflow-y-auto p-4 sm:p-6">
           <SheetHeader>
             <SheetTitle>Ajouter un document</SheetTitle>
           </SheetHeader>
@@ -392,6 +403,7 @@ useEffect(() => {
             </div>
           </form>
         </SheetContent>
+        </div>
       </Sheet>
     </div>
   );

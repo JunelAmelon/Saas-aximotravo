@@ -52,6 +52,9 @@ const typeConfig: Record<Event['type'], { label: string; color: string; bg: stri
   }
 };
 
+// Mode lecture seule pour l'admin
+const readonly = true;
+
 export default function ProjectEvents() {
   const { currentUser } = useAuth();
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -82,25 +85,32 @@ export default function ProjectEvents() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <button
-          className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-[#f26755] to-[#f26755] text-white rounded-lg font-semibold shadow hover:opacity-90 transition"
-          onClick={() => window.history.back()}
-          type="button"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" /></svg>
-          Retour
-        </button>
-        <h2 className="text-lg font-medium text-gray-900">Événements du Projet</h2>
+      <div className="grid grid-cols-3 items-center">
+        <div>
           <button
-            onClick={() => setIsAddEventOpen(true)}
-            className="inline-flex items-center px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors"
+            className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-[#f26755] to-[#f26755] text-white rounded-lg font-semibold shadow hover:opacity-90 transition"
+            onClick={() => window.history.back()}
+            type="button"
           >
-            <Plus className="h-4 w-4 mr-2" />
-            Ajouter un événement
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            Retour
           </button>
+        </div>
+        <div>
+          <h2 className="text-lg font-medium text-gray-900 text-center">Événements du Projet</h2>
+        </div>
+        <div className="flex justify-end">
+          {!readonly && (
+            <button
+              onClick={() => setIsAddEventOpen(true)}
+              className="inline-flex items-center px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Ajouter un événement
+            </button>
+          )}
+        </div>
       </div>
-
       <div className="flex items-center gap-4">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
