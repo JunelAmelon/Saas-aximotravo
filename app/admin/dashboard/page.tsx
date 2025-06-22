@@ -25,6 +25,8 @@ interface Broker {
 }
 
 export default function AdminDashboard() {
+  const [currentPage, setCurrentPage] = useState(1);
+  const brokersPerPage = 5;
   const [searchTerm, setSearchTerm] = useState("");
   const [regionFilter, setRegionFilter] = useState("");
   const [brokers, setBrokers] = useState<Broker[]>([]);
@@ -83,6 +85,13 @@ export default function AdminDashboard() {
     return matchesSearch && matchesRegion;
   });
 
+  // Pagination
+  const totalPages = Math.ceil(filteredBrokers.length / brokersPerPage);
+  const paginatedBrokers = filteredBrokers.slice(
+    (currentPage - 1) * brokersPerPage,
+    currentPage * brokersPerPage
+  );
+
   const globalStats = {
     totalBrokers: brokers.length,
     totalProjects: brokers.reduce((acc, broker) => acc + broker.stats.activeProjects, 0),
@@ -91,6 +100,10 @@ export default function AdminDashboard() {
     pendingAmount: brokers.reduce((acc, broker) => acc + broker.stats.pendingAmount, 0),
     validatedAmount: brokers.reduce((acc, broker) => acc + broker.stats.validatedAmount, 0)
   };
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, regionFilter]);
 
   if (loading) {
     return (
@@ -211,7 +224,7 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredBrokers.map((broker) => (
+                {paginatedBrokers.map((broker) => (
                   <tr key={broker.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -264,6 +277,28 @@ export default function AdminDashboard() {
                 ))}
               </tbody>
             </table>
+            {/* Pagination Controls */}
+            <div className="flex gap-2 justify-center items-center mt-6">
+              <button
+                onClick={() => setCurrentPage((p) => p - 1)}
+                disabled={currentPage === 1}
+                className="w-9 h-9 flex items-center justify-center rounded-full border border-gray-200 bg-white text-[#f21515] hover:bg-[#f21515] hover:text-white transition-colors disabled:bg-gray-100 disabled:text-gray-400 disabled:border-gray-100 disabled:cursor-not-allowed"
+                aria-label="Page précédente"
+              >
+                &lt;
+              </button>
+              <span className="mx-2 text-sm text-gray-700 select-none">
+                Page <span className="font-semibold text-[#f21515]">{currentPage}</span> / {totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage((p) => p + 1)}
+                disabled={currentPage === totalPages || totalPages === 0}
+                className="w-9 h-9 flex items-center justify-center rounded-full border border-gray-200 bg-white text-[#f21515] hover:bg-[#f21515] hover:text-white transition-colors disabled:bg-gray-100 disabled:text-gray-400 disabled:border-gray-100 disabled:cursor-not-allowed"
+                aria-label="Page suivante"
+              >
+                &gt;
+              </button>
+            </div>
           </div>
         </div>
       </div>

@@ -80,10 +80,23 @@ function ArtisanDropdown({ artisans }: { artisans: { name: string; company: stri
 }
 
 export default function BrokerDetails({ params }: { params: { id: string } }) {
-  const router = useRouter();
   const [broker, setBroker] = useState<Broker | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const projectsPerPage = 6;
+  const projects = broker?.projects || [];
+  const totalPages = Math.ceil(projects.length / projectsPerPage);
+  const paginatedProjects = projects.slice(
+    (currentPage - 1) * projectsPerPage,
+    currentPage * projectsPerPage
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [projects]);
+  const router = useRouter();
 
   useEffect(() => {
     const fetchBrokerData = async () => {
@@ -257,11 +270,8 @@ export default function BrokerDetails({ params }: { params: { id: string } }) {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {broker.projects.map((project) => (
-                <tr
-                  key={project.id}
-                  className="hover:bg-gray-100"
-                >
+              {paginatedProjects.map((project) => (
+                <tr key={project.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4">
                     <Link href={`/admin/projects/${project.id}`} className="text-sm font-medium text-blue-600 no-underline hover:no-underline hover:text-blue-600">
                       {project.name}
@@ -349,6 +359,28 @@ export default function BrokerDetails({ params }: { params: { id: string } }) {
               ))}
             </tbody>
           </table>
+        </div>
+        {/* Pagination Controls */}
+        <div className="flex gap-2 justify-center items-center mt-6">
+          <button
+            onClick={() => setCurrentPage((p) => p - 1)}
+            disabled={currentPage === 1}
+            className="w-9 h-9 flex items-center justify-center rounded-full border border-gray-200 bg-white text-[#f21515] hover:bg-[#f21515] hover:text-white transition-colors disabled:bg-gray-100 disabled:text-gray-400 disabled:border-gray-100 disabled:cursor-not-allowed"
+            aria-label="Page précédente"
+          >
+            &lt;
+          </button>
+          <span className="mx-2 text-sm text-gray-700 select-none">
+            Page <span className="font-semibold text-[#f21515]">{currentPage}</span> / {totalPages}
+          </span>
+          <button
+            onClick={() => setCurrentPage((p) => p + 1)}
+            disabled={currentPage === totalPages || totalPages === 0}
+            className="w-9 h-9 flex items-center justify-center rounded-full border border-gray-200 bg-white text-[#f21515] hover:bg-[#f21515] hover:text-white transition-colors disabled:bg-gray-100 disabled:text-gray-400 disabled:border-gray-100 disabled:cursor-not-allowed"
+            aria-label="Page suivante"
+          >
+            &gt;
+          </button>
         </div>
       </div>
     </div>
