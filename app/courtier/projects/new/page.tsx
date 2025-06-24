@@ -19,10 +19,19 @@ export default function NewProject() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-    setForm(prev => ({
-      ...prev,
-      [name]: type === "number" ? Number(value) : value
-    }));
+    if (type === "checkbox") {
+      // Cast pour accéder à .checked sans erreur TS
+      const checked = (e.target as HTMLInputElement).checked;
+      setForm(prev => ({
+        ...prev,
+        [name]: checked
+      }));
+    } else {
+      setForm(prev => ({
+        ...prev,
+        [name]: type === "number" ? Number(value) : value
+      }));
+    }
   };
 
   const [form, setForm] = useState({
@@ -38,7 +47,8 @@ export default function NewProject() {
     location: "",
     firstDepositPercent: "",
     description: "",
-    image: ""
+    image: "",
+    amoIncluded: false
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
 
@@ -64,6 +74,7 @@ export default function NewProject() {
       alert("Erreur lors de l'upload de l'image");
       return;
     }
+    // Ne pas passer amoIncluded à addProject (CreateProjectInput n'accepte pas ce champ)
     await addProject({
       ...form,
       budget: Number(form.budget),
@@ -71,7 +82,8 @@ export default function NewProject() {
       progress: Number(form.progress),
       firstDepositPercent: Number(form.firstDepositPercent),
       image: imageUrl,
-      status: "En attente"
+      status: "En attente",
+      amoIncluded: form.amoIncluded
     });
     if (!error) {
       setForm({
@@ -87,7 +99,8 @@ export default function NewProject() {
         location: "",
         firstDepositPercent: "",
         description: "",
-        image: ""
+        image: "",
+        amoIncluded: false
       });
       setImageFile(null);
       setTimeout(() => router.push("/courtier/projects"), 1200);
@@ -118,7 +131,19 @@ export default function NewProject() {
             Projet créé avec succès !
           </div>
         )}
-        
+        {/* AMO inclus checkbox */}
+        <div className="mb-6 flex items-center gap-3">
+          <input
+            type="checkbox"
+            id="amoIncluded"
+            name="amoIncluded"
+            checked={form.amoIncluded}
+            onChange={handleChange}
+            className="h-4 w-4 text-[#f26755] border-gray-300 rounded focus:ring-[#f26755]"
+          />
+          <label htmlFor="amoIncluded" className="text-sm text-gray-700 font-medium select-none">AMO inclus ?</label>
+          <span className="text-xs text-gray-500">{form.amoIncluded ? 'Oui' : 'Non'}</span>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Upload image Cloudinary */}
           <div className="space-y-3 md:col-span-2">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useProjectNotes, ProjectNote } from "@/hooks/useProjectNotes";
 import { Info, Paperclip, Send, Upload, Plus } from "lucide-react";
 import { format } from "date-fns";
@@ -8,15 +8,31 @@ import { fr } from "date-fns/locale";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import ProjectNoteForm from "./ProjectNoteForm";
 import { useParams } from "next/navigation";
-
-// Mode lecture seule pour l'admin
-const readonly = true;
+import { useAuth } from '@/lib/contexts/AuthContext';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase/config';
 
 export default function ProjectNotes() {
+  const { currentUser } = useAuth();
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchRole = async () => {
+      if (currentUser) {
+        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+        if (userDoc.exists()) {
+          setUserRole(userDoc.data().role?.toLowerCase() || null);
+        }
+      }
+    };
+    fetchRole();
+  }, [currentUser]);
+
   const params = useParams() ?? {};
   const projectId = Array.isArray(params.id) ? params.id[0] : params.id as string;
   const [isAddNoteOpen, setIsAddNoteOpen] = useState(false);
   const { notes, loading, error, addNote } = useProjectNotes(projectId);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -32,12 +48,11 @@ export default function ProjectNotes() {
           </button>
         </div>
         <h2 className="text-lg font-medium text-gray-900 flex-1 text-center min-w-[160px] truncate order-2 sm:order-none">Notes du projet</h2>
-        {/* Bouton d'ajout masqué en mode readonly */}
-        {!readonly && (
+        {userRole !== 'admin' && (
           <div className="flex items-center flex-shrink-0">
             <button
               onClick={() => setIsAddNoteOpen(true)}
-              className={`inline-flex items-center px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors${readonly ? ' hidden' : ''}`}
+              className={`inline-flex items-center px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors`}
             >
               <Plus className="h-4 w-4 mr-2" />
               Ajouter une note

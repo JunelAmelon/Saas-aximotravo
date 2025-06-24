@@ -19,6 +19,7 @@ export interface ProjectPayment {
   status: PaymentStatus;
   amount: number;
   images: string[];
+  documents: string[];
   project?: string;
   dateValidation: string;
   localisation?: string;

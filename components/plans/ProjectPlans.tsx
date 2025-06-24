@@ -7,6 +7,10 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Card } from "@/components/ui/card";
 import { Upload, Info, Mail, Plus } from 'lucide-react';
 import Image from 'next/image';
+import { useAuth } from '@/lib/contexts/AuthContext';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase/config';
+import { getUserById } from '@/lib/firebase/users';
 
 interface Plan {
   id: string;
@@ -17,11 +21,23 @@ interface Plan {
   status: 'validé' | 'en_attente';
 }
 
-// Mode lecture seule pour l'admin
-const readonly = true;
-
 export default function ProjectPlans() {
   const [isAddPlanOpen, setIsAddPlanOpen] = useState(false);
+  const { currentUser } = useAuth();
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchRole = async () => {
+      if (currentUser) {
+        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+        if (userDoc.exists()) {
+          setUserRole(userDoc.data().role?.toLowerCase() || null);
+        }
+      }
+    };
+    fetchRole();
+  }, [currentUser]);
+
   const [currentPage, setCurrentPage] = useState(1);
   const plansPerPage = 2;
 
@@ -62,7 +78,6 @@ export default function ProjectPlans() {
   const [uploading, setUploading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-
   const totalPages = Math.ceil(plans.length / plansPerPage);
   const currentPlans = plans.slice(
     (currentPage - 1) * plansPerPage,
@@ -84,13 +99,15 @@ export default function ProjectPlans() {
         </div>
         <h2 className="text-lg font-medium text-gray-900 flex-1 text-center min-w-[160px] truncate order-2 sm:order-none">Plans du projet</h2>
         <div className="flex items-center flex-shrink-0">
-          <button
-            onClick={() => setIsAddPlanOpen(true)}
-            className={`inline-flex items-center px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors${readonly ? ' hidden' : ''}`}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Ajouter un plan
-          </button>
+          {userRole !== 'admin' && (
+            <button
+              onClick={() => setIsAddPlanOpen(true)}
+              className="inline-flex items-center px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Ajouter un plan
+            </button>
+          )}
         </div>
       </div>
 
@@ -202,10 +219,11 @@ export default function ProjectPlans() {
               ]);
               // Ajout du plan en base
               const { addPlan } = await import('@/hooks/useProjectPlans');
+              const author = await getUserById(currentUser?.uid as string);
               await addPlan({
                 projectId,
                 title: planForm.title,
-                author: "Sam",
+                author: author?.displayName || "",
                 date: new Date().toLocaleDateString(),
                 status: "en attente",
                 images: [urlExistant, urlExecution],
@@ -406,11 +424,19 @@ export default function ProjectPlans() {
             <div className="flex justify-end pt-4">
               <button
                 type="submit"
-                className="px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors"
+                className={`px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 ${uploading ? 'bg-gray-200 text-gray-400 cursor-wait' : 'bg-[#f26755] text-white hover:bg-[#f26755]/90'}`}
                 aria-label="Enregistrer le plan"
                 title="Enregistrer le plan"
+                disabled={uploading}
               >
-                Enregistrer
+                {uploading ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4 mr-2 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>
+                    Envoi en cours...
+                  </>
+                ) : (
+                  'Enregistrer'
+                )}
               </button>
             </div>
           </form>

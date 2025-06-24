@@ -11,6 +11,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { FileText, Download, Upload, Mail, Check } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useAuth } from '@/lib/contexts/AuthContext';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase/config';
 
 interface Document {
   id: string;
@@ -29,39 +32,52 @@ interface Recipient {
   required?: boolean;
 }
 
-// Mode lecture seule pour l'admin
-const readonly = true;
-
 export default function ProjectDocuments() {
   const [isAddDocumentOpen, setIsAddDocumentOpen] = useState(false);
+  const { currentUser } = useAuth();
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchRole = async () => {
+      if (currentUser) {
+        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+        if (userDoc.exists()) {
+          setUserRole(userDoc.data().role?.toLowerCase() || null);
+        }
+      }
+    };
+    fetchRole();
+  }, [currentUser]);
+
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [documentType, setDocumentType] = useState('');
+  const [documentType, setDocumentType] = useState("");
+  const [customDocumentType, setCustomDocumentType] = useState("");
   const [montant, setMontant] = useState('');
   const [isNotificationSent, setIsNotificationSent] = useState(false);
   const [uploading, setUploading] = useState(false);
 
   // Récupération du projectId depuis l'URL
-const params = useParams() ?? {};
-const projectId = Array.isArray(params.id) ? params.id[0] : params.id as string;
-const [documents, setDocuments] = useState<any[]>([]);
-const [loading, setLoading] = useState(false);
-const [error, setError] = useState<string | null>(null);
+  const params = useParams() ?? {};
+  const projectId = Array.isArray(params.id) ? params.id[0] : params.id as string;
+  const [documents, setDocuments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-useEffect(() => {
-  if (!projectId) return;
-  setLoading(true);
-  setError(null);
-  (async () => {
-    try {
-      const freshDocs = await fetchProjectDocuments(projectId);
-      setDocuments(freshDocs);
-    } catch (e) {
-      setError('Erreur lors du chargement des documents');
-    } finally {
-      setLoading(false);
-    }
-  })();
-}, [projectId, isAddDocumentOpen]);
+  useEffect(() => {
+    if (!projectId) return;
+    setLoading(true);
+    setError(null);
+    (async () => {
+      try {
+        const freshDocs = await fetchProjectDocuments(projectId);
+        setDocuments(freshDocs);
+      } catch (e) {
+        setError('Erreur lors du chargement des documents');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [projectId, isAddDocumentOpen]);
 
   const [recipients] = useState<Recipient[]>([
     {
@@ -113,7 +129,7 @@ useEffect(() => {
       await addProjectDocument({
         projectId,
         name: selectedFile.name,
-        category: documentType.charAt(0).toUpperCase() + documentType.slice(1),
+        category: documentType === 'autre' ? customDocumentType : documentType,
         date: new Date().toISOString().slice(0,10),
         size: `${(selectedFile.size/1024/1024).toFixed(2)} MB`,
         status: "en attente",
@@ -126,6 +142,7 @@ useEffect(() => {
         setIsAddDocumentOpen(false);
         setSelectedFile(null);
         setDocumentType('');
+        setCustomDocumentType('');
         setMontant('');
       }, 2000);
     } catch (err) {
@@ -151,11 +168,11 @@ useEffect(() => {
         <div>
           <h2 className="text-lg font-medium text-gray-900 text-center">Documents du projet</h2>
         </div>
-        <div className="flex justify-end">
-          {!readonly && (
+        <div className="flex items-center flex-shrink-0">
+          {userRole !== 'admin' && (
             <button
               onClick={() => setIsAddDocumentOpen(true)}
-              className="inline-flex items-center px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors mb-4"
+              className="inline-flex items-center px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors"
             >
               <Upload className="h-4 w-4 mr-2" />
               Ajouter un document
@@ -278,7 +295,7 @@ useEffect(() => {
       </div>
 
       <Sheet open={isAddDocumentOpen} onOpenChange={setIsAddDocumentOpen}>
-        <div style={{display: readonly ? 'none' : undefined}}>
+        <div>
           <SheetContent className="w-full sm:max-w-md md:max-w-lg overflow-y-auto p-4 sm:p-6">
           <SheetHeader>
             <SheetTitle>Ajouter un document</SheetTitle>
@@ -303,6 +320,16 @@ useEffect(() => {
                 <option value="contrat">Contrat</option>
                 <option value="autre">Autre</option>
               </select>
+              {documentType === 'autre' && (
+                <input
+                  type="text"
+                  className="w-full border rounded px-3 py-2 mt-2"
+                  value={customDocumentType}
+                  onChange={e => setCustomDocumentType(e.target.value)}
+                  placeholder="Précisez le type de document"
+                  required
+                />
+              )}
             </div>
 
             <div>

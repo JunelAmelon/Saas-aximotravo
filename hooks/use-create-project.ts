@@ -23,7 +23,8 @@ export interface CreateProjectInput {
   location: string;
   firstDepositPercent: number;
   clientEmail: string;
-  image?: string; // Ajout du champ image
+  image?: string;
+  amoIncluded?: boolean;
 }
 
 export function useCreateProject() {

@@ -6,16 +6,54 @@ import { useProjectMedia, ProjectMedia, addMedia } from '@/hooks/useProjectMedia
 import { CLOUDINARY_UPLOAD_PRESET } from '@/lib/cloudinary';
 import { Search, Filter, Upload, X } from 'lucide-react';
 import Image from 'next/image';
+import MediaCard from './MediaCard';
+import MediaCommentsModal from './MediaCommentsModal';
+import AddCommentModal from './AddCommentModal';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 // On utilise ProjectMedia du hook
 
 // Mode lecture seule pour l'admin
-const readonly = true;
+import { useAuth } from "@/lib/contexts/AuthContext";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase/config";
+
 
 export default function ProjectPhotos() {
+  const { currentUser } = useAuth();
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
+
+  useEffect(() => {
+    const fetchRole = async () => {
+      if (currentUser) {
+        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+        if (userDoc.exists()) {
+          setUserRole(userDoc.data().role?.toLowerCase() || null);
+        }
+      }
+    };
+    fetchRole();
+  }, [currentUser]);
+  // Ferme le menu filtre si on clique en dehors
+  useEffect(() => {
+    if (!showFilterMenu) return;
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.relative')) setShowFilterMenu(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showFilterMenu]);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedMedia, setSelectedMedia] = useState<any>(null);
+  // Pour les commentaires
+  const [addCommentModalOpen, setAddCommentModalOpen] = useState(false);
+  const [addCommentMedia, setAddCommentMedia] = useState<any>(null);
+  const [commentsModalOpen, setCommentsModalOpen] = useState(false);
+  const [commentsMedia, setCommentsMedia] = useState<any>(null);
   const [addOpen, setAddOpen] = useState(false);
-  const [mediaForm, setMediaForm] = useState({ title: '', tag: '', date: '', file: null as File | null });
+  const [mediaForm, setMediaForm] = useState<{ title: string; tag: string; customTag?: string; date: string; file: File | null }>({ title: '', tag: '', customTag: '', date: '', file: null });
   const [uploading, setUploading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -85,13 +123,15 @@ export default function ProjectPhotos() {
         </div>
         <h2 className="text-lg font-medium text-gray-900 flex-1 text-center min-w-[160px] truncate order-2 sm:order-none">Médiathèque</h2>
         <div className="flex items-center flex-shrink-0">
-          <button
-            onClick={() => setAddOpen(true)}
-            className={`inline-flex items-center px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors${readonly ? ' hidden' : ''}`}
-          >
-            <Upload className="h-4 w-4 mr-2" />
-            Ajouter une photo
-          </button>
+          {userRole !== 'admin' && (
+            <button
+              onClick={() => setAddOpen(true)}
+              className={`inline-flex items-center px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors`}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Ajouter une photo
+            </button>
+          )}
         </div>
       </div>
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
@@ -108,12 +148,37 @@ export default function ProjectPhotos() {
 
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <div className="relative flex-1 sm:flex-none">
-            <button
-              className="w-full sm:w-48 px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-600 focus:outline-none focus:ring-1 focus:ring-[#f21515] flex items-center justify-between"
-            >
-              <Filter className="h-4 w-4 mr-2" />
-              <span>Filtrer</span>
-            </button>
+            <div className="relative">
+              <button
+                className="w-full sm:w-48 px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-600 focus:outline-none focus:ring-1 focus:ring-[#f21515] flex items-center justify-between"
+                type="button"
+                onClick={() => setShowFilterMenu((v) => !v)}
+              >
+                <Filter className="h-4 w-4 mr-2" />
+                <span>Filtrer</span>
+              </button>
+              {showFilterMenu && (
+                <div className="absolute left-0 mt-2 z-20 bg-white border border-gray-200 rounded-lg shadow-lg p-3 min-w-[180px] max-h-64 overflow-auto" onClick={e => e.stopPropagation()}>
+                  {Array.from(new Set(photos.map(photo => photo.tag))).map(tag => (
+                    <label key={tag} className="flex items-center gap-2 py-1 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedCategories.includes(tag)}
+                        onChange={e => {
+                          if (e.target.checked) setSelectedCategories([...selectedCategories, tag]);
+                          else setSelectedCategories(selectedCategories.filter(t => t !== tag));
+                        }}
+                      />
+                      <span className="text-sm text-gray-700">{tag}</span>
+                    </label>
+                  ))}
+                  <button
+                    className="mt-2 w-full px-3 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 text-xs"
+                    onClick={() => setShowFilterMenu(false)}
+                  >Fermer</button>
+                </div>
+              )}
+            </div>
           </div>
 
           {selectedCategories.length > 0 && (
@@ -130,34 +195,26 @@ export default function ProjectPhotos() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {filteredPhotos.map((photo) => (
-          <div
+          <MediaCard
             key={photo.id}
-            className="group relative bg-white rounded-lg shadow-sm overflow-hidden cursor-pointer"
-            onClick={() => setSelectedPhoto(photo)}
-          >
-            <div className="relative h-48">
-              <Image
-                src={photo.url}
-                alt={photo.title}
-                fill
-                className="object-cover transition-transform group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <span className="text-white text-sm">Cliquer pour agrandir</span>
-              </div>
-            </div>
-            <div className="p-4">
-              <h3 className="font-medium text-gray-900 truncate">{photo.title}</h3>
-              <div className="mt-2 flex items-center justify-between text-sm">
-                <span className="text-gray-500">{photo.date}</span>
-                <span className="inline-flex px-2 py-1 rounded-full bg-gray-100 text-gray-700 text-xs">
-                  {photo.tag}
-                </span>
-              </div>
-            </div>
-          </div>
+            media={photo}
+            onClick={(media) => setSelectedPhoto(media)}
+            onDoubleClick={(media) => {
+              setAddCommentMedia(media);
+              setAddCommentModalOpen(true);
+            }}
+            onShowComments={(media) => {
+              setCommentsMedia(media);
+              setCommentsModalOpen(true);
+            }}
+          />
         ))}
       </div>
+
+      {/* Modal ajout de commentaire */}
+      <AddCommentModal open={addCommentModalOpen} onClose={() => setAddCommentModalOpen(false)} media={addCommentMedia} user={null} />
+      {/* Modal affichage des commentaires */}
+      <MediaCommentsModal open={commentsModalOpen} onClose={() => setCommentsModalOpen(false)} media={commentsMedia} />
 
       <Dialog open={!!selectedPhoto} onOpenChange={() => setSelectedPhoto(null)}>
         <DialogContent className="max-w-4xl p-0">
@@ -205,10 +262,10 @@ export default function ProjectPhotos() {
                   url: result.secure_url,
                   title: mediaForm.title,
                   date: mediaForm.date,
-                  tag: mediaForm.tag,
+                  tag: mediaForm.tag === 'autre' ? (mediaForm.customTag || '') : mediaForm.tag,
                 });
                 setAddOpen(false);
-                setMediaForm({ title: '', tag: '', date: '', file: null });
+                setMediaForm({ title: '', tag: '', customTag: '', date: '', file: null });
                 if (fileInputRef.current) fileInputRef.current.value = '';
               } catch (err: any) {
                 setFormError('Erreur lors de l\'ajout du média.');
@@ -232,14 +289,30 @@ export default function ProjectPhotos() {
             </div>
             <div>
               <label className="block text-sm mb-1">Catégorie</label>
-              <input
-                type="text"
+              <select
                 className="w-full border rounded px-3 py-2"
                 value={mediaForm.tag}
-                onChange={e => setMediaForm(f => ({ ...f, tag: e.target.value }))}
-                placeholder="Photos Chantier, Photos RT, etc."
+                onChange={e => {
+                  const val = e.target.value;
+                  setMediaForm(f => ({ ...f, tag: val }));
+                }}
                 required
-              />
+              >
+                <option value="">Sélectionner...</option>
+                <option value="Photos RT">Photos RT</option>
+                <option value="Photos chantier">Photos chantier</option>
+                <option value="autre">Autre</option>
+              </select>
+              {mediaForm.tag === 'autre' && (
+                <input
+                  type="text"
+                  className="w-full border rounded px-3 py-2 mt-2"
+                  value={mediaForm.customTag || ''}
+                  onChange={e => setMediaForm(f => ({ ...f, customTag: e.target.value }))}
+                  placeholder="Précisez la catégorie"
+                  required
+                />
+              )}
             </div>
             <div>
               <label className="block text-sm mb-1">Date</label>

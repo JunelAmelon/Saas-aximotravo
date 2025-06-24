@@ -26,6 +26,12 @@ const typeConfig: Record<Event['type'], { label: string; color: string; bg: stri
     bg: 'bg-green-50',
     border: 'border-green-200'
   },
+  demarrage: {
+    label: 'Démarrage',
+    color: 'text-yellow-800',
+    bg: 'bg-yellow-50',
+    border: 'border-yellow-200'
+  },
   construction: {
     label: 'Construction',
     color: 'text-blue-800',
@@ -51,9 +57,6 @@ const typeConfig: Record<Event['type'], { label: string; color: string; bg: stri
     border: 'border-purple-200'
   }
 };
-
-// Mode lecture seule pour l'admin
-const readonly = true;
 
 export default function ProjectEvents() {
   const { currentUser } = useAuth();
@@ -100,7 +103,7 @@ export default function ProjectEvents() {
           <h2 className="text-lg font-medium text-gray-900 text-center">Événements du Projet</h2>
         </div>
         <div className="flex justify-end">
-          {!readonly && (
+          {userRole !== 'admin' && (
             <button
               onClick={() => setIsAddEventOpen(true)}
               className="inline-flex items-center px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors"

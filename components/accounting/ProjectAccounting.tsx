@@ -6,7 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Euro, Check, X, Clock, Mail, Upload, Send, ChevronRight } from 'lucide-react';
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -135,6 +135,7 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
     amount: '',
     files: [] as File[],
   });
+  const [documentFiles, setDocumentFiles] = useState<File[]>([]);
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -145,6 +146,11 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
     } else {
       setForm(f => ({ ...f, [name]: value }));
     }
+  };
+
+  const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setForm(f => ({ ...f, [name]: value }));
   };
 
   const handleAddPayment = async (e: React.FormEvent) => {
@@ -163,6 +169,17 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
           if (result.secure_url) imageUrls.push(result.secure_url);
         }
       }
+      let documentUrls: string[] = [];
+      if (documentFiles && documentFiles.length > 0) {
+        for (const file of documentFiles) {
+          const data = new FormData();
+          data.append('file', file);
+          data.append('upload_preset', CLOUDINARY_UPLOAD_PRESET as string);
+          const res = await fetch(CLOUDINARY_UPLOAD_URL, { method: 'POST', body: data });
+          const result = await res.json();
+          if (result.secure_url) documentUrls.push(result.secure_url);
+        }
+      }
       await addPayment({
         projectId: resolvedProjectId,
         title: form.title,
@@ -171,9 +188,11 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
         date: new Date().toISOString(),
         status: 'en_attente',
         images: imageUrls,
+        documents: documentUrls,
         dateValidation: '',
       });
       setForm({ title: '', description: '', amount: '', files: [] });
+      setDocumentFiles([]);
       if (typeof window !== 'undefined') window.location.reload();
     } catch (err) {
       setFormError("Erreur lors de l'ajout de l'acompte");
@@ -215,18 +234,22 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
     <div className="space-y-6">
       <Dialog open={openAddModal} onOpenChange={setOpenAddModal}>
         <DialogContent className="max-w-lg w-full">
+          <DialogTitle>Nouvelle écriture comptable</DialogTitle>
           <form onSubmit={handleAddPayment} className="flex flex-col gap-3">
             {formError && <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">{formError}</div>}
             <div className="flex flex-col gap-2 sm:flex-row">
-              <input
+              <select
                 name="title"
-                type="text"
                 required
                 value={form.title}
-                onChange={handleFormChange}
-                placeholder="Titre"
+                onChange={handleSelectChange}
                 className="w-full sm:w-1/3 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-[#f26755] focus:border-[#f26755]"
-              />
+              >
+                <option value="" disabled>Sélectionnez un type de versement</option>
+                <option value="Versement au démarrage">Versement au démarrage</option>
+                <option value="Versement mi chantier">Versement mi chantier</option>
+                <option value="A la fin des travaux">A la fin des travaux</option>
+              </select>
               <input
                 name="amount"
                 type="number"
@@ -247,15 +270,29 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-[#f26755] focus:border-[#f26755]"
               rows={2}
             />
-            <div className="flex items-center gap-3">
-              <input
-                name="files"
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleFormChange}
-                className="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
-              />
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <div className="flex-1">
+                <label className="block text-xs mb-1 font-medium text-gray-700">Images justificatives</label>
+                <input
+                  name="files"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleFormChange}
+                  className="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
+                />
+              </div>
+              <div className="flex-1">
+                <label className="block text-xs mb-1 font-medium text-gray-700">Documents (PDF, DOC, etc.)</label>
+                <input
+                  name="documents"
+                  type="file"
+                  accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  multiple
+                  onChange={e => setDocumentFiles(e.target.files ? Array.from(e.target.files) : [])}
+                  className="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
+                />
+              </div>
             </div>
             <div className="flex justify-end pt-2">
               <button
@@ -288,7 +325,7 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
         </div>
         <h2 className="text-xl font-semibold text-gray-800 flex-1 text-center min-w-[160px] truncate order-2 sm:order-none">Demandes d&apos;acompte</h2>
         <div className="flex items-center flex-shrink-0">
-          {userRole === 'artisan' && (
+          {userRole !== 'admin' && (
             <button
               className="flex items-center gap-2 px-4 py-2 bg-[#f26755] text-white rounded-lg font-semibold shadow hover:opacity-90 transition"
               onClick={() => setOpenAddModal(true)}
@@ -358,27 +395,28 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
                 </div>
               )}
 
-              {/* <div className="mt-4 flex justify-between items-center">
-              {userRole === 'courtier' && request.status === 'en_attente' && (
-                <button
-                  className="text-sm font-medium text-[#f26755] hover:text-[#f26755]/80 flex items-center gap-1"
-                  onClick={() => handleValidation(request)}
-                >
-                  Voir les détails
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-                   )}
-                {userRole === 'courtier' && request.status === 'en_attente' && (
-                  <div className="flex gap-2">
-                    <button className="px-3 py-1.5 text-xs font-medium rounded-lg bg-green-100 text-green-800 hover:bg-green-200">
-                      Valider
-                    </button>
-                    <button className="px-3 py-1.5 text-xs font-medium rounded-lg bg-red-100 text-red-800 hover:bg-red-200">
-                      Refuser
-                    </button>
+              {request.documents && request.documents.length > 0 && (
+                <div className="mt-4">
+                  <div className="flex flex-col gap-2 px-5">
+                    {request.documents.map((docUrl, idx) => {
+                      const fileName = decodeURIComponent(docUrl.split('/').pop()?.split('?')[0] || `Document_${idx+1}`);
+                      return (
+                        <a
+                          key={idx}
+                          href={docUrl}
+                          download
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-sm text-[#f26755] hover:underline hover:text-[#c24f3a] group"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#f26755] group-hover:text-[#c24f3a]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" /></svg>
+                          <span className="truncate max-w-xs">{fileName}</span>
+                        </a>
+                      );
+                    })}
                   </div>
-                )}
-              </div> */}
+                </div>
+              )}
             </div>
           </div>
         ))}

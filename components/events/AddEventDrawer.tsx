@@ -68,6 +68,7 @@ export default function AddEventDrawer({ isOpen, onOpenChange, onAddEvent, loadi
     switch (type) {
       case 'sav': return 'bg-red-50 text-red-800 border-red-200';
       case 'visite': return 'bg-green-50 text-green-800 border-green-200';
+      case 'demarrage': return 'bg-yellow-50 text-yellow-800 border-yellow-200';
       case 'construction': return 'bg-blue-50 text-blue-800 border-blue-200';
       case 'livraison': return 'bg-orange-50 text-orange-800 border-orange-200';
       case 'autre': return 'bg-gray-50 text-gray-800 border-gray-200';
@@ -100,6 +101,7 @@ export default function AddEventDrawer({ isOpen, onOpenChange, onAddEvent, loadi
                 <option value="">Sélectionner...</option>
                 <option value="sav">SAV</option>
                 <option value="visite">Visite</option>
+                <option value="demarrage">Démarrage</option>
                 <option value="construction">Construction</option>
                 <option value="livraison">Livraison</option>
                 <option value="autre">Autre</option>
