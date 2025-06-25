@@ -136,6 +136,38 @@ export default function ProjectDocuments() {
         url: uploadedUrl,
         montant: documentType.toLowerCase() === 'devis' && montant ? Number(montant) : undefined,
       });
+
+      // --- Notification automatique (comme plans) ---
+      try {
+        const { fetchProjectEmails } = await import('@/lib/projectEmails');
+        const emails = await fetchProjectEmails(projectId);
+        const recipients: string[] = [];
+        if (emails.client) recipients.push(emails.client);
+        if (emails.courtier) recipients.push(emails.courtier);
+        if (emails.artisans && emails.artisans.length > 0) recipients.push(...emails.artisans);
+        if (emails.vendor) recipients.push(emails.vendor);
+        if (recipients.length > 0) {
+          await fetch('/api/send-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              to: recipients,
+              subject: `Nouveau document ajouté au projet`,
+              html: `<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
+                <h2 style='color: #f26755; margin-bottom: 0.5em;'>Nouveau document ajouté au projet</h2>
+                <div style='font-size: 1em; color: #333; margin-bottom: 1em;'>
+                  Un nouveau document intitulé <strong>"${selectedFile.name}"</strong> vient d'être ajouté.<br/>
+                  <strong>Type :</strong> ${documentType === 'autre' ? customDocumentType : documentType}<br/>
+                  <strong>Date :</strong> ${new Date().toLocaleString()}
+                </div>
+              </div>`
+            })
+          });
+        }
+      } catch (err) {
+        console.error('Erreur notification email document :', err);
+      }
+
       setIsNotificationSent(true);
       setTimeout(() => {
         setIsNotificationSent(false);

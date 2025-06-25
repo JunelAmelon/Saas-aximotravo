@@ -1,38 +1,31 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Send, Upload } from 'lucide-react';
 
 import { ProjectNote } from "@/hooks/useProjectNotes";
-import { useRef } from "react";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { CLOUDINARY_UPLOAD_PRESET } from '@/lib/cloudinary';
-
 const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/auto/upload`;
+import { fetchProjectEmails } from '@/lib/projectEmails';
 
 interface ProjectNoteFormProps {
   onClose?: () => void;
   onAddNote?: (note: Omit<ProjectNote, 'id' | 'date' | 'timestamp'>) => Promise<void>;
   projectId?: string;
-  recipientsEmails: {
-    client?: string;
-    artisan?: string;
-    pilot?: string;
-    vendor?: string;
-  };
 }
 
-// Fonction fictive d'envoi d'email (à remplacer par ton backend ou une API)
-async function sendNoteEmail({ to, subject, content }: { to: string[]; subject: string; content: string }) {
+// Fonction d'envoi d'email 
+async function sendNoteEmail({ to, subject, html }: { to: string[]; subject: string; html: string }) {
   // Appel l'API d'envoi d'email
   await fetch('/api/send-email', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ to, subject, content })
+    body: JSON.stringify({ to, subject, html })
   });
 }
 
-export default function ProjectNoteForm({ onClose, onAddNote, projectId, recipientsEmails = {} }: ProjectNoteFormProps) {
+export default function ProjectNoteForm({ onClose, onAddNote, projectId }: ProjectNoteFormProps) {
   const [note, setNote] = useState({
     title: '',
     content: '',
@@ -43,11 +36,43 @@ export default function ProjectNoteForm({ onClose, onAddNote, projectId, recipie
     emails: [] as string[],
     attachments: [] as string[],
   });
+  // State pour l'input email additionnel
+  const [additionalEmail, setAdditionalEmail] = useState('');
+
+  // Gestion des emails associés au projet
+  const [projectEmails, setProjectEmails] = useState<{client?: string, artisans?: string[], courtier?: string, vendor?: string}>({});
+  const [projectName, setProjectName] = useState<string>('Projet');
+  const [emailsLoading, setEmailsLoading] = useState(false);
+  const [emailsError, setEmailsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!projectId) return;
+    setEmailsLoading(true);
+    setEmailsError(null);
+    fetchProjectEmails(projectId)
+      .then((emails) => {
+        setProjectEmails(emails);
+      })
+      .catch((err: any) => setEmailsError(err.message || 'Erreur lors de la récupération des emails'))
+      .finally(() => setEmailsLoading(false));
+  }, [projectId]);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [files, setFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { currentUser } = useAuth();
+
+  // Log dynamique des emails sélectionnés à chaque changement de case
+  useEffect(() => {
+    const checkedEmails: string[] = [];
+    if (note.notifyClient) checkedEmails.push(projectEmails.client || '');
+    if (note.notifyArtisan && projectEmails.artisans) checkedEmails.push(...projectEmails.artisans);
+    if (note.notifyPilot) checkedEmails.push(projectEmails.courtier || '');
+    if (note.notifyVendor) checkedEmails.push(projectEmails.vendor || '');
+    const filteredCheckedEmails = checkedEmails.filter(email => !!email);
+    console.log('Emails sélectionnés (cases cochées):', filteredCheckedEmails);
+  }, [note.notifyClient, note.notifyArtisan, note.notifyPilot, note.notifyVendor, projectEmails]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -56,70 +81,93 @@ export default function ProjectNoteForm({ onClose, onAddNote, projectId, recipie
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-    try {
-      let uploadedUrls: string[] = [];
-      if (files.length > 0) {
-        for (const file of files) {
-          const data = new FormData();
-          data.append("file", file);
-          data.append("upload_preset", CLOUDINARY_UPLOAD_PRESET as string);
-          const res = await fetch(CLOUDINARY_UPLOAD_URL, {
-            method: "POST",
-            body: data
-          });
-          const result = await res.json();
-          if (result.secure_url) {
-            uploadedUrls.push(result.secure_url);
-          }
+  e.preventDefault();
+  setError(null);
+  setLoading(true);
+  try {
+    let uploadedUrls: string[] = [];
+    if (files.length > 0) {
+      for (const file of files) {
+        const data = new FormData();
+        data.append("file", file);
+        data.append("upload_preset", CLOUDINARY_UPLOAD_PRESET as string);
+        const res = await fetch(CLOUDINARY_UPLOAD_URL, {
+          method: "POST",
+          body: data
+        });
+        if (!res.ok) {
+          throw new Error("Erreur lors de l'upload du fichier.");
+        }
+        const result = await res.json();
+        if (result.secure_url) {
+          uploadedUrls.push(result.secure_url);
         }
       }
-      if (!projectId) {
-        setError("Impossible d'ajouter la note : projectId manquant.");
-        setLoading(false);
-        return;
-      }
-      // Récupère les emails cochés
-      const checkedEmails: string[] = [];
-      if (note.notifyClient && recipientsEmails.client) checkedEmails.push(recipientsEmails.client);
-      if (note.notifyArtisan && recipientsEmails.artisan) checkedEmails.push(recipientsEmails.artisan);
-      if (note.notifyPilot && recipientsEmails.pilot) checkedEmails.push(recipientsEmails.pilot);
-      if (note.notifyVendor && recipientsEmails.vendor) checkedEmails.push(recipientsEmails.vendor);
-      // Ajoute les emails saisis manuellement
-      const recipients: string[] = [...checkedEmails, ...note.emails.filter(Boolean)];
-      let author = 'Utilisateur inconnu';
-      if (currentUser) {
-        author = currentUser.displayName || currentUser.email || 'Utilisateur inconnu';
-      }
-      const noteToAdd = {
-        projectId,
-        title: note.title,
-        content: note.content,
-        author,
-        recipients,
-        attachments: uploadedUrls,
-      };
-      await onAddNote?.(noteToAdd);
-      // Envoi la note par email à tous les destinataires cochés
-      console.log('Envoi de la note par email à:', recipients);
-      if (recipients.length > 0) {
-        await sendNoteEmail({
-          to: recipients,
-          subject: note.title || 'Nouvelle note de projet',
-          content: note.content
-        });
-      }
-      onClose?.();
-    } catch (err: any) {
-      console.error('Erreur détaillée:', err);
-      setError("Erreur lors de l'ajout de la note: ");
-    } finally {
-      setLoading(false);
     }
-  };
+    if (!projectId) {
+      setError("Impossible d'ajouter la note : projectId manquant.");
+      setLoading(false);
+      return;
+    }
+    // Récupère les emails cochés
+    const checkedEmails: string[] = [];
+    if (note.notifyClient) checkedEmails.push(projectEmails.client || '');
+    if (note.notifyArtisan && projectEmails.artisans) checkedEmails.push(...projectEmails.artisans);
+    if (note.notifyPilot) checkedEmails.push(projectEmails.courtier || '');
+    if (note.notifyVendor) checkedEmails.push(projectEmails.vendor || '');
+    // Filtre les emails vides ou non définis
+    const filteredCheckedEmails = checkedEmails.filter(email => !!email);
+    // Ajoute les emails saisis manuellement
+    const recipients: string[] = [...filteredCheckedEmails, ...(note.emails || []).filter(Boolean)];
+    console.log('Emails récupérés pour envoi :', recipients);
+    // Prépare l'auteur
+    const author = currentUser?.displayName || currentUser?.email || 'Utilisateur inconnu';
+    // Envoi du mail si des destinataires sont présents
+    if (recipients.length > 0) {
+      const now = new Date().toLocaleString();
+      const htmlContent = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #f26755; margin-bottom: 0.5em;">Nouvelle note ajoutée au projet</h2>
+          <div style="font-size: 1em; color: #333; margin-bottom: 1em;">
+            Une note intitulée <strong>"${note.title || 'Note de projet'}"</strong> vient d'être ajoutée.<br/>
+            <strong>Projet :</strong> ${projectName}<br/>
+            <strong>Auteur :</strong> ${author}<br/>
+            <strong>Date :</strong> ${now}
+          </div>
+          <div style="margin-top: 1em;">${note.content}</div>
+        </div>
+      `;
+      await sendNoteEmail({
+        to: recipients,
+        subject: note.title || 'Nouvelle note de projet',
+        html: htmlContent
+      });
+    }
+    const noteToAdd = {
+      projectId,
+      title: note.title,
+      content: note.content,
+      author,
+      recipients,
+      attachments: uploadedUrls,
+    };
+    await onAddNote?.(noteToAdd);
+    onClose?.();
+  } catch (err: any) {
+    console.error('Erreur détaillée:', err);
+    setError("Erreur lors de l'ajout de la note: " + (err.message || ''));
+  } finally {
+    setLoading(false);
+  }
+};
 
+
+  if (emailsLoading) {
+    return <div className="py-8 text-center text-gray-500">Chargement des emails associés au projet...</div>;
+  }
+  if (emailsError) {
+    return <div className="py-8 text-center text-red-500">{emailsError}</div>;
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6 max-h-[80vh] overflow-y-auto px-1 w-full">
@@ -241,19 +289,58 @@ export default function ProjectNoteForm({ onClose, onAddNote, projectId, recipie
             <input
               id="additional-email"
               type="email"
+              value={additionalEmail}
+              onChange={e => setAdditionalEmail(e.target.value)}
               placeholder="Ajouter un email"
               className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-[#f26755] focus:border-[#f26755]"
               aria-label="Adresse email additionnelle"
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  if (additionalEmail && !note.emails.includes(additionalEmail)) {
+                    setNote(n => ({ ...n, emails: [...n.emails, additionalEmail] }));
+                    setAdditionalEmail('');
+                  }
+                }
+              }}
             />
             <button
               type="button"
               className="px-4 py-2 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50 whitespace-nowrap"
               aria-label="Ajouter cette adresse email"
               title="Ajouter cette adresse email"
+              onClick={() => {
+                if (additionalEmail && !note.emails.includes(additionalEmail)) {
+                  setNote(n => ({ ...n, emails: [...n.emails, additionalEmail] }));
+                  setAdditionalEmail('');
+                }
+              }}
             >
               Ajouter un email
             </button>
           </div>
+          {note.emails.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {note.emails.map((email, idx) => (
+                <span key={email} className="bg-gray-100 px-2 py-1 rounded text-sm flex items-center">
+                  {email}
+                  <button
+                    type="button"
+                    className="ml-1 text-red-500 hover:text-red-700"
+                    aria-label={`Supprimer ${email}`}
+                    title={`Supprimer ${email}`}
+                    onClick={() => setNote(n => ({ ...n, emails: n.emails.filter(e => e !== email) }))}
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+          {emailsLoading && <div className="text-sm text-gray-500 mt-2">Chargement des emails du projet...</div>}
+          {emailsError && typeof emailsError === 'string' && (
+            <div className="text-sm text-red-500 mt-2">{emailsError}</div>
+          )}
         </div>
       </div>
 

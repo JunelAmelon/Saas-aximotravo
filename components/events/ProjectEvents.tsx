@@ -213,6 +213,7 @@ export default function ProjectEvents() {
           await addEvent({ ...eventData, projectId });
         }}
         loading={loading}
+        projectId={projectId}
       />
     </div>
   );

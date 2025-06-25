@@ -11,6 +11,7 @@ import { useAuth } from '@/lib/contexts/AuthContext';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { getUserById } from '@/lib/firebase/users';
+import { fetchProjectEmails } from '@/lib/projectEmails';
 
 interface Plan {
   id: string;
@@ -228,6 +229,37 @@ export default function ProjectPlans() {
                 status: "en attente",
                 images: [urlExistant, urlExecution],
               });
+
+              // --- Notification automatique ---
+              try {
+                const emails = await fetchProjectEmails(projectId);
+                const recipients: string[] = [];
+                if (emails.client) recipients.push(emails.client);
+                if (emails.courtier) recipients.push(emails.courtier);
+                if (emails.artisans && emails.artisans.length > 0) recipients.push(...emails.artisans);
+                if (recipients.length > 0) {
+                  await fetch('/api/send-email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      to: recipients,
+                      subject: `Nouveau plan ajouté au projet`,
+                      html: `<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
+                        <h2 style='color: #f26755; margin-bottom: 0.5em;'>Nouveau plan ajouté au projet</h2>
+                        <div style='font-size: 1em; color: #333; margin-bottom: 1em;'>
+                          Un nouveau plan intitulé <strong>"${planForm.title}"</strong> vient d'être ajouté.<br/>
+                          <strong>Auteur :</strong> ${author?.displayName || ""}<br/>
+                          <strong>Date :</strong> ${new Date().toLocaleString()}
+                        </div>
+                      </div>`
+                    })
+                  });
+                }
+              } catch (err) {
+                // Optionnel : afficher une notification ou log
+                console.error('Erreur notification email plan :', err);
+              }
+
               setIsAddPlanOpen(false);
               setPlanForm({
                 title: '',

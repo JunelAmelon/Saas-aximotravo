@@ -24,6 +24,7 @@ export interface ProjectNote {
   recipients?: string[];
   attachments?: string[];
   timestamp?: Timestamp;
+  
 }
 
 export function useProjectNotes(projectId: string) {
