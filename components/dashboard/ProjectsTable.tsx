@@ -1,6 +1,7 @@
 import { Building, Check, Clock, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { BadgeAmo } from "@/components/BadgeAmo";
 
 interface Project {
   id: string;
@@ -8,6 +9,7 @@ interface Project {
   client: string;
   status: "En cours" | "Terminé" | "En attente";
   deadline: Date;
+  amoIncluded: boolean;
 }
 
 interface ProjectsTableProps {
@@ -71,7 +73,10 @@ export default function ProjectsTable({ projects }: ProjectsTableProps) {
               {/* Projet - Toujours visible */}
               <td className="px-0 md:px-6 py-2 md:py-4 md:whitespace-nowrap">
                 <div className="md:hidden text-xs font-bold text-gray-500 uppercase mb-1">Projet</div>
-                <div className="text-sm font-bold text-gray-900">{project.name}</div>
+                <div className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                  {project.name}
+                  {project?.amoIncluded && <BadgeAmo />}
+                </div>
               </td>
               
               {/* Client */}

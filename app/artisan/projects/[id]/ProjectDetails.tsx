@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from "react";
+import { BadgeAmo } from "@/components/BadgeAmo";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from 'next/navigation';
@@ -52,6 +53,7 @@ export interface ProjectDetails {
   client_id: string;
   client: User;
   artisans?: User[];
+  amoIncluded?: boolean;
 }
 
 // --- SERVICES & FONCTIONS UTILITAIRES FIRESTORE ---
@@ -120,6 +122,7 @@ export const getProjectDetail = async (id: string): Promise<ProjectDetails | nul
       },
       client_id: projectData.client_id,
       client: clientUser,
+      amoIncluded: projectData.amoIncluded ?? false,
     } as ProjectDetails;
   } catch (error) {
     console.error("Erreur lors de la récupération du projet :", error);
@@ -220,7 +223,7 @@ export default function ProjectDetails() {
   const currentUserId = useCurrentUserId();
   // Vérifier s'il y a une invitation pending pour cet artisan sur ce projet
   const pendingInvitation = usePendingArtisanInvitation(currentUserId || '', id || '');
-const router = useRouter();
+  const router = useRouter();
 
 
   useEffect(() => {
@@ -275,7 +278,7 @@ const router = useRouter();
       getAcceptedArtisansForProject(id).then(filteredUsers => setProjectArtisans(filteredUsers as User[]));
     } else {
       // Handle the case where id is undefined, e.g., set an error or clear artisans
-      setProjectArtisans([]); 
+      setProjectArtisans([]);
     }
   }, [id]);
 
@@ -286,8 +289,8 @@ const router = useRouter();
       setSelectedArtisanIds(artisanIds);
     }
   };
-   // Redirection après refus
-   React.useEffect(() => {
+  // Redirection après refus
+  React.useEffect(() => {
     if (pendingInvitation.refused) {
       const timeout = setTimeout(() => {
         router.push("/artisan/projects");
@@ -396,7 +399,10 @@ const router = useRouter();
             <div className="flex-1 w-full md:w-auto">
               <div className="flex flex-col md:flex-row items-start justify-between gap-4 mb-4">
                 <div>
-                  <h2 className="text-xl font-medium text-gray-900">{project?.name}</h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-medium text-gray-900 m-0 p-0">{project?.name}</h2>
+                    {project?.amoIncluded && <BadgeAmo />}
+                  </div>
                   <p className="text-sm text-gray-600">{project?.broker.company}</p>
                 </div>
                 <span className="inline-flex px-3 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">

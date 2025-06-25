@@ -14,9 +14,25 @@ interface ProjectNoteFormProps {
   onClose?: () => void;
   onAddNote?: (note: Omit<ProjectNote, 'id' | 'date' | 'timestamp'>) => Promise<void>;
   projectId?: string;
+  recipientsEmails: {
+    client?: string;
+    artisan?: string;
+    pilot?: string;
+    vendor?: string;
+  };
 }
 
-export default function ProjectNoteForm({ onClose, onAddNote, projectId }: ProjectNoteFormProps) {
+// Fonction fictive d'envoi d'email (à remplacer par ton backend ou une API)
+async function sendNoteEmail({ to, subject, content }: { to: string[]; subject: string; content: string }) {
+  // Appel l'API d'envoi d'email
+  await fetch('/api/send-email', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ to, subject, content })
+  });
+}
+
+export default function ProjectNoteForm({ onClose, onAddNote, projectId, recipientsEmails = {} }: ProjectNoteFormProps) {
   const [note, setNote] = useState({
     title: '',
     content: '',
@@ -65,24 +81,39 @@ export default function ProjectNoteForm({ onClose, onAddNote, projectId }: Proje
         setLoading(false);
         return;
       }
-      if (onAddNote) {
-        const recipients: string[] = note.emails.filter(Boolean);
-        let author = 'Utilisateur inconnu';
-        if (currentUser) {
-          author = currentUser.displayName || currentUser.email || 'Utilisateur inconnu';
-        }
-        const noteToAdd = {
-          projectId,
-          title: note.title,
-          content: note.content,
-          author,
-          recipients,
-          attachments: uploadedUrls,
-        };
-        await onAddNote(noteToAdd);
+      // Récupère les emails cochés
+      const checkedEmails: string[] = [];
+      if (note.notifyClient && recipientsEmails.client) checkedEmails.push(recipientsEmails.client);
+      if (note.notifyArtisan && recipientsEmails.artisan) checkedEmails.push(recipientsEmails.artisan);
+      if (note.notifyPilot && recipientsEmails.pilot) checkedEmails.push(recipientsEmails.pilot);
+      if (note.notifyVendor && recipientsEmails.vendor) checkedEmails.push(recipientsEmails.vendor);
+      // Ajoute les emails saisis manuellement
+      const recipients: string[] = [...checkedEmails, ...note.emails.filter(Boolean)];
+      let author = 'Utilisateur inconnu';
+      if (currentUser) {
+        author = currentUser.displayName || currentUser.email || 'Utilisateur inconnu';
+      }
+      const noteToAdd = {
+        projectId,
+        title: note.title,
+        content: note.content,
+        author,
+        recipients,
+        attachments: uploadedUrls,
+      };
+      await onAddNote?.(noteToAdd);
+      // Envoi la note par email à tous les destinataires cochés
+      console.log('Envoi de la note par email à:', recipients);
+      if (recipients.length > 0) {
+        await sendNoteEmail({
+          to: recipients,
+          subject: note.title || 'Nouvelle note de projet',
+          content: note.content
+        });
       }
       onClose?.();
     } catch (err: any) {
+      console.error('Erreur détaillée:', err);
       setError("Erreur lors de l'ajout de la note: ");
     } finally {
       setLoading(false);
