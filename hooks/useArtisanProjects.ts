@@ -9,7 +9,6 @@ export interface ArtisanProject {
   status: string;
   deadline: string;
   location: string;
-  amoIncluded?: boolean;
 }
 
 export function useArtisanProjects() {
@@ -64,7 +63,6 @@ export function useArtisanProjects() {
                 budget: p.budget,
                 image: p.image,
                 location: p.location,
-                amoIncluded: p.amoIncluded ?? false,
               } as ArtisanProject;
             })
         );

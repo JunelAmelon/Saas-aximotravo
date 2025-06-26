@@ -14,7 +14,6 @@ export interface Project {
   budget?: number;
   created_at?: Timestamp;
   updated_at?: Timestamp;
-  amoIncluded?: boolean;
 }
 
 const COLLECTION_NAME = "projects";

@@ -47,7 +47,6 @@ export function useCreateProject() {
         firstDepositPercent,
         clientEmail,
         image,
-        amoIncluded,
         ...projectData
       } = data;
       // 1. Vérifier si le client existe déjà
@@ -77,23 +76,7 @@ export function useCreateProject() {
           role: "client",
           createdAt: new Date().toISOString(),
         });
-        await fetch("/api/send-email", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            to: clientEmail,
-            subject: "Votre compte a été créé",
-            html: `
-              <p>Bonjour,</p>
-              <p>Votre compte a été créé avec succès.</p>
-              <p><b>Email :</b> ${clientEmail}</p>
-              <p><b>Mot de passe :</b> ${password}</p>
-              <p>Merci de vous connecter et de modifier votre mot de passe dès la première connexion.</p>
-            `,
-            // text: `Votre compte a été créé.\nEmail: ${clientEmail}\nMot de passe: ${password}`,
-            fromName: "Aximotravo",
-          }),
-        });
+        // TODO: Envoyer le mot de passe généré à l'utilisateur par email
       } else {
         clientUid = clientUser.uid;
       }
@@ -119,7 +102,6 @@ export function useCreateProject() {
         firstDepositPercent,
         broker,
         image: image || undefined,
-        amoIncluded: amoIncluded ?? false,
       });
       // 6. Créer automatiquement le premier accompte (nouvelle structure)
       const accompteAmount = data.budget * (data.firstDepositPercent / 100);

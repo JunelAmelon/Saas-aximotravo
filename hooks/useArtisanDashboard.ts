@@ -85,7 +85,6 @@ export function useArtisanDashboard(): UseArtisanDashboardResult {
             client: clientName,
             status: project.status,
             deadline: project.estimatedEndDate || 'Non défini',
-            amoIncluded: project.amoIncluded ?? false,
           };
         })
       );

@@ -147,19 +147,19 @@ export default function AdminDashboard() {
           title="Courtiers actifs"
           value={globalStats.totalBrokers.toString()}
           icon={<Users size={24} />}
-          trend={{ value: 0, isPositive: true }}
+          trend={{ value: 10, isPositive: true }}
         />
         <StatCard
           title="Projets en cours"
           value={globalStats.totalProjects.toString()}
           icon={<FileText size={24} />}
-          trend={{ value: 0, isPositive: true }}
+          trend={{ value: 15, isPositive: true }}
         />
         <StatCard
           title="Artisans actifs"
           value={globalStats.totalArtisans.toString()}
           icon={<Users size={24} />}
-          trend={{ value: 0, isPositive: true }}
+          trend={{ value: 8, isPositive: true }}
         />
       </div>
 

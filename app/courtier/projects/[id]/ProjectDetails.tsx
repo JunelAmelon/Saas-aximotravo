@@ -2,13 +2,16 @@
 
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
-import { BadgeAmo } from "@/components/BadgeAmo";
 import Link from "next/link";
 import { useParams } from 'next/navigation';
 import { ChevronLeft, Calendar, FileText, Camera, FileSpreadsheet, FileBox, Scale, Crown, User, Eye, Download, Phone, Mail, MapPin, Plus, X, Send, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { CreateDevisModal } from '@/components/CreateDevisModal';
+import { PiecesSelectionModal } from '@/components/PiecesSelectionModal';
+import { CalculSurfaceModal } from '@/components/CalculSurfaceModal';
+import { DevisGenerationPage } from '@/components/DevisGenerationPage';
+import { useDevis } from '@/hooks/useDevis';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { collection, doc, getDocs, getDoc, updateDoc, query, where, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
@@ -50,7 +53,6 @@ export interface ProjectDetails {
   client_id: string;
   client: User;
   artisans?: User[];
-  amoIncluded?: boolean;
 }
 
 // --- SERVICES & FONCTIONS UTILITAIRES FIRESTORE ---
@@ -244,6 +246,27 @@ export const getArtisansByCourtier = async (courtierId: string, projectId?: stri
 import { getAuth } from "firebase/auth";
 
 export default function ProjectDetails() {
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const {
+    currentDevis,
+    step,
+    createDevis,
+    updatePieces,
+    updateSurfaceData,
+    updateSelectedItems,
+    nextStep,
+    previousStep,
+    resetDevis
+  } = useDevis();
+
+  const handleCreateDevis = (titre: string, tva: number | string) => {
+    createDevis(titre, tva);
+    setShowCreateModal(false);
+  };
+  const handleBackToHome = () => {
+    resetDevis();
+    setShowCreateModal(false);
+  };
   // ...
   const [devis, setDevis] = useState<any[]>([]);
   const params = useParams<{ id: string; tab?: string }>();
@@ -413,6 +436,15 @@ export default function ProjectDetails() {
   }
 
   // Afficher un message d'erreur
+  if (step === 'generation' && currentDevis) {
+    return (
+      <DevisGenerationPage
+        devis={currentDevis}
+        onBack={previousStep}
+        onUpdateDevis={updateSelectedItems}
+      />
+    );
+  }
   if (error) {
     return (
       <div className="p-4 bg-red-50 text-red-600 rounded-lg">
@@ -460,10 +492,7 @@ export default function ProjectDetails() {
             <div className="flex-1 w-full md:w-auto">
               <div className="flex flex-col md:flex-row items-start justify-between gap-4 mb-4">
                 <div>
-                  <h2 className="text-xl font-medium text-gray-900 flex items-center gap-2">
-                    {project?.name}
-                    {project?.amoIncluded && <BadgeAmo />}
-                  </h2>
+                  <h2 className="text-xl font-medium text-gray-900">{project?.name}</h2>
                   <p className="text-sm text-gray-600">{project?.broker.company}</p>
                 </div>
                 <span className="inline-flex px-3 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">
@@ -712,6 +741,16 @@ export default function ProjectDetails() {
         </div>
       </div>
       <div className="overflow-x-auto">
+        <div className="flex justify-end mb-2">
+          <button
+            type="button"
+            onClick={() => setShowCreateModal(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-[#f26755] hover:bg-[#e55a4a] text-white rounded shadow text-sm font-semibold transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            Créer un devis
+          </button>
+        </div>
         <h4 className="text-base font-semibold mb-2">Liste des devis</h4>
         <table className="min-w-full">
           <thead>
@@ -782,6 +821,32 @@ export default function ProjectDetails() {
             ))}
           </tbody>
         </table>
+        {/* Modals */}
+        <CreateDevisModal
+          open={showCreateModal}
+          onOpenChange={setShowCreateModal}
+          onCreateDevis={handleCreateDevis}
+        />
+
+        {currentDevis && (
+          <>
+            <PiecesSelectionModal
+              open={step === 'pieces'}
+              pieces={currentDevis.pieces || []}
+              onUpdatePieces={updatePieces}
+              onNext={nextStep}
+              onBack={handleBackToHome}
+            />
+
+            <CalculSurfaceModal
+              open={step === 'calcul'}
+              surfaceData={currentDevis.surfaceData || []}
+              onUpdateSurfaceData={updateSurfaceData}
+              onNext={nextStep}
+              onBack={previousStep}
+            />
+          </>
+        )}
       </div>
     </div>
   );

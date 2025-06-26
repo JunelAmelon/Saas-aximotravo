@@ -17,7 +17,6 @@ import {
 export type ProjectStatus = 'En attente' | 'En cours' | 'Terminé';
 
 export interface Project {
-  amoIncluded: boolean;
   id: string;
   client_id: string;
   name: string;
