@@ -7,6 +7,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
+import { BadgeAmo } from "@/components/BadgeAmo";
 
 interface Project {
   id: string;
@@ -22,6 +23,7 @@ interface Project {
     company: string;
     avatar: string;
   }[];
+  amoIncluded?: boolean;
 }
 
 interface Broker {
@@ -154,7 +156,8 @@ export default function BrokerDetails({ params }: { params: { id: string } }) {
               amount: projectData.budget || 0,
               validatedPayments: projectData.paidAmount || 0,
               pendingPayments: (projectData.budget - projectData.paidAmount) || 0,
-              artisans
+              artisans,
+              amoIncluded: projectData.amoIncluded || false
             };
           })
         );
@@ -273,12 +276,15 @@ export default function BrokerDetails({ params }: { params: { id: string } }) {
               {paginatedProjects.map((project) => (
                 <tr key={project.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4">
-                    <Link href={`/admin/projects/${project.id}`} className="text-sm font-medium text-blue-600 no-underline hover:no-underline hover:text-blue-600">
-                      {project.name}
-                    </Link>
+                    <div className="flex flex-row items-center">
+                      <Link href={`/admin/projects/${project.id}`} className="text-sm font-medium text-blue-600 no-underline hover:no-underline hover:text-blue-600 whitespace-nowrap overflow-hidden text-ellipsis">
+                        {project.name}
+                      </Link>
+                      {project?.amoIncluded && <span className="ml-3"><BadgeAmo /></span>}
+                    </div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`inline-flex px-2.5 py-0.5 text-xs font-medium rounded-full ${project.status === "En cours"
+                    <span className={`inline-flex px-2.5 py-0.5 text-xs font-medium rounded-full whitespace-nowrap ${project.status === "En cours"
                         ? "bg-[#f26755]/10 text-[#f26755]"
                         : project.status === "Terminé"
                           ? "bg-green-100 text-green-800"

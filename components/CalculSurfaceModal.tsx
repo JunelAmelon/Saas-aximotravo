@@ -157,7 +157,7 @@ export const CalculSurfaceModal: React.FC<CalculSurfaceModalProps> = ({
                 </div>
                 <div>
                   <h2 className="text-base sm:text-lg font-semibold">Calcul des surfaces</h2>
-                  <p className="text-xs sm:text-sm text-white/90">Saisissez n'importe quelle dimension, les autres se calculent automatiquement</p>
+                  <p className="text-xs sm:text-sm text-white/90">Saisissez n&apos;importe quelle dimension, les autres se calculent automatiquement</p>
                 </div>
               </div>
             </div>

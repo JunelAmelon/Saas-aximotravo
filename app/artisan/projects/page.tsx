@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Search, Filter, X, ChevronLeft, ChevronRight, User, Calendar, MapPin } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { BadgeAmo } from "@/components/BadgeAmo";
 import { useArtisanProjects } from '@/hooks/useArtisanProjects';
 
 interface Project {
@@ -16,6 +17,7 @@ interface Project {
   image?: string;
   date?: string;
   location?: string;
+  amoIncluded?: boolean;
 }
 
 interface StatusConfig {
@@ -29,7 +31,7 @@ export default function ArtisanProjects() {
   const [statusFilter, setStatusFilter] = useState<Project["status"] | "">("");
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const projectsPerPage = 5;
+  const projectsPerPage = 3;
   const [projects, setProjects] = useState<Project[]>([]);
 
   const statusConfig: Record<Project["status"], StatusConfig> = {
@@ -57,6 +59,7 @@ export default function ArtisanProjects() {
           image: p.image,
           date: p.deadline,
           location: p.location,
+          amoIncluded: p.amoIncluded,
         }))
       );
     }
@@ -159,13 +162,16 @@ export default function ArtisanProjects() {
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#f26755]"></div>
         </div>
       ) : (
-        <div className="flex flex-wrap gap-6">
+        <div className="flex flex-wrap gap-6 items-stretch justify-center">
           {paginatedProjects.length === 0 ? (
             <div className="w-full text-center py-12 text-gray-500">
               Aucun projet trouvé. Ajoutez votre premier projet en cliquant sur &quot;Nouveau projet&quot;.
             </div>
           ) : paginatedProjects.map((project) => (
-            <div key={project.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 hover:shadow-md transition-all">
+            <div
+              key={project.id}
+              className={`relative bg-white border border-gray-200 rounded-xl shadow-md p-6 w-[450px] h-[380px] max-w-full flex flex-col transition-all duration-200 hover:shadow-lg hover:-translate-y-2`}
+            >
               <div className="flex items-start gap-4 mb-4">
                 <div className="relative w-16 h-16 flex-shrink-0 rounded-full overflow-hidden border-2 border-[#f26755] group-hover:border-[#f26755]/80 transition-colors duration-200">
                   <Image
@@ -173,15 +179,16 @@ export default function ArtisanProjects() {
                     alt={project.name}
                     fill
                     className="object-cover"
-                    sizes="64px"
                   />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">
-                    <h3 className="text-lg font-medium text-gray-900 truncate">{project.name}</h3>
-                    <span className="inline-flex flex-shrink-0 px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full whitespace-nowrap">
-                      {statusConfig[project.status]?.label ?? project.status ?? 'Statut inconnu'}
-                    </span>
+                    <div className="flex items-center justify-between min-w-0 w-full">
+                      <h3 className="text-lg font-medium text-gray-900 truncate">
+                        {project.name}
+                      </h3>
+                      {project.amoIncluded && <BadgeAmo />}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -199,35 +206,55 @@ export default function ArtisanProjects() {
                 <span>{project.location}</span>
               </div>
 
-              <div className="mb-4 p-3 bg-gradient-to-r from-gray-50 to-white rounded-lg border border-gray-100">
-                <p className="text-xs text-gray-500 mb-1">Montant prospecté</p>
-                <p className="text-xl font-semibold text-gray-800">
-                  {project.amount ? project.amount.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }) : 'N/A'}
-                </p>
+              <div className="mb-3 p-3 bg-orange-50/70 rounded-lg border border-orange-100 flex items-center gap-3">
+                <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-orange-100 text-orange-500">
+                  <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3" /></svg>
+                </span>
+                <div>
+                  <p className="text-xs text-orange-700 font-medium mb-0.5">Montant prospecté</p>
+                  <p className="text-lg font-bold text-gray-800">
+                    {project.amount ? project.amount.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }) : 'N/A'}
+                  </p>
+                </div>
               </div>
 
-              <div className="flex justify-start">
-                <Link
-                  href={`/artisan/projects/${project.id}`}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#f26755] text-white rounded-md hover:bg-[#f26755]/90 transition-all text-sm group"
-                >
-                  Voir le projet
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="transition-transform group-hover:-translate-y-1 group-hover:translate-x-1 rotate-45 origin-center"
+              <div className="flex items-center justify-between mt-2">
+                <div>
+                  <Link
+                    href={`/artisan/projects/${project.id}`}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#f26755] text-white rounded-md hover:bg-[#f26755]/90 transition-all text-sm group"
                   >
-                    <path d="M5 12h14" /> {/* Ligne horizontale (corps de l'avion) */}
-                    <path d="M12 5l7 7-7 7" /> {/* Flèche pointant vers le haut */}
-                  </svg>
-                </Link>
+                    Voir le projet
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="transition-transform group-hover:-translate-y-1 group-hover:translate-x-1 rotate-45 origin-center"
+                    >
+                      <path d="M5 12h14" /> {/* Ligne horizontale (corps de l'avion) */}
+                      <path d="M12 5l7 7-7 7" /> {/* Flèche pointant vers le haut */}
+                    </svg>
+                  </Link>
+                </div>
+                <span
+                  className={`inline-flex items-center px-2 py-0.5 text-xs font-semibold rounded-full whitespace-nowrap ml-3
+                    ${project.status === 'equipe_assignee' ? 'bg-indigo-100 text-indigo-800'
+                      : project.status === 'chantier_planifie' ? 'bg-violet-100 text-violet-800'
+                        : project.status === 'chantier_en_cours' ? 'bg-amber-100 text-amber-800'
+                          : project.status === 'sav' ? 'bg-violet-100 text-violet-800'
+                            : project.status === 'termine' ? 'bg-orange-100 text-orange-800'
+                              : project.status === 'cloture' ? 'bg-green-100 text-green-800'
+                                : 'bg-red-100 text-red-800'
+                    }`}
+                >
+                  {statusConfig[project.status]?.label ?? project.status ?? 'Statut inconnu'}
+                </span>
               </div>
             </div>
           ))}

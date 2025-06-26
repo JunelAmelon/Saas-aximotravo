@@ -1024,7 +1024,7 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
     }, 0);
     
     // Récupérer les pièces sélectionnées pour ce lot
-    const piecesForLot = [...new Set(items.flatMap(item => item.pieces))];
+    const piecesForLot = Array.from(new Set(items.flatMap(item => item.pieces)));
     
     return {
       index: index + 1,
@@ -1612,7 +1612,7 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
                   <div className="flex items-center gap-2 mb-2">
                     <Checkbox
                       checked={showFurniturePrice}
-                      onCheckedChange={setShowFurniturePrice}
+                      onCheckedChange={(checked) => setShowFurniturePrice(checked === true)}
                       className="h-4 w-4 data-[state=checked]:bg-[#f26755] data-[state=checked]:border-[#f26755]"
                     />
                     <span className="text-sm font-medium text-gray-700">Afficher le prix des fournitures au client</span>

@@ -183,7 +183,7 @@ export function CreateCustomItemModal({
           <div className="p-6 space-y-6">
             {/* Sélection du type d'élément */}
             <div className="space-y-3">
-              <Label className="text-sm font-medium text-gray-700">Type d'élément à créer</Label>
+              <Label className="text-sm font-medium text-gray-700">Type d&apos;élément à créer</Label>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {(['prestation', 'lot', 'texte'] as ItemType[]).map((type) => {
                   const config = getItemTypeConfig(type);
@@ -388,7 +388,7 @@ export function CreateCustomItemModal({
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-700">Nom de l'item</Label>
+                    <Label className="text-sm font-medium text-gray-700">Nom de l&apos;item</Label>
                     <Input
                       value={formData.itemName}
                       onChange={(e) => setFormData(prev => ({ ...prev, itemName: e.target.value }))}

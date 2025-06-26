@@ -133,7 +133,7 @@ export function EditItemModal({ open, onOpenChange, item, onSave }: EditItemModa
           <div className="p-6 space-y-6">
             {/* Image d'illustration */}
             <div className="space-y-3">
-              <Label className="text-sm font-medium text-gray-700">Image d'illustration</Label>
+              <Label className="text-sm font-medium text-gray-700">Image d&apos;illustration</Label>
               <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 hover:border-[#f26755]/50 transition-colors">
                 {imagePreview ? (
                   <div className="relative">

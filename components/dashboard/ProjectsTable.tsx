@@ -1,6 +1,11 @@
 import { Building, Check, Clock, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { useAuth } from '@/lib/contexts/AuthContext';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase/config';
+import { BadgeAmo } from "@/components/BadgeAmo";
+import { useEffect, useState } from 'react';
 
 interface Project {
   id: string;
@@ -8,6 +13,7 @@ interface Project {
   client: string;
   status: "En cours" | "Terminé" | "En attente";
   deadline: Date;
+  amoIncluded: boolean;
 }
 
 interface ProjectsTableProps {
@@ -15,6 +21,20 @@ interface ProjectsTableProps {
 }
 
 export default function ProjectsTable({ projects }: ProjectsTableProps) {
+  const { currentUser } = useAuth();
+    const [userRole, setUserRole] = useState<string | null>(null);
+  
+    useEffect(() => {
+      const fetchRole = async () => {
+        if (currentUser) {
+          const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+          if (userDoc.exists()) {
+            setUserRole(userDoc.data().role?.toLowerCase() || null);
+          }
+        }
+      };
+      fetchRole();
+    }, [currentUser]);
   const getStatusBadge = (status: Project["status"]) => {
     switch (status) {
       case "En cours":
@@ -71,7 +91,10 @@ export default function ProjectsTable({ projects }: ProjectsTableProps) {
               {/* Projet - Toujours visible */}
               <td className="px-0 md:px-6 py-2 md:py-4 md:whitespace-nowrap">
                 <div className="md:hidden text-xs font-bold text-gray-500 uppercase mb-1">Projet</div>
-                <div className="text-sm font-bold text-gray-900">{project.name}</div>
+                <div className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                  {project.name}
+                  {project?.amoIncluded && <BadgeAmo />}
+                </div>
               </td>
               
               {/* Client */}
@@ -97,12 +120,24 @@ export default function ProjectsTable({ projects }: ProjectsTableProps) {
               {/* Action */}
               <td className="px-0 md:px-6 py-2 md:py-4 md:whitespace-nowrap">
                 <div className="md:hidden text-xs font-bold text-gray-500 uppercase mb-1">Action</div>
-                <Link
+                {userRole === 'artisan' && <Link
                   href={`/artisan/projects/${project.id}`}
                   className="text-[#f21515] hover:text-[#f21515]/80 font-bold flex items-center"
                 >
                   Voir <ArrowUpRight size={14} className="ml-1" />
-                </Link>
+                </Link>}
+                {userRole === 'courtier' && <Link
+                  href={`/courtier/projects/${project.id}`}
+                  className="text-[#f21515] hover:text-[#f21515]/80 font-bold flex items-center"
+                >
+                  Voir <ArrowUpRight size={14} className="ml-1" />
+                </Link>}
+                {userRole === 'admin' && <Link
+                  href={`/admin/projects/${project.id}`}
+                  className="text-[#f21515] hover:text-[#f21515]/80 font-bold flex items-center"
+                >
+                  Voir <ArrowUpRight size={14} className="ml-1" />
+                </Link>}
               </td>
             </tr>
           ))}

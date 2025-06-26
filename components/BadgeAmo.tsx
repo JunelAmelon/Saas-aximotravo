@@ -3,7 +3,7 @@ import { ShieldCheck } from "lucide-react";
 export function BadgeAmo() {
   return (
     <span
-      className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-500 text-white text-xs rounded-full font-semibold shadow-md border border-white transition-all duration-200 animate-fade-in hover:bg-orange-600 hover:shadow-lg hover:-translate-y-0.5"
+      className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#f26755] text-white text-xs rounded-full font-semibold shadow-md border border-white transition-all duration-200 animate-fade-in hover:bg-[#e55a4a] hover:shadow-lg hover:-translate-y-0.5"
       style={{
         boxShadow: '0 2px 8px 0 rgba(242, 103, 85, 0.15)',
         borderWidth: 2,

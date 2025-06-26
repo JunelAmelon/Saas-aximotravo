@@ -113,7 +113,7 @@ export default function ProjectNotes() {
             <SheetTitle>Ajouter une note</SheetTitle>
           </SheetHeader>
           <div className="mt-6">
-            <ProjectNoteForm onClose={() => setIsAddNoteOpen(false)} onAddNote={addNote ?? (async () => { })} projectId={projectId} />
+            <ProjectNoteForm onClose={() => setIsAddNoteOpen(false)} onAddNote={addNote ?? (async () => { })} projectId={projectId}/>
           </div>
         </SheetContent>
       </Sheet>

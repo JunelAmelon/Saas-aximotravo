@@ -17,8 +17,13 @@ interface PDFGeneratorProps {
 import { useParams } from 'next/navigation';
 
 export function PDFGenerator({ devis, items, className, iconOnly = false }: PDFGeneratorProps) {
-  const params = useParams();
-  const projectId = typeof params?.id === 'string' ? params.id : Array.isArray(params?.id) ? params.id[0] : undefined;
+  const params = useParams() || {};
+  const projectId =
+    typeof params.id === 'string'
+      ? params.id
+      : Array.isArray(params.id)
+        ? params.id[0]
+        : undefined;
 
   const generatePDF = async () => {
     // Génération du PDF (inchangé)

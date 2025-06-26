@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { BadgeAmo } from "@/components/BadgeAmo";
 import { useParams } from 'next/navigation';
 import { ChevronLeft, Calendar, FileText, Camera, FileSpreadsheet, FileBox, Scale, Crown, User, Eye, Download, Phone, Mail, MapPin, Plus, X, Send, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -50,6 +51,7 @@ export interface ProjectDetails {
     company: string;
     courtier: User;
   };
+  amoIncluded?: boolean;
   client_id: string;
   client: User;
   artisans?: User[];
@@ -492,7 +494,10 @@ export default function ProjectDetails() {
             <div className="flex-1 w-full md:w-auto">
               <div className="flex flex-col md:flex-row items-start justify-between gap-4 mb-4">
                 <div>
-                  <h2 className="text-xl font-medium text-gray-900">{project?.name}</h2>
+                  <h2 className="text-xl font-medium text-gray-900 flex items-center gap-2">
+                    {project?.name}
+                    {project?.amoIncluded && <BadgeAmo />}
+                  </h2>
                   <p className="text-sm text-gray-600">{project?.broker.company}</p>
                 </div>
                 <span className="inline-flex px-3 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">

@@ -40,6 +40,7 @@ export interface Project {
   updatedAt: any;
   firstDepositPercent: number;
   broker: any;
+  amoIncluded?: boolean;
 }
 
 // Créer un nouveau projet

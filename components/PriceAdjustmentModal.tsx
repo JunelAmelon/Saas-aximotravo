@@ -201,7 +201,7 @@ export function PriceAdjustmentModal({
                 <div className="flex items-start gap-3">
                   <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
                   <div className="flex-1">
-                    <h4 className="font-medium text-blue-800 mb-2">Aperçu de l'ajustement</h4>
+                    <h4 className="font-medium text-blue-800 mb-2">Aperçu de l&apos;ajustement</h4>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-blue-700">Nouveau total :</span>
@@ -214,7 +214,7 @@ export function PriceAdjustmentModal({
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-blue-700">Ratio d'ajustement :</span>
+                        <span className="text-blue-700">Ratio d&apos;ajustement :</span>
                         <span className="font-medium text-blue-800">
                           {((adjustedTotal / currentTotal) * 100).toFixed(1)}%
                         </span>
@@ -261,7 +261,7 @@ export function PriceAdjustmentModal({
                   disabled={!targetPrice || selectedLots.length === 0 || adjustedItems.length === 0}
                   className="bg-[#f26755] hover:bg-[#e55a4a] text-white disabled:bg-gray-300"
                 >
-                  Appliquer l'ajustement
+                  Appliquer l&apos;ajustement
                 </Button>
               </div>
             </div>

@@ -2,6 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+
+/* Animation pour le badge AMO */
+.animate-fade-in { animation: fadeIn 0.4s cubic-bezier(0.39, 0.575, 0.565, 1) both; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+
 :root {
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 214, 219, 220;

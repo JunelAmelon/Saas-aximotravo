@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Search, ChevronLeft, ChevronRight, PlusCircle, User, Calendar, MapPin } from "lucide-react";
 import Image from "next/image";
+import { BadgeAmo } from "@/components/BadgeAmo";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/contexts/AuthContext";
@@ -30,6 +31,7 @@ interface Project {
   image?: string;
   date?: string;
   location?: string;
+  amoIncluded?: boolean;
 }
 
 const statusConfig = {
@@ -95,7 +97,8 @@ function convertFirebaseProject(project: FirebaseProject): Project {
     amount: project.budget || 0,
     image: project.image || "/default-project.jpg",
     date: project.createdAt?.toDate?.()?.toLocaleDateString('fr-FR') || "Non spécifiée",
-    location: project.location || "Non spécifié"
+    location: project.location || "Non spécifié",
+    amoIncluded: project.amoIncluded || false
   };
 }
 
@@ -285,7 +288,11 @@ export default function CourtierProjects() {
                       />
                     </div>
                     <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
                       <h3 className="text-lg font-medium text-gray-900 truncate">{project.name}</h3>
+                        {project.amoIncluded && <BadgeAmo />}
+                      </div>
+                      
 
 
                       <div className="mt-2">
