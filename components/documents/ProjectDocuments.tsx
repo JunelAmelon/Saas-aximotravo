@@ -178,7 +178,7 @@ export default function ProjectDocuments() {
         setMontant('');
       }, 2000);
     } catch (err) {
-      alert('Erreur lors de l\'upload ou de l\'ajout du document');
+      alert('Erreur lors de l\'upload ou de l\'ajout du doc');
     } finally {
       setUploading(false);
     }
