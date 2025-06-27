@@ -311,28 +311,28 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
         </DialogContent>
       </Dialog>
 
-      <div className="flex flex-wrap items-center gap-2 sm:gap-4 justify-between w-full mb-2">
-        <div className="flex items-center flex-shrink-0">
-          <button
-            className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-[#f26755] to-[#f26755]/90 text-white rounded-lg font-semibold shadow hover:opacity-90 transition"
-            onClick={() => window.history.back()}
-            type="button"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            Retour
-          </button>
-        </div>
-        <h2 className="text-xl font-semibold text-gray-800 flex-1 text-center min-w-[160px] truncate order-2 sm:order-none">Demandes d&apos;acompte</h2>
-        <div className="flex items-center flex-shrink-0">
-          {userRole !== 'admin' && (
+      <div className="w-full mb-6">
+        <div className="flex flex-col items-center w-full">
+          <h2 className="text-xl font-semibold text-gray-800 w-full text-center mb-2">Demandes d&apos;acompte</h2>
+          <div className="flex flex-col sm:flex-row w-full gap-2 sm:gap-4 justify-between">
             <button
-              className="flex items-center gap-2 px-4 py-2 bg-[#f26755] text-white rounded-lg font-semibold shadow hover:opacity-90 transition"
-              onClick={() => setOpenAddModal(true)}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg font-semibold shadow hover:bg-gray-200 transition"
+              onClick={() => window.history.back()}
               type="button"
             >
-            <Upload className="h-4 w-4" /> Demande d&apos;acompte
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              Retour
             </button>
-          )}
+            {userRole !== 'admin' && (
+              <button
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-[#f26755] text-white rounded-lg font-semibold shadow hover:bg-[#f26755]/90 transition"
+                onClick={() => setOpenAddModal(true)}
+                type="button"
+              >
+                <Upload className="h-4 w-4" /> Demande d&apos;acompte
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
