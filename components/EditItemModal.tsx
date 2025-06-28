@@ -10,42 +10,68 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DevisItem, TVA_OPTIONS, UNIT_OPTIONS } from '@/types/devis';
 import { X, Upload, Gift, Image as ImageIcon, Percent } from 'lucide-react';
 
+import { useDevisConfig } from '@/components/DevisConfigContext';
+
 interface EditItemModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   item: DevisItem;
-  onSave: (updatedItem: DevisItem) => void;
 }
 
-export function EditItemModal({ open, onOpenChange, item, onSave }: EditItemModalProps) {
+export const EditItemModal: React.FC<EditItemModalProps> = ({
+  open,
+  onOpenChange,
+  item
+}) => {
+  const { devisConfig, setDevisConfigField } = useDevisConfig();
   const [editedItem, setEditedItem] = useState<DevisItem>({ ...item });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>(item.customImage || '');
   const [customTva, setCustomTva] = useState<string>('');
   const [customUnit, setCustomUnit] = useState<string>('');
 
+  // Fonction utilitaire d'upload Cloudinary
+  async function uploadToCloudinary(file: File): Promise<string | null> {
+    const CLOUDINARY_UPLOAD_URL = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_URL || '';
+    const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || '';
+    const data = new FormData();
+    data.append('file', file);
+    data.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+    const res = await fetch(CLOUDINARY_UPLOAD_URL, { method: 'POST', body: data });
+    const result = await res.json();
+    return result.secure_url || null;
+  }
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setImageFile(file);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
-        setImagePreview(result);
-        setEditedItem(prev => ({ ...prev, customImage: result }));
-      };
-      reader.readAsDataURL(file);
+      setImagePreview(URL.createObjectURL(file));
+      // Ne pas uploader ici !
     }
   };
 
-  const handleSave = () => {
-    // Recalculer le prix total si l'unité ou la quantité a changé
+  const handleSave = async () => {
+    let imageUrl = editedItem.customImage || '';
+    if (imageFile) {
+      // Uploader sur Cloudinary ici
+      const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/auto/upload`;
+      const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || '';
+      const data = new FormData();
+      data.append('file', imageFile);
+      data.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+      const res = await fetch(CLOUDINARY_UPLOAD_URL, { method: 'POST', body: data });
+      const result = await res.json();
+      if (result.secure_url) imageUrl = result.secure_url;
+    }
+
     const updatedItem = {
       ...editedItem,
+      customImage: imageUrl,
       originalPrix: editedItem.originalPrix || item.prix_ht
     };
-    
-    onSave(updatedItem);
+    const updatedItems = (devisConfig?.selectedItems || []).map(i => i.id === updatedItem.id ? updatedItem : i);
+    setDevisConfigField('selectedItems', updatedItems);
     onOpenChange(false);
   };
 
@@ -113,7 +139,7 @@ export function EditItemModal({ open, onOpenChange, item, onSave }: EditItemModa
                 </div>
                 <div>
                   <DialogTitle>
-                    <h2 className="text-lg font-semibold">Modifier la prestation</h2>
+                    <span className="text-lg font-semibold">Modifier la prestation</span>
                   </DialogTitle>
                   <p className="text-sm text-white/90">Personnaliser les détails</p>
                 </div>
@@ -137,9 +163,9 @@ export function EditItemModal({ open, onOpenChange, item, onSave }: EditItemModa
               <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 hover:border-[#f26755]/50 transition-colors">
                 {imagePreview ? (
                   <div className="relative">
-                    <img 
-                      src={imagePreview} 
-                      alt="Aperçu" 
+                    <img
+                      src={imagePreview}
+                      alt="Aperçu"
                       className="w-full h-32 object-cover rounded-lg"
                     />
                     <Button
@@ -203,8 +229,8 @@ export function EditItemModal({ open, onOpenChange, item, onSave }: EditItemModa
               </div>
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-gray-700">Unité</Label>
-                <Select 
-                  value={isCustomUnit ? 'custom' : currentUnit} 
+                <Select
+                  value={isCustomUnit ? 'custom' : currentUnit}
                   onValueChange={handleUnitChange}
                 >
                   <SelectTrigger className="border-gray-200 focus:border-[#f26755] focus:ring-[#f26755]/20">
@@ -212,8 +238,8 @@ export function EditItemModal({ open, onOpenChange, item, onSave }: EditItemModa
                   </SelectTrigger>
                   <SelectContent>
                     {UNIT_OPTIONS.map((option) => (
-                      <SelectItem 
-                        key={option.value} 
+                      <SelectItem
+                        key={option.value}
                         value={option.value}
                       >
                         {option.label}
@@ -257,8 +283,8 @@ export function EditItemModal({ open, onOpenChange, item, onSave }: EditItemModa
                   <Percent className="h-4 w-4" />
                   Taux de TVA
                 </Label>
-                <Select 
-                  value={editedItem.tva !== undefined ? editedItem.tva.toString() : 'custom'} 
+                <Select
+                  value={editedItem.tva !== undefined ? editedItem.tva.toString() : 'custom'}
                   onValueChange={handleTvaChange}
                 >
                   <SelectTrigger className="border-gray-200 focus:border-[#f26755] focus:ring-[#f26755]/20">
@@ -266,8 +292,8 @@ export function EditItemModal({ open, onOpenChange, item, onSave }: EditItemModa
                   </SelectTrigger>
                   <SelectContent>
                     {TVA_OPTIONS.map((option) => (
-                      <SelectItem 
-                        key={option.value} 
+                      <SelectItem
+                        key={option.value}
                         value={option.value.toString()}
                       >
                         {option.label}
@@ -317,7 +343,7 @@ export function EditItemModal({ open, onOpenChange, item, onSave }: EditItemModa
             {/* Récapitulatif des calculs */}
             <div className="bg-gray-50 p-4 rounded-lg space-y-3">
               <h4 className="font-medium text-gray-700">Récapitulatif des calculs</h4>
-              
+
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Total HT :</span>
@@ -328,7 +354,7 @@ export function EditItemModal({ open, onOpenChange, item, onSave }: EditItemModa
                   <span className="font-medium">{tvaAmount.toFixed(2)} €</span>
                 </div>
               </div>
-              
+
               <div className="border-t border-gray-200 pt-3">
                 <div className="flex justify-between items-center">
                   <span className="font-medium text-gray-700">Total TTC :</span>

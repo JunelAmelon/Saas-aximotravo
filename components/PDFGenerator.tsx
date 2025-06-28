@@ -6,18 +6,25 @@ import { Button } from '@/components/ui/button';
 import { Devis, DevisItem } from '@/types/devis';
 import { Download, FileText } from 'lucide-react';
 import { addProjectDocument } from '@/hooks/useProjectDocuments';
+import { useDevisConfig } from '@/components/DevisConfigContext';
+import { useParams } from 'next/navigation';
 
 interface PDFGeneratorProps {
-  devis: Partial<Devis>;
-  items: DevisItem[];
   className?: string;
   iconOnly?: boolean; // Nouvelle prop pour afficher seulement l'icône
 }
 
-import { useParams } from 'next/navigation';
-
-export function PDFGenerator({ devis, items, className, iconOnly = false }: PDFGeneratorProps) {
+export const PDFGenerator: React.FC<PDFGeneratorProps> = ({
+  className,
+  iconOnly
+}) => {
   const params = useParams() || {};
+  const { devisConfig } = useDevisConfig();
+  const devis = devisConfig;
+  const items = devisConfig?.selectedItems || [];
+  if (!devis) return null;
+
+  
   const projectId =
     typeof params.id === 'string'
       ? params.id
@@ -26,6 +33,28 @@ export function PDFGenerator({ devis, items, className, iconOnly = false }: PDFG
         : undefined;
 
   const generatePDF = async () => {
+  // Précharger toutes les images customImage en base64
+  const imageCache: Record<string, string> = {};
+  const allItems: any[] = devisConfig?.selectedItems || [];
+  const imageUrls = Array.from(
+    new Set(allItems.filter(i => i.customImage).map(i => i.customImage))
+  );
+
+  await Promise.all(imageUrls.map(async url => {
+    try {
+      const res = await fetch(url!);
+      const blob = await res.blob();
+      const reader = new FileReader();
+      const base64: string = await new Promise((resolve, reject) => {
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+      imageCache[url!] = base64;
+    } catch {
+      imageCache[url!] = '';
+    }
+  }));
     // Génération du PDF (inchangé)
 
     const pdf = new jsPDF('p', 'mm', 'a4');
@@ -217,15 +246,25 @@ export function PDFGenerator({ devis, items, className, iconOnly = false }: PDFG
           
           // Description avec image si disponible
           let descriptionY = yPosition;
-          if (item.customImage) {
-            // Placeholder pour image (dans un vrai cas, il faudrait charger l'image)
+          if (item.customImage && imageCache[item.customImage]) {
+            // Détecter le format de l'image base64
+            let format = 'JPEG';
+            const base64 = imageCache[item.customImage];
+            if (base64.startsWith('data:image/png')) format = 'PNG';
+            else if (base64.startsWith('data:image/webp')) format = 'WEBP';
+            else if (base64.startsWith('data:image/gif')) format = 'GIF';
+            else if (base64.startsWith('data:image/svg+xml')) format = 'SVG';
+            // Ajoute l'image avec le bon format
+            pdf.addImage(base64, format, margin + 15, yPosition - 2, 20, 15);
+            descriptionY = yPosition + 5;
+          } else if (item.customImage) {
             pdf.setFillColor(240, 240, 240);
             pdf.rect(margin + 15, yPosition - 2, 20, 15, 'F');
             pdf.setFontSize(8);
             pdf.text('IMAGE', margin + 25, yPosition + 6, { align: 'center' });
             descriptionY = yPosition + 5;
           }
-          
+
           // Texte de la prestation
           const maxWidth = pageWidth - margin - 80;
           const splitDescription = pdf.splitTextToSize(item.description, maxWidth);

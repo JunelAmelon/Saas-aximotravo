@@ -10,21 +10,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DevisItem, TVA_OPTIONS, UNIT_OPTIONS } from '@/types/devis';
 import { X, Plus, FileText, Package, Type, Percent } from 'lucide-react';
 
+import { useDevisConfig } from '@/components/DevisConfigContext';
+
 interface CreateCustomItemModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreateItem: (item: DevisItem) => void;
   defaultTva: number;
 }
 
 type ItemType = 'prestation' | 'lot' | 'texte';
 
-export function CreateCustomItemModal({ 
-  open, 
-  onOpenChange, 
-  onCreateItem, 
-  defaultTva 
-}: CreateCustomItemModalProps) {
+export const CreateCustomItemModal: React.FC<CreateCustomItemModalProps> = ({
+  open,
+  onOpenChange,
+  defaultTva
+}) => {
+  const { devisConfig, setDevisConfigField } = useDevisConfig();
   const [itemType, setItemType] = useState<ItemType>('prestation');
   const [formData, setFormData] = useState({
     lotName: '',
@@ -80,7 +81,7 @@ export function CreateCustomItemModal({
       isOffered: itemType === 'texte'
     };
 
-    onCreateItem(newItem);
+    setDevisConfigField('selectedItems', [...(devisConfig?.selectedItems || []), newItem]);
     resetForm();
     onOpenChange(false);
   };
@@ -152,35 +153,23 @@ export function CreateCustomItemModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] max-w-3xl mx-auto max-h-[90vh] overflow-y-auto border-0 bg-white shadow-2xl p-0 rounded-2xl">
-        <div className="relative">
+      <DialogContent className="w-full sm:w-[95vw] max-w-full sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl mx-auto max-h-[100dvh] sm:max-h-[95vh] p-0 bg-white rounded-2xl shadow-2xl flex flex-col">
+        <div className="flex flex-col h-[100dvh] sm:h-full max-h-[100dvh] sm:max-h-[95vh] overflow-y-auto">
           {/* Header */}
-          <div className="bg-gradient-to-r from-[#f26755] to-[#e55a4a] px-6 py-5 text-white">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-                  <Plus className="h-5 w-5 text-white" />
-                </div>
-                <div>
-                  <DialogTitle>
-                    <h2 className="text-lg font-semibold">Créer une prestation personnalisée</h2>
-                  </DialogTitle>
-                  <p className="text-sm text-white/90">Ajouter un élément personnalisé au devis</p>
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onOpenChange(false)}
-                className="h-8 w-8 p-0 text-white/70 hover:text-white hover:bg-white/20 rounded-lg"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
+          <div className="flex items-center justify-between px-3 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-[#f26755] to-[#e55a4a] rounded-t-2xl">
+            <DialogTitle className="text-white text-base sm:text-lg font-semibold">Ajouter une prestation personnalisée</DialogTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onOpenChange(false)}
+              className="text-white hover:bg-white/20 rounded-lg"
+            >
+              <X className="h-5 w-5" />
+            </Button>
           </div>
 
           {/* Contenu */}
-          <div className="p-6 space-y-6">
+          <div className="p-3 sm:p-6 space-y-6">
             {/* Sélection du type d'élément */}
             <div className="space-y-3">
               <Label className="text-sm font-medium text-gray-700">Type d&apos;élément à créer</Label>
@@ -429,25 +418,25 @@ export function CreateCustomItemModal({
           </div>
 
           {/* Footer */}
-          <div className="bg-gray-50 border-t border-gray-100 px-6 py-4">
-            <div className="flex justify-between items-center">
-              <div className="text-sm text-gray-600">
+          <div className="bg-gray-50 border-t border-gray-100 px-3 sm:px-6 py-3 sm:py-4 mt-auto">
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
+              <div className="text-sm text-gray-600 text-center sm:text-left">
                 {itemType === 'prestation' && 'Prestation personnalisée'}
                 {itemType === 'lot' && 'Nouveau lot de prestations'}
                 {itemType === 'texte' && 'Texte informatif (sans prix)'}
               </div>
-              <div className="flex gap-3">
+              <div className="flex gap-3 w-full sm:w-auto">
                 <Button
                   variant="outline"
                   onClick={() => onOpenChange(false)}
-                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                  className="border-gray-300 text-gray-700 hover:bg-gray-50 w-full sm:w-auto"
                 >
                   Annuler
                 </Button>
                 <Button
                   onClick={handleCreate}
                   disabled={!formData.optionLabel.trim()}
-                  className="bg-[#f26755] hover:bg-[#e55a4a] text-white disabled:bg-gray-300"
+                  className="bg-[#f26755] hover:bg-[#e55a4a] text-white disabled:bg-gray-300 w-full sm:w-auto"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Ajouter au devis

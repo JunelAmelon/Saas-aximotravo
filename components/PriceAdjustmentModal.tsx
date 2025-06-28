@@ -8,20 +8,20 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DevisItem } from '@/types/devis';
 import { X, Calculator, TrendingDown, AlertCircle } from 'lucide-react';
+import { useDevisConfig } from '@/components/DevisConfigContext';
 
 interface PriceAdjustmentModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   items: DevisItem[];
-  onAdjustPrices: (adjustedItems: DevisItem[]) => void;
 }
 
-export function PriceAdjustmentModal({ 
-  open, 
-  onOpenChange, 
-  items, 
-  onAdjustPrices 
-}: PriceAdjustmentModalProps) {
+export const PriceAdjustmentModal: React.FC<PriceAdjustmentModalProps> = ({
+  open,
+  onOpenChange,
+  items
+}) => {
+  const { setDevisConfigField } = useDevisConfig();
   const [targetPrice, setTargetPrice] = useState<string>('');
   const [selectedLots, setSelectedLots] = useState<string[]>([]);
   const [adjustedItems, setAdjustedItems] = useState<DevisItem[]>([]);
@@ -97,7 +97,8 @@ export function PriceAdjustmentModal({
 
   const handleApply = () => {
     if (adjustedItems.length > 0) {
-      onAdjustPrices(adjustedItems);
+      const updatedItems = adjustedItems.map(item => ({ ...item, isSelected: true }));
+      setDevisConfigField('selectedItems', updatedItems);
       onOpenChange(false);
     }
   };
@@ -107,7 +108,9 @@ export function PriceAdjustmentModal({
     return sum + (item.quantite * item.prix_ht);
   }, 0);
 
-  const savings = currentTotal - adjustedTotal;
+  // Calcul du montant souhaité et de la différence
+  const desiredAmount = parseFloat(targetPrice) || 0;
+  const diff = desiredAmount - currentTotal;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -122,7 +125,7 @@ export function PriceAdjustmentModal({
                 </div>
                 <div>
                   <DialogTitle>
-                    <h2 className="text-lg font-semibold">Ajuster les prix</h2>
+                    <span className="text-lg font-semibold">Ajuster les prix</span>
                   </DialogTitle>
                   <p className="text-sm text-white/90">Modifier le montant total par lots</p>
                 </div>
@@ -202,15 +205,15 @@ export function PriceAdjustmentModal({
                   <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
                   <div className="flex-1">
                     <h4 className="font-medium text-blue-800 mb-2">Aperçu de l&apos;ajustement</h4>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-blue-700">Nouveau total :</span>
-                        <span className="font-medium text-blue-800">{adjustedTotal.toFixed(2)} €</span>
+                    <div className="mt-4 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-700">Nouveau montant :</span>
+                        <span className="text-xl font-bold text-gray-900">{desiredAmount.toFixed(2)} €</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-blue-700">Différence :</span>
-                        <span className={`font-medium ${savings >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {savings >= 0 ? '-' : '+'}{Math.abs(savings).toFixed(2)} €
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-700">Différence :</span>
+                        <span className={`font-semibold ${diff < 0 ? 'text-red-600' : diff > 0 ? 'text-green-600' : 'text-gray-700'}`}>
+                          {diff > 0 ? '+' : ''}{diff.toFixed(2)} €
                         </span>
                       </div>
                       <div className="flex justify-between">

@@ -1,37 +1,65 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { TVA_OPTIONS } from '@/types/devis';
+import { TVA_OPTIONS, PIECES_DISPONIBLES } from '@/types/devis';
 import { X, FileText, Percent } from 'lucide-react';
 
 interface CreateDevisModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreateDevis: (titre: string, tva: number) => void;
+  onCreateDevis: (titre: string, tva: number, devisConfigId: string) => void;
 }
 
 export function CreateDevisModal({ open, onOpenChange, onCreateDevis }: CreateDevisModalProps) {
   const [titre, setTitre] = useState('');
   const [tva, setTva] = useState<number | 'custom'>(20);
   const [customTva, setCustomTva] = useState('');
+  const [devisConfigId, setDevisConfigId] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const generateDevisNumber = useCallback(() => {
+    const year = new Date().getFullYear();
+    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    return `DEV-${year}-${random}`;
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!titre.trim()) return;
-    
+
     const finalTva = tva === 'custom' ? parseFloat(customTva) || 0 : tva;
-    onCreateDevis(titre, finalTva);
-    
-    // Reset form
+
+    // Création immédiate du devis dans devisConfig
+    try {
+      const devisConfigData = {
+        titre,
+        numero: generateDevisNumber(),
+        tva: finalTva,
+        status: 'En Cours',
+        pieces: PIECES_DISPONIBLES.map(nom => ({
+          nom,
+          selected: false,
+          nombre: 1,
+        })),
+      };
+      const { id } = await import('@/lib/firebase/firestore').then(mod => mod.addDocument('devisConfig', devisConfigData));
+      console.log('DevisConfig créé avec ID:', id);
+      setDevisConfigId(id);
+      onCreateDevis(titre, finalTva, id); // signature maintenue pour correspondre au parent
+    } catch (err) {
+      console.error('Erreur lors de la création du devis :', err);
+    }
+
     setTitre('');
     setTva(20);
     setCustomTva('');
   };
+
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

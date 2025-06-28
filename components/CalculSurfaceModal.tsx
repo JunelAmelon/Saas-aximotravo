@@ -6,26 +6,72 @@ import { Input } from '@/components/ui/input';
 import { SurfaceData } from '@/types/devis';
 import { ArrowLeft, Calculator, Home, ArrowRight, TrendingUp } from 'lucide-react';
 
+import { useDevisConfig } from '@/components/DevisConfigContext';
+import { getAllSelectedPieces } from '@/utils/pieces';
+
 interface CalculSurfaceModalProps {
   open: boolean;
-  surfaceData: SurfaceData[];
-  onUpdateSurfaceData: (data: SurfaceData[]) => void;
   onNext: () => void;
   onBack: () => void;
 }
 
 export const CalculSurfaceModal: React.FC<CalculSurfaceModalProps> = ({ 
   open, 
-  surfaceData, 
-  onUpdateSurfaceData, 
   onNext, 
   onBack
 }) => {
-  const [localData, setLocalData] = useState<SurfaceData[]>(surfaceData);
+  const { devisConfig, setDevisConfigField } = useDevisConfig();
+  const [localData, setLocalData] = useState<SurfaceData[]>([]);
+
+  // Génère une entrée SurfaceData pour chaque pièce sélectionnée
+  function getSurfaceDataFromSelectedItems(selectedItems: any[]): SurfaceData[] {
+    return selectedItems
+      .filter(piece => piece.selected)
+      .map(piece => ({
+        piece: piece.nom,
+        surfaceAuSol: 0,
+        longueurMurs: 0,
+        surfaceMurs: 0,
+        hauteurSousPlafond: 2.5,
+      }));
+  }
 
   useEffect(() => {
-    setLocalData(surfaceData);
-  }, [surfaceData]);
+    if (open) {
+      const piecesSelection = devisConfig?.pieces || [];
+      const allPieces = getAllSelectedPieces(piecesSelection);
+      let initialData: SurfaceData[] = [];
+      if ((devisConfig?.surfaceData ?? []).length > 0) {
+        initialData = allPieces.map((pieceName: string) => {
+          const existing = (devisConfig?.surfaceData ?? []).find((s: any) => s.piece === pieceName);
+          return (
+            existing || {
+              piece: pieceName,
+              surfaceAuSol: 0,
+              longueurMurs: 0,
+              surfaceMurs: 0,
+              hauteurSousPlafond: 2.5,
+            }
+          );
+        });
+      } else {
+        initialData = allPieces.map((pieceName: string) => ({
+          piece: pieceName,
+          surfaceAuSol: 0,
+          longueurMurs: 0,
+          surfaceMurs: 0,
+          hauteurSousPlafond: 2.5,
+        }));
+      }
+      setLocalData(initialData);
+    }
+    // Ne pas inclure devisConfig.surfaceData ni devisConfig.selectedItems comme dépendances pour ne pas réinitialiser à chaque modif utilisateur.
+  }, [open]);
+
+  // Pour sauvegarder les modifications dans le contexte devis
+  const handleSave = () => {
+    setDevisConfigField('surfaceData', localData);
+  };
 
   // Calculs automatiques basés sur des formules réalistes
   const calculateFromSurface = (surface: number, hauteur: number) => {
@@ -120,7 +166,7 @@ export const CalculSurfaceModal: React.FC<CalculSurfaceModalProps> = ({
     }
     
     setLocalData(updated);
-    onUpdateSurfaceData(updated);
+    setDevisConfigField('surfaceData', updated);
   };
 
   const totals = localData.reduce(
@@ -137,29 +183,20 @@ export const CalculSurfaceModal: React.FC<CalculSurfaceModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4">
-      <div className="w-full max-w-7xl max-h-[95vh] mx-auto bg-white rounded-2xl shadow-2xl overflow-hidden">
-        <div className="flex flex-col h-full max-h-[95vh]">
-          {/* Header avec couleur de marque */}
-          <div className="bg-gradient-to-r from-[#f26755] to-[#e55a4a] px-4 sm:px-6 py-4 sm:py-5 text-white flex-shrink-0">
-            <div className="flex items-center gap-3 sm:gap-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full sm:w-[95vw] max-w-full sm:max-w-3xl md:max-w-4xl lg:max-w-5xl xl:max-w-6xl mx-auto max-h-[100dvh] sm:max-h-[95vh] p-0 overflow-hidden flex flex-col">
+        <div className="flex flex-col h-[100dvh] sm:h-full max-h-[100dvh] sm:max-h-[95vh] overflow-y-auto">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-[#f26755] to-[#e55a4a] px-3 sm:px-6 py-3 sm:py-5 text-white flex-shrink-0 rounded-t-2xl">
+            <div className="flex items-center gap-2 sm:gap-3">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={onBack}
-                className="h-8 w-8 sm:h-9 sm:w-9 p-0 text-white/70 hover:text-white hover:bg-white/20 rounded-lg"
+                className="h-9 w-9 p-0 text-white/70 hover:text-white hover:bg-white/20 rounded-lg"
               >
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="p-1.5 sm:p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-                  <Calculator className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                </div>
-                <div>
-                  <h2 className="text-base sm:text-lg font-semibold">Calcul des surfaces</h2>
-                  <p className="text-xs sm:text-sm text-white/90">Saisissez n&apos;importe quelle dimension, les autres se calculent automatiquement</p>
-                </div>
-              </div>
+              <h2 className="text-base sm:text-lg font-semibold">Calcul des surfaces</h2>
             </div>
           </div>
           

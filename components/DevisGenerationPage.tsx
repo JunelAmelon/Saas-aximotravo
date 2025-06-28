@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
+import { useDevisConfig } from '@/components/DevisConfigContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -10,12 +12,11 @@ import { EditItemModal } from '@/components/EditItemModal';
 import { PriceAdjustmentModal } from '@/components/PriceAdjustmentModal';
 import { CreateCustomItemModal } from '@/components/CreateCustomItemModal';
 import { PDFGenerator } from '@/components/PDFGenerator';
+import { DevisConfigProvider } from '@/components/DevisConfigContext';
 import { ArrowLeft, Search, ChevronRight, ChevronDown, Plus, Trash2, Edit3, FileText, Calculator, Euro, Download, Wrench, Hammer, Building, Home, DoorOpen, Package, Eye, Save, X, Check, Menu, Settings, Gift, Info, Percent, PlusCircle } from 'lucide-react';
 
 interface DevisGenerationPageProps {
-  devis: Partial<Devis>;
   onBack: () => void;
-  onUpdateDevis: (items: DevisItem[]) => void;
 }
 
 const iconMap = {
@@ -33,16 +34,16 @@ const getIcon = (iconName: string) => {
 };
 
 export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
-  devis,
-  onBack,
-  onUpdateDevis
+  onBack
 }) => {
-  const [selectedItems, setSelectedItems] = useState<DevisItem[]>(devis.selectedItems || []);
+  const { devisConfig, setDevisConfigField } = useDevisConfig();
+  const devis = devisConfig;
+  const selectedItems = devisConfig?.selectedItems || [];
   const [expandedLots, setExpandedLots] = useState<string[]>([]);
   const [expandedSubcategories, setExpandedSubcategories] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [editingItem, setEditingItem] = useState<string | null>(null);
-  const [editValues, setEditValues] = useState<{[key: string]: any}>({});
+  const [editValues, setEditValues] = useState<{ [key: string]: any }>({});
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showPDFPreview, setShowPDFPreview] = useState(false);
   const [editingItemModal, setEditingItemModal] = useState<DevisItem | null>(null);
@@ -51,16 +52,14 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
   const [furnitureDiscount, setFurnitureDiscount] = useState(0);
   const [showCreateCustomModal, setShowCreateCustomModal] = useState(false);
 
-  // Synchroniser avec le parent
-  useEffect(() => {
-    onUpdateDevis(selectedItems);
-  }, [selectedItems, onUpdateDevis]);
-
+  if (!devis) {
+    return <div className="p-8 text-center text-gray-500">Chargement du devis…</div>;
+  }
   // Calcul automatique des quantités basé sur les surfaces
   const calculateAutoQuantity = (option: LotOption, selectedPieces: string[]): number => {
     if (!devis.surfaceData || selectedPieces.length === 0) return 1;
 
-    const relevantSurfaces = devis.surfaceData.filter(surface => 
+    const relevantSurfaces = devis.surfaceData.filter(surface =>
       selectedPieces.includes(surface.piece)
     );
 
@@ -68,9 +67,9 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
 
     switch (option.unite) {
       case 'm²':
-        if (option.label.toLowerCase().includes('sol') || 
-            option.label.toLowerCase().includes('carrelage') ||
-            option.label.toLowerCase().includes('parquet')) {
+        if (option.label.toLowerCase().includes('sol') ||
+          option.label.toLowerCase().includes('carrelage') ||
+          option.label.toLowerCase().includes('parquet')) {
           return relevantSurfaces.reduce((sum, surface) => sum + surface.surfaceAuSol, 0);
         } else {
           return relevantSurfaces.reduce((sum, surface) => sum + surface.surfaceMurs, 0);
@@ -94,7 +93,7 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
   ) => {
     // TVA par défaut du devis
     const defaultTva = typeof devis.tva === 'number' ? devis.tva : parseFloat(devis.tva as string) || 20;
-    
+
     const newItem: DevisItem = {
       id: crypto.randomUUID(),
       lotName: lot.name,
@@ -109,14 +108,12 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
       tva: defaultTva // Utiliser la TVA par défaut du devis
     };
 
-    const updatedItems = [...selectedItems, newItem];
-    setSelectedItems(updatedItems);
+    setDevisConfigField('selectedItems', [...selectedItems, newItem]);
     setSidebarOpen(false); // Fermer la sidebar sur mobile après ajout
   };
 
   const addCustomItemToDevis = (item: DevisItem) => {
-    const updatedItems = [...selectedItems, item];
-    setSelectedItems(updatedItems);
+    setDevisConfigField('selectedItems', [...selectedItems, item]);
   };
 
   const startEditing = (itemId: string, item: DevisItem) => {
@@ -133,7 +130,7 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
     const updatedItems = selectedItems.map(item =>
       item.id === itemId ? { ...item, ...editValues } : item
     );
-    setSelectedItems(updatedItems);
+    setDevisConfigField('selectedItems', updatedItems);
     setEditingItem(null);
     setEditValues({});
   };
@@ -146,33 +143,32 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
   const updateItemPieces = (itemId: string, pieces: string[]) => {
     const updatedItems = selectedItems.map(item => {
       if (item.id === itemId) {
-        const option = { 
-          label: item.optionLabel, 
-          unite: item.unite, 
+        const option = {
+          label: item.optionLabel,
+          unite: item.unite,
           prix_ht: item.prix_ht,
           description: item.description
         };
         const autoQuantity = calculateAutoQuantity(option, pieces);
-        
-        return { 
-          ...item, 
+
+        return {
+          ...item,
           pieces,
           quantite: autoQuantity
         };
       }
       return item;
     });
-    setSelectedItems(updatedItems);
+    setDevisConfigField('selectedItems', updatedItems);
   };
 
   const removeItem = (itemId: string) => {
-    const updatedItems = selectedItems.filter(item => item.id !== itemId);
-    setSelectedItems(updatedItems);
+    setDevisConfigField('selectedItems', selectedItems.filter(item => item.id !== itemId));
   };
 
   const updateItem = (updatedItem: DevisItem) => {
-    setSelectedItems(prev => 
-      prev.map(item => item.id === updatedItem.id ? updatedItem : item)
+    setDevisConfigField('selectedItems',
+      selectedItems.map(item => item.id === updatedItem.id ? updatedItem : item)
     );
   };
 
@@ -185,7 +181,7 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
         const itemHT = item.prix_ht * item.quantite;
         const itemTvaRate = item.tva !== undefined ? item.tva : (typeof devis.tva === 'number' ? devis.tva : parseFloat(devis.tva as string) || 20);
         const itemTVA = itemHT * (itemTvaRate / 100);
-        
+
         totalHT += itemHT;
         totalTVA += itemTVA;
       }
@@ -201,21 +197,21 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
     // TVA moyenne pondérée pour affichage
     const averageTvaRate = totalHT > 0 ? (totalTVA / totalHT) * 100 : 0;
 
-    return { 
-      totalHT, 
-      totalTVA, 
-      totalTTC, 
+    return {
+      totalHT,
+      totalTVA,
+      totalTTC,
       averageTvaRate,
-      furnitureHT, 
-      furnitureDiscountAmount, 
-      furnitureFinalHT 
+      furnitureHT,
+      furnitureDiscountAmount,
+      furnitureFinalHT
     };
   };
 
   const { totalHT, totalTVA, totalTTC, averageTvaRate, furnitureHT, furnitureDiscountAmount, furnitureFinalHT } = calculateTotals();
 
   const filteredLots = LOTS_TECHNIQUES.filter(lot =>
-    searchTerm === '' || 
+    searchTerm === '' ||
     lot.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     lot.subcategories.some(sub =>
       sub.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -237,7 +233,7 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
     }
     acc[item.lotName].push(item);
     return acc;
-  }, {} as {[key: string]: DevisItem[]});
+  }, {} as { [key: string]: DevisItem[] });
 
   const totalSurfaceAuSol = devis.surfaceData?.reduce((sum, surface) => sum + surface.surfaceAuSol, 0) || 0;
   const totalSurfaceMurs = devis.surfaceData?.reduce((sum, surface) => sum + surface.surfaceMurs, 0) || 0;
@@ -249,10 +245,10 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
   const generatePDFContent = () => {
     const currentDate = new Date().toLocaleDateString('fr-FR', {
       day: '2-digit',
-      month: '2-digit', 
+      month: '2-digit',
       year: 'numeric'
     });
-    
+
     return `
       <!DOCTYPE html>
       <html lang="fr">
@@ -898,12 +894,12 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
                 </div>
                 
                 ${items.map(item => {
-                  const itemTvaRate = item.tva !== undefined ? item.tva : (typeof devis.tva === 'number' ? devis.tva : parseFloat(devis.tva as string) || 20);
-                  const itemHT = item.prix_ht * item.quantite;
-                  const itemTVA = itemHT * (itemTvaRate / 100);
-                  const itemTTC = itemHT + itemTVA;
-                  
-                  return `
+      const itemTvaRate = item.tva !== undefined ? item.tva : (typeof devis.tva === 'number' ? devis.tva : parseFloat(devis.tva as string) || 20);
+      const itemHT = item.prix_ht * item.quantite;
+      const itemTVA = itemHT * (itemTvaRate / 100);
+      const itemTTC = itemHT + itemTVA;
+
+      return `
                   <div class="prestation-item">
                     <div class="prestation-header">
                       <div>
@@ -962,7 +958,8 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
                       </div>
                     ` : ''}
                   </div>
-                `;}).join('')}
+                `;
+    }).join('')}
               </div>
             `).join('')}
           </div>
@@ -1022,10 +1019,10 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
       if (item.isOffered) return sum;
       return sum + (item.prix_ht * item.quantite);
     }, 0);
-    
+
     // Récupérer les pièces sélectionnées pour ce lot
     const piecesForLot = Array.from(new Set(items.flatMap(item => item.pieces)));
-    
+
     return {
       index: index + 1,
       name: lotName,
@@ -1039,12 +1036,14 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
   const defaultTva = typeof devis.tva === 'number' ? devis.tva : parseFloat(devis.tva as string) || 20;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">
+    // <DevisConfigProvider>
+    <div className="w-full min-h-screen flex flex-col p-0 m-0 bg-gradient-to-br from-gray-50 via-white to-gray-100">
       {/* Header responsive avec gradient - PRIX SUPPRIMÉ */}
-      <div className="bg-gradient-to-r from-[#f26755] to-[#e55a4a] shadow-xl">
-        <div className="px-4 sm:px-6 py-4 sm:py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 sm:gap-4">
+      <div className="bg-gradient-to-r from-[#f26755] to-[#e55a4a] shadow-xl w-full overflow-x-auto">
+        <div className="px-2 sm:px-6 py-3 sm:py-6">
+          <div className="flex flex-wrap items-center justify-between gap-y-2">
+            {/* Groupe gauche */}
+            <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-shrink">
               <Button
                 variant="ghost"
                 size="sm"
@@ -1053,7 +1052,7 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
               >
                 <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
-              
+
               {/* Bouton menu mobile */}
               <Button
                 variant="ghost"
@@ -1063,14 +1062,16 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
               >
                 <Menu className="h-4 w-4" />
               </Button>
-              
-              <div className="text-white">
-                <h1 className="text-lg sm:text-2xl font-bold truncate max-w-[200px] sm:max-w-none">{devis.titre}</h1>
-                <p className="text-white/90 text-xs sm:text-sm">{devis.numero} • {selectedItems.length} prestation{selectedItems.length > 1 ? 's' : ''}</p>
+
+              <div className="text-white min-w-0">
+                <h1 className="text-base sm:text-2xl font-bold truncate max-w-[120px] sm:max-w-none">{devis.titre}</h1>
+                <p className="text-white/90 text-xs sm:text-sm truncate">{devis.numero} • {selectedItems.length} prestation{selectedItems.length > 1 ? 's' : ''}</p>
               </div>
             </div>
-            
-            <div className="flex items-center gap-2 sm:gap-3">
+
+            {/* Groupe droite (boutons) */}
+            <div className="flex flex-wrap items-center gap-1 sm:gap-3 justify-end">
+              {/* Boutons desktop */}
               <div className="hidden sm:flex items-center gap-2">
                 <Button
                   onClick={() => setShowPriceAdjustment(true)}
@@ -1081,24 +1082,22 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
                   <Settings className="h-4 w-4 mr-2" />
                   Modifier le prix
                 </Button>
-                
-                <Button 
+
+                <Button
                   onClick={handlePreviewPDF}
-                  variant="ghost" 
-                  size="sm" 
+                  variant="ghost"
+                  size="sm"
                   className="bg-white/20 hover:bg-white/30 text-white border-white/30 rounded-xl h-10 px-4 backdrop-blur-sm transition-all duration-200"
                 >
                   <Eye className="h-4 w-4 mr-2" />
                   Aperçu PDF
                 </Button>
-                
-                <PDFGenerator 
-                  devis={devis} 
-                  items={selectedItems}
+
+                <PDFGenerator
                   className="bg-white text-[#f26755] hover:bg-gray-100 rounded-xl h-10 px-4 font-medium shadow-lg hover:shadow-xl transition-all duration-200"
                 />
               </div>
-              
+
               {/* Boutons mobiles */}
               <div className="sm:hidden flex gap-1">
                 <Button
@@ -1109,18 +1108,16 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
                 >
                   <Settings className="h-4 w-4" />
                 </Button>
-                <Button 
+                <Button
                   onClick={handlePreviewPDF}
-                  variant="ghost" 
-                  size="sm" 
+                  variant="ghost"
+                  size="sm"
                   className="bg-white/20 hover:bg-white/30 text-white rounded-lg h-9 w-9 p-0"
                 >
                   <Eye className="h-4 w-4" />
                 </Button>
                 {/* Bouton PDF mobile - icône seulement */}
-                <PDFGenerator 
-                  devis={devis} 
-                  items={selectedItems}
+                <PDFGenerator
                   className="bg-white text-[#f26755] hover:bg-gray-100 rounded-lg h-9 w-9 p-0 flex items-center justify-center"
                   iconOnly={true}
                 />
@@ -1133,7 +1130,7 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
       <div className="flex relative">
         {/* Overlay mobile */}
         {sidebarOpen && (
-          <div 
+          <div
             className="lg:hidden fixed inset-0 bg-black/50 z-40"
             onClick={() => setSidebarOpen(false)}
           />
@@ -1315,7 +1312,7 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
                         const itemHT = item.prix_ht * item.quantite;
                         const itemTVA = itemHT * (itemTvaRate / 100);
                         const itemTTC = itemHT + itemTVA;
-                        
+
                         return (
                           <div key={item.id} className="p-4 sm:p-6 hover:bg-gray-50/50 transition-colors group">
                             {editingItem === item.id ? (
@@ -1343,13 +1340,13 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
                                     </Button>
                                   </div>
                                 </div>
-                                
+
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                                   <div>
                                     <label className="text-xs font-medium text-gray-700 mb-1 block">Désignation</label>
                                     <Input
                                       value={editValues.optionLabel || ''}
-                                      onChange={(e) => setEditValues({...editValues, optionLabel: e.target.value})}
+                                      onChange={(e) => setEditValues({ ...editValues, optionLabel: e.target.value })}
                                       className="h-8 sm:h-9 text-xs sm:text-sm"
                                     />
                                   </div>
@@ -1358,7 +1355,7 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
                                     <Input
                                       type="number"
                                       value={editValues.prix_ht || ''}
-                                      onChange={(e) => setEditValues({...editValues, prix_ht: parseFloat(e.target.value) || 0})}
+                                      onChange={(e) => setEditValues({ ...editValues, prix_ht: parseFloat(e.target.value) || 0 })}
                                       className="h-8 sm:h-9 text-xs sm:text-sm"
                                       step="0.01"
                                     />
@@ -1368,7 +1365,7 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
                                     <Input
                                       type="number"
                                       value={editValues.quantite || ''}
-                                      onChange={(e) => setEditValues({...editValues, quantite: parseFloat(e.target.value) || 0})}
+                                      onChange={(e) => setEditValues({ ...editValues, quantite: parseFloat(e.target.value) || 0 })}
                                       className="h-8 sm:h-9 text-xs sm:text-sm"
                                       step="0.1"
                                     />
@@ -1377,7 +1374,7 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
                                     <label className="text-xs font-medium text-gray-700 mb-1 block">Description</label>
                                     <Input
                                       value={editValues.description || ''}
-                                      onChange={(e) => setEditValues({...editValues, description: e.target.value})}
+                                      onChange={(e) => setEditValues({ ...editValues, description: e.target.value })}
                                       className="h-8 sm:h-9 text-xs sm:text-sm"
                                     />
                                   </div>
@@ -1404,19 +1401,21 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
                                     )}
                                   </div>
                                   <h4 className="font-semibold text-gray-900 mb-1 text-sm sm:text-base">{item.optionLabel}</h4>
-                                  
+
                                   {item.customImage && (
                                     <div className="mb-2">
-                                      <img 
-                                        src={item.customImage} 
-                                        alt="Illustration" 
+                                      <Image
+                                        src={item.customImage}
+                                        alt="Illustration"
+                                        width={100}
+                                        height={100}
                                         className="w-16 h-12 object-cover rounded border"
                                       />
                                     </div>
                                   )}
-                                  
+
                                   <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">{item.description}</p>
-                                  
+
                                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-4">
                                     <div className="bg-gray-50 rounded-lg p-2 sm:p-3">
                                       <label className="text-xs font-medium text-gray-700 mb-1 block">Quantité</label>
@@ -1557,7 +1556,7 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
               </p>
             )}
           </div>
-          
+
           <div className="p-6 space-y-4">
             {/* En-tête du tableau comme dans l'image */}
             <div className="grid grid-cols-3 gap-2 text-xs font-medium text-gray-600 border-b border-gray-200 pb-2">
@@ -1617,7 +1616,7 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
                     />
                     <span className="text-sm font-medium text-gray-700">Afficher le prix des fournitures au client</span>
                   </div>
-                  
+
                   {showFurniturePrice && (
                     <div className="space-y-2">
                       <div className="text-xs text-gray-600">
@@ -1656,7 +1655,7 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
                 </div>
               </div>
             </div>
-            
+
             <Button
               onClick={() => setShowPriceAdjustment(true)}
               className="w-full bg-[#f26755] hover:bg-[#e55a4a] text-white rounded-xl h-12 font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
@@ -1705,9 +1704,7 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
                 <p className="text-sm text-white/90">Prévisualisation avant téléchargement</p>
               </div>
               <div className="flex gap-2">
-                <PDFGenerator 
-                  devis={devis} 
-                  items={selectedItems}
+                <PDFGenerator
                   className="bg-white text-[#f26755] hover:bg-gray-100 rounded-lg"
                 />
                 <Button
@@ -1737,7 +1734,6 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
           open={!!editingItemModal}
           onOpenChange={(open) => !open && setEditingItemModal(null)}
           item={editingItemModal}
-          onSave={updateItem}
         />
       )}
 
@@ -1745,29 +1741,28 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
         open={showPriceAdjustment}
         onOpenChange={setShowPriceAdjustment}
         items={selectedItems}
-        onAdjustPrices={setSelectedItems}
       />
 
       <CreateCustomItemModal
         open={showCreateCustomModal}
         onOpenChange={setShowCreateCustomModal}
-        onCreateItem={addCustomItemToDevis}
         defaultTva={defaultTva}
       />
     </div>
+    // </DevisConfigProvider>
   );
 
   function toggleLot(lotName: string) {
-    setExpandedLots(prev => 
-      prev.includes(lotName) 
+    setExpandedLots(prev =>
+      prev.includes(lotName)
         ? prev.filter(name => name !== lotName)
         : [...prev, lotName]
     );
   }
 
   function toggleSubcategory(key: string) {
-    setExpandedSubcategories(prev => 
-      prev.includes(key) 
+    setExpandedSubcategories(prev =>
+      prev.includes(key)
         ? prev.filter(k => k !== key)
         : [...prev, key]
     );

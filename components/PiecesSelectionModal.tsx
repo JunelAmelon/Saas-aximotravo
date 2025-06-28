@@ -6,35 +6,78 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { PieceSelection } from '@/types/devis';
+import { PieceSelection, PIECES_DISPONIBLES } from '@/types/devis';
 import { ArrowLeft, Home, ArrowRight, Check } from 'lucide-react';
+import { useDevisConfig } from '@/components/DevisConfigContext';
 
 interface PiecesSelectionModalProps {
   open: boolean;
-  pieces: PieceSelection[];
-  onUpdatePieces: (pieces: PieceSelection[]) => void;
+  onOpenChange: (open: boolean) => void;
+  itemId: string;
   onNext: () => void;
   onBack: () => void;
 }
 
 export function PiecesSelectionModal({ 
   open, 
-  pieces, 
-  onUpdatePieces, 
+  onOpenChange, 
+  itemId, 
   onNext, 
   onBack 
 }: PiecesSelectionModalProps) {
-  const [localPieces, setLocalPieces] = useState<PieceSelection[]>(pieces);
+  const { devisConfig, setDevisConfigField } = useDevisConfig();
+  const defaultPieces: PieceSelection[] = PIECES_DISPONIBLES.map(nom => ({
+    nom,
+    selected: false,
+    nombre: 1,
+  }));
+  // Fonction de normalisation pour garantir que pieces est toujours PieceSelection[]
+  function normalizePieces(pieces: any): PieceSelection[] {
+    if (!pieces) return defaultPieces;
+    if (typeof pieces[0] === 'string') {
+      return (pieces as string[]).map(nom => ({
+        nom,
+        selected: false,
+        nombre: 1,
+      }));
+    }
+    return pieces as PieceSelection[];
+  }
+  // Récupère l'item courant
+  const item = devisConfig?.selectedItems?.find(i => i.id === itemId);
+  // Fonction pour garantir que selectedItems est toujours PieceSelection[]
+  function normalizeSelectedItems(items: any): PieceSelection[] {
+    if (!items) return defaultPieces;
+    // Si c'est déjà un tableau de PieceSelection
+    if (items[0] && typeof items[0].nom === 'string' && 'selected' in items[0] && 'nombre' in items[0]) {
+      return items as PieceSelection[];
+    }
+    // Si c'est un tableau de DevisItem (legacy)
+    if (items[0] && Array.isArray(items[0].pieces)) {
+      return items.flatMap((i: any) => i.pieces || []);
+    }
+    return defaultPieces;
+  }
 
+  const [localPieces, setLocalPieces] = useState<PieceSelection[]>(normalizeSelectedItems(devisConfig?.selectedItems));
+
+  // Synchronise localPieces à chaque ouverture du modal
   useEffect(() => {
-    setLocalPieces(pieces);
-  }, [pieces]);
+    if (open) {
+      setLocalPieces(normalizeSelectedItems(devisConfig?.selectedItems));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+
+
+
 
   const handlePieceToggle = (index: number, checked: boolean) => {
     const updated = [...localPieces];
     updated[index] = { ...updated[index], selected: checked };
     setLocalPieces(updated);
-    onUpdatePieces(updated);
+    setDevisConfigField('pieces', updated);
   };
 
   const handleNombreChange = (index: number, nombre: string) => {
@@ -42,7 +85,12 @@ export function PiecesSelectionModal({
     const updated = [...localPieces];
     updated[index] = { ...updated[index], nombre: Math.max(1, num) };
     setLocalPieces(updated);
-    onUpdatePieces(updated);
+    setDevisConfigField('pieces', updated);
+  };
+
+  const handleProceed = () => {
+    setDevisConfigField('pieces', localPieces);
+    onNext(); // Passe à l'étape suivante (CalculSurfaceModal)
   };
 
   const selectedCount = localPieces.filter(p => p.selected).length;
@@ -52,17 +100,17 @@ export function PiecesSelectionModal({
 
   return (
     <Dialog open={open} onOpenChange={() => {}}>
-      <DialogContent className="w-[95vw] max-w-6xl mx-auto max-h-[95vh] border-0 bg-white shadow-2xl p-0 overflow-hidden rounded-2xl">
-        <div className="flex flex-col h-full max-h-[95vh]">
+      <DialogContent className="w-full sm:w-[95vw] max-w-full sm:max-w-3xl md:max-w-4xl lg:max-w-5xl xl:max-w-6xl mx-auto max-h-[100dvh] sm:max-h-[95vh] border-0 bg-white shadow-2xl p-0 overflow-hidden rounded-2xl flex flex-col">
+        <div className="flex flex-col h-[100dvh] sm:h-full max-h-[100dvh] sm:max-h-[95vh]">
           {/* Header avec couleur de marque */}
-          <div className="bg-gradient-to-r from-[#f26755] to-[#e55a4a] px-4 sm:px-6 py-4 sm:py-5 text-white flex-shrink-0">
+          <div className="bg-gradient-to-r from-[#f26755] to-[#e55a4a] px-3 sm:px-6 py-3 sm:py-5 text-white flex-shrink-0">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3 sm:gap-4">
+              <div className="flex items-center gap-2 sm:gap-4">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={onBack}
-                  className="h-8 w-8 sm:h-9 sm:w-9 p-0 text-white/70 hover:text-white hover:bg-white/20 rounded-lg"
+                  className="h-9 w-9 p-0 text-white/70 hover:text-white hover:bg-white/20 rounded-lg"
                 >
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
@@ -164,7 +212,7 @@ export function PiecesSelectionModal({
               </div>
               
               <Button 
-                onClick={onNext}
+                onClick={handleProceed}
                 disabled={!canProceed}
                 className={`w-full sm:w-auto h-9 sm:h-10 px-4 sm:px-6 font-medium rounded-lg transition-all duration-200 text-sm ${
                   canProceed 
