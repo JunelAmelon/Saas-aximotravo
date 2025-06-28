@@ -185,32 +185,26 @@ export default function ProjectDocuments() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-3 items-center">
-        <div>
+    <div className="flex flex-col w-full mb-6 gap-2">
+      <h2 className="text-xl font-bold text-center text-gray-900 w-full mb-2">Documents du projet</h2>
+      <div className="flex flex-col sm:flex-row sm:justify-between gap-2 sm:gap-4 w-full">
+        <button
+          onClick={() => window.history.back()}
+          type="button"
+          className="w-full sm:w-auto flex items-center justify-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg font-semibold shadow hover:bg-gray-200 transition text-base"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          Retour
+        </button>
+        {userRole !== 'admin' && (
           <button
-            className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-[#f26755] to-[#f26755] text-white rounded-lg font-semibold shadow hover:opacity-90 transition"
-            onClick={() => window.history.back()}
-            type="button"
+            onClick={() => setIsAddDocumentOpen(true)}
+            className="w-full sm:w-auto flex items-center justify-center px-4 py-3 bg-[#f26755] text-white rounded-md text-base font-semibold hover:bg-[#f26755]/90 transition-colors mb-1 sm:mb-0"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            Retour
+            <Upload className="h-4 w-4 mr-2" />
+            Ajouter un document
           </button>
-        </div>
-        <div>
-          <h2 className="text-lg font-medium text-gray-900 text-center">Documents du projet</h2>
-        </div>
-        <div className="flex items-center flex-shrink-0">
-          {userRole !== 'admin' && (
-            <button
-              onClick={() => setIsAddDocumentOpen(true)}
-              className="inline-flex items-center px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors"
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              Ajouter un document
-            </button>
-          )}
-        </div>
+        )}
       </div>
 
       {/* Version mobile: affichage en cartes */}

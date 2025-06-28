@@ -1,87 +1,54 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Calendar from "@/components/calendar/Calendar";
 import { Plus } from "lucide-react";
+import { getAllDocuments } from "@/lib/firebase/firestore";
+
+// Typage local pour les événements du calendrier
+interface Event {
+  id: string;
+  title: string;
+  client: string;
+  startDate: string;
+  endDate: string;
+  type: "livraison" | "chantier" | "visite" | "autre";
+}
 
 export default function CourtierEventsPage() {
-  // Mock data for the calendar with correct type literals
-  const [events] = useState([
-    {
-      id: "1",
-      title: "Livraison matériaux",
-      client: "Client Durand",
-      startDate: "2025-02-01T14:30:00",
-      endDate: "2025-02-01T16:00:00",
-      type: "livraison" as const
-    },
-    {
-      id: "2",
-      title: "Rénovation cuisine",
-      client: "Client Découverte",
-      startDate: "2025-02-03T09:30:00",
-      endDate: "2025-02-07T17:00:00",
-      type: "chantier" as const
-    },
-    {
-      id: "3",
-      title: "Visite technique",
-      client: "Client Martin",
-      startDate: "2025-02-15T11:00:00",
-      endDate: "2025-02-15T12:30:00",
-      type: "visite" as const
-    },
-    {
-      id: "4",
-      title: "Installation électrique",
-      client: "Client Découverte",
-      startDate: "2025-02-10T08:00:00",
-      endDate: "2025-02-14T18:00:00",
-      type: "chantier" as const
-    },
-    {
-      id: "5",
-      title: "Livraison meubles",
-      client: "Client Bernard",
-      startDate: "2025-02-20T10:00:00",
-      endDate: "2025-02-20T12:00:00",
-      type: "livraison" as const
-    },
-    {
-      id: "6",
-      title: "Visite finale",
-      client: "Client Laurent",
-      startDate: "2025-02-22T15:00:00",
-      endDate: "2025-02-22T16:30:00",
-      type: "visite" as const
-    },
-    {
-      id: "7",
-      title: "Plomberie salle de bain",
-      client: "Client Petit",
-      startDate: "2025-02-25T09:00:00",
-      endDate: "2025-02-28T18:00:00",
-      type: "chantier" as const
-    }
-  ]);
-  
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchEvents = async () => {
+      setLoading(true);
+      try {
+        // Récupère tous les documents de la collection 'events'
+        const docs = await getAllDocuments("events");
+        // Adapter les champs Firestore au format attendu par Calendar
+        const mapped: Event[] = docs.map((doc: any) => ({
+          id: doc.id,
+          title: doc.name || doc.title || "",
+          client: doc.address || doc.client || "",
+          startDate: doc.start || doc.startDate,
+          endDate: doc.end || doc.endDate,
+          type: ((doc.type || "autre").toLowerCase() as Event["type"]),
+        }));
+        setEvents(mapped);
+      } catch (err: any) {
+        setError("Erreur lors du chargement des événements");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchEvents();
+  }, []);
+
   return (
     <div className="space-y-6 h-full">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">Événements</h1>
-        
-        <div className="flex space-x-3">
-          <div className="relative inline-block">
-            <button 
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#f26755] hover:bg-[#f26755]/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#f26755]"
-              aria-label="Ajouter un événement"
-              title="Ajouter un événement"
-            >
-              <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
-              Ajouter un événement
-            </button>
-          </div>
-        </div>
       </div>
       
       <div className="flex h-full">
