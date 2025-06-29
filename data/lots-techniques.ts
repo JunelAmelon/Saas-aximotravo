@@ -478,140 +478,169 @@ export const LOTS_TECHNIQUES: LotTechnique[] = [
     subcategories: [
       {
         name: "Démolitions complètes et partielles",
-        items: [
-          {
-            name: "Démolition salle de bain",
-            options: [
-              {
-                label: "Surface jusqu'à 25 m²",
-                prix_ht: 150.0,
-                unite: "forfait",
-                description: "Démolition complète de la salle de bain jusqu'à 25 m², incluant enlèvement des équipements sanitaires.",
-                image: ""
-              },
-              {
-                label: "Évacuation des gravats",
-                prix_ht: 100.0,
-                unite: "forfait",
-                description: "Transport et élimination des gravats en décharge agréée, conforme aux normes environnementales.",
-                image: ""
-              },
-              {
-                label: "Protection chantier incluse",
-                prix_ht: 50.0,
-                unite: "forfait",
-                description: "Mise en place de protections pour préserver les zones adjacentes lors des travaux de démolition.",
-                image: ""
-              },
-              {
-                label: "Préparation du support après dépose",
-                prix_ht: 120.0,
-                unite: "forfait",
-                description: "Nettoyage et préparation du support pour faciliter les travaux de rénovation suivants.",
-                image: ""
-              }
-            ]
-          },
-          {
-            name: "Démolition cuisine",
-            options: [
-              {
-                label: "Surface jusqu'à 25 m²",
-                prix_ht: 180.0,
-                unite: "forfait",
-                description: "Démolition complète de la cuisine, évacuation des meubles et appareils inclus.",
-                image: ""
-              },
-              {
-                label: "Évacuation des gravats",
-                prix_ht: 110.0,
-                unite: "forfait",
-                description: "Évacuation des déchets et gravats en respectant les normes environnementales.",
-                image: ""
-              },
-              {
-                label: "Protection chantier incluse",
-                prix_ht: 55.0,
-                unite: "forfait",
-                description: "Installation de protections pour éviter tout dommage aux surfaces environnantes.",
-                image: ""
-              },
-              {
-                label: "Préparation du support après dépose",
-                prix_ht: 130.0,
-                unite: "forfait",
-                description: "Préparation du support pour faciliter la pose des nouveaux éléments de cuisine.",
-                image: ""
-              }
-            ]
-          },
-          {
-            name: "Démolition plancher",
-            options: [
-              {
-                label: "Surface jusqu'à 25 m²",
-                prix_ht: 200.0,
-                unite: "forfait",
-                description: "Démolition complète du plancher, dépose et évacuation des matériaux.",
-                image: ""
-              },
-              {
-                label: "Évacuation des gravats",
-                prix_ht: 120.0,
-                unite: "forfait",
-                description: "Gestion complète des gravats et déchets issus de la démolition du plancher.",
-                image: ""
-              },
-              {
-                label: "Protection chantier incluse",
-                prix_ht: 60.0,
-                unite: "forfait",
-                description: "Protection renforcée des zones adjacentes pour limiter les nuisances et dégâts.",
-                image: ""
-              },
-              {
-                label: "Préparation du support après dépose",
-                prix_ht: 140.0,
-                unite: "forfait",
-                description: "Finition et préparation du support pour les étapes suivantes du chantier.",
-                image: ""
-              }
-            ]
-          },
-          {
-            name: "Démolition cloison placo",
-            options: [
-              {
-                label: "Surface jusqu'à 25 m²",
-                prix_ht: 100.0,
-                unite: "forfait",
-                description: "Démolition des cloisons en placo, démontage et enlèvement des matériaux.",
-                image: ""
-              },
-              {
-                label: "Évacuation des gravats",
-                prix_ht: 80.0,
-                unite: "forfait",
-                description: "Enlèvement et gestion des gravats liés à la dépose des cloisons placo.",
-                image: ""
-              },
-              {
-                label: "Protection chantier incluse",
-                prix_ht: 40.0,
-                unite: "forfait",
-                description: "Installation des protections nécessaires pour sécuriser le chantier.",
-                image: ""
-              },
-              {
-                label: "Préparation du support après dépose",
-                prix_ht: 90.0,
-                unite: "forfait",
-                description: "Nettoyage et préparation des surfaces pour les travaux de finition.",
-                image: ""
-              }
-            ]
-          }
-        ]
+"items": [
+  {
+    "name": "Démolition salle de bain",
+    "options": [
+      {
+        "label": "Démolition complète jusqu'à 25 m² (équipements inclus)",
+        "prix_ht": 350.0,
+        "unite": "forfait",
+        "description": "Démolition intégrale de la salle de bain (jusqu'à 25 m²), incluant le démontage des sanitaires, meubles, robinetterie, ainsi que l’évacuation des gravats. Travail réalisé avec soin, protection des zones non concernées incluse.",
+        "image": ""
+      },
+      {
+        "label": "Démolition carrelage au sol",
+        "prix_ht": 80.0,
+        "unite": "m²",
+        "description": "Dépose soignée du carrelage de sol avec outils adaptés. Comprend la protection des surfaces voisines et l'évacuation des débris en décharge agréée.",
+        "image": ""
+      },
+      {
+        "label": "Démolition faïence au mur",
+        "prix_ht": 90.0,
+        "unite": "m²",
+        "description": "Dépose des carreaux muraux avec précision afin de préserver au mieux le support existant. Gravats évacués dans le respect des normes.",
+        "image": ""
+      },
+      {
+        "label": "Chape allégée pour reprise de sol",
+        "prix_ht": 65.0,
+        "unite": "m²",
+        "description": "Réalisation d'une chape allégée (type ciment/vermiculite) pour rattrapage de niveau ou renforcement de sol. Support prêt à recevoir le nouveau revêtement.",
+        "image": ""
+      },
+      {
+        "label": "Reprise de mur en BA13",
+        "prix_ht": 70.0,
+        "unite": "m²",
+        "description": "Pose de plaques de plâtre BA13 pour habiller ou reprendre les murs après démolition. Finition propre et prête à peindre ou carreler.",
+        "image": ""
+      },
+      {
+        "label": "Préparation du support après dépose",
+        "prix_ht": 120.0,
+        "unite": "forfait",
+        "description": "Nettoyage, grattage, réparation ponctuelle et mise à niveau des supports muraux et sols en vue des travaux à venir. Finitions soignées.",
+        "image": ""
+      }
+    ]
+  },
+  {
+    "name": "Démolition cuisine",
+    "options": [
+      {
+        "label": "Démolition complète jusqu'à 25 m² (meubles inclus)",
+        "prix_ht": 370.0,
+        "unite": "forfait",
+        "description": "Démontage complet de la cuisine (jusqu'à 25 m²) : dépose des meubles hauts/bas, électroménager, évier, robinetterie et revêtements. Protection, tri des déchets et évacuation compris.",
+        "image": ""
+      },
+      {
+        "label": "Démolition carrelage au sol",
+        "prix_ht": 80.0,
+        "unite": "m²",
+        "description": "Dépose manuelle ou mécanique du carrelage existant avec évacuation des débris. Travail propre et sécurisé.",
+        "image": ""
+      },
+      {
+        "label": "Démolition de la crédence",
+        "prix_ht": 50.0,
+        "unite": "mètre linéaire",
+        "description": "Dépose soignée de la crédence murale (carrelage, verre, inox ou stratifié). Les surfaces sont protégées et prêtes à être reprises ou remplacées.",
+        "image": ""
+      },
+      {
+        "label": "Chape allégée pour reprise de sol",
+        "prix_ht": 65.0,
+        "unite": "m²",
+        "description": "Mise en œuvre d'une chape légère pour niveler un sol irrégulier ou abîmé. Préparation optimale pour les futurs revêtements.",
+        "image": ""
+      },
+      {
+        "label": "Reprise de mur en BA13",
+        "prix_ht": 70.0,
+        "unite": "m²",
+        "description": "Reconstruction ou habillage des murs avec BA13 après dépose d’éléments muraux ou détérioration. Prêt à peindre ou carreler.",
+        "image": ""
+      },
+      {
+        "label": "Préparation du support après dépose",
+        "prix_ht": 130.0,
+        "unite": "forfait",
+        "description": "Nettoyage, rebouchage et préparation des surfaces horizontales et verticales. Intervention idéale pour une rénovation dans les règles de l’art.",
+        "image": ""
+      }
+    ]
+  },
+  {
+    "name": "Démolition plancher",
+    "options": [
+      {
+        "label": "Démolition plancher bois",
+        "prix_ht": 95.0,
+        "unite": "m²",
+        "description": "Dépose complète d’un plancher en bois, incluant le retrait des lames et lambourdes. Enlèvement des gravats inclus.",
+        "image": ""
+      },
+      {
+        "label": "Démolition plancher béton",
+        "prix_ht": 120.0,
+        "unite": "m²",
+        "description": "Démolition d’un plancher en béton armé ou non, avec matériels adaptés. Évacuation comprise.",
+        "image": ""
+      },
+      {
+        "label": "Préparation du support après dépose",
+        "prix_ht": 140.0,
+        "unite": "forfait",
+        "description": "Mise en propreté, dégagement des zones concernées, et ajustements éventuels pour préparation d’une nouvelle dalle ou autre structure.",
+        "image": ""
+      }
+    ]
+  },
+  {
+    "name": "Démolition cloison placo",
+    "options": [
+      {
+        "label": "Démolition placo (25 m² max)",
+        "prix_ht": 100.0,
+        "unite": "forfait",
+        "description": "Dépose de cloisons en plaques de plâtre (BA13) avec ossature métallique ou bois. Gravats triés et évacués. Zone de travail sécurisée.",
+        "image": ""
+      },
+      {
+        "label": "Démolition carreaux de plâtre",
+        "prix_ht": 110.0,
+        "unite": "m²",
+        "description": "Démolition de cloisons constituées de carreaux de plâtre, y compris évacuation. Opération réalisée avec le matériel adapté.",
+        "image": ""
+      },
+      {
+        "label": "Raccord de plâtrerie",
+        "prix_ht": 60.0,
+        "unite": "mètre linéaire",
+        "description": "Réalisation de raccords en plâtre pour boucher les saignées, ajuster les murs ou réparer les zones abîmées suite à la démolition.",
+        "image": ""
+      },
+      {
+        "label": "Reprise de sol",
+        "prix_ht": 70.0,
+        "unite": "m²",
+        "description": "Nivellement et réparation du sol après dépose de cloison. Prêt à recevoir un nouveau revêtement.",
+        "image": ""
+      },
+      {
+        "label": "Préparation du support après dépose",
+        "prix_ht": 90.0,
+        "unite": "forfait",
+        "description": "Nettoyage complet, mise en propreté et réparation localisée des zones touchées pour une continuité parfaite avec le reste du chantier.",
+        "image": ""
+      }
+    ]
+  }
+]
+
       },
       {
         name: "Ouvertures et percements",

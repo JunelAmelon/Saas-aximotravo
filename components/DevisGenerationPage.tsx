@@ -1256,9 +1256,11 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
 
         {/* Contenu principal responsive */}
         <div className="flex-1 flex flex-col min-h-0">
-          <div className="flex-1 p-3 sm:p-6 overflow-y-auto !pt-0">
+        <div className="flex-1 pt-3 sm:pt-6 md:pt-0 px-3 sm:px-6 overflow-y-auto">
+
             {Object.keys(groupedItems).length === 0 ? (
-              <div className="h-full flex items-center justify-center pt-0"> {/* Retirer p-4 ici */}
+             <div className="h-full flex items-center justify-center p-4 md:pt-0 md:px-4 md:pb-4">
+{/* Retirer p-4 ici */}
   <div className="text-center max-w-md px-4"> {/* Ajouter px-4 si besoin de padding latéral */}
     <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-[#f26755]/20 to-[#f26755]/10 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6">
       <Calculator className="h-8 w-8 sm:h-10 sm:w-10 text-[#f26755]" />
