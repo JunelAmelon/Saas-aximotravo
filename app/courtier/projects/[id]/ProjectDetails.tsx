@@ -451,17 +451,17 @@ export default function ProjectDetails() {
     );
   }
   if (step === 'generation' && selectedDevisId) {
-    if (selectedDevisId) {
-      return (
+    return (
+      <div className="fixed inset-0 z-50 bg-white overflow-y-auto">
         <DevisConfigProvider devisId={selectedDevisId}>
-          <DevisGenerationPage
-            onBack={handleCalculStep}
+          <DevisGenerationPage 
+            onBack={() => {
+              setStep('calcul'); // Revenir à l'étape précédente
+            }} 
           />
         </DevisConfigProvider>
-      );
-    }
-    // Optionnel : afficher un loader ou rien si pas d'ID
-    return null;
+      </div>
+    );
   }
 
   return (

@@ -1256,13 +1256,13 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
 
         {/* Contenu principal responsive */}
         <div className="flex-1 flex flex-col min-h-0">
-          <div className="flex-1 p-3 sm:p-6 overflow-y-auto">
+          <div className="flex-1 p-3 sm:p-6 overflow-y-auto !pt-0">
             {Object.keys(groupedItems).length === 0 ? (
-              <div className="h-full flex items-center justify-center p-4">
-                <div className="text-center max-w-md">
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-[#f26755]/20 to-[#f26755]/10 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6">
-                    <Calculator className="h-8 w-8 sm:h-10 sm:w-10 text-[#f26755]" />
-                  </div>
+              <div className="h-full flex items-center justify-center pt-0"> {/* Retirer p-4 ici */}
+  <div className="text-center max-w-md px-4"> {/* Ajouter px-4 si besoin de padding latéral */}
+    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-[#f26755]/20 to-[#f26755]/10 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6">
+      <Calculator className="h-8 w-8 sm:h-10 sm:w-10 text-[#f26755]" />
+    </div>
                   <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 sm:mb-3">Calcul automatique activé</h3>
                   <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">Sélectionnez des prestations dans le catalogue. Les quantités seront calculées automatiquement selon vos surfaces.</p>
                   <div className="bg-gradient-to-r from-[#f26755]/5 to-[#f26755]/10 rounded-xl p-3 sm:p-4 border border-[#f26755]/20">

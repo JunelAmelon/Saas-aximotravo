@@ -19,7 +19,6 @@ export function CreateDevisModal({ open, onOpenChange, onCreateDevis }: CreateDe
   const [titre, setTitre] = useState('');
   const [tva, setTva] = useState<number | 'custom'>(20);
   const [customTva, setCustomTva] = useState('');
-  const [devisConfigId, setDevisConfigId] = useState<string | null>(null);
 
   const generateDevisNumber = useCallback(() => {
     const year = new Date().getFullYear();
@@ -33,7 +32,6 @@ export function CreateDevisModal({ open, onOpenChange, onCreateDevis }: CreateDe
 
     const finalTva = tva === 'custom' ? parseFloat(customTva) || 0 : tva;
 
-    // Création immédiate du devis dans devisConfig
     try {
       const devisConfigData = {
         titre,
@@ -47,9 +45,7 @@ export function CreateDevisModal({ open, onOpenChange, onCreateDevis }: CreateDe
         })),
       };
       const { id } = await import('@/lib/firebase/firestore').then(mod => mod.addDocument('devisConfig', devisConfigData));
-      console.log('DevisConfig créé avec ID:', id);
-      setDevisConfigId(id);
-      onCreateDevis(titre, finalTva, id); // signature maintenue pour correspondre au parent
+      onCreateDevis(titre, finalTva, id);
     } catch (err) {
       console.error('Erreur lors de la création du devis :', err);
     }
@@ -59,37 +55,37 @@ export function CreateDevisModal({ open, onOpenChange, onCreateDevis }: CreateDe
     setCustomTva('');
   };
 
-
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] max-w-md mx-auto border-0 bg-white shadow-2xl p-0 overflow-hidden rounded-2xl max-h-[90vh] overflow-y-auto">
-        <div className="relative">
-          {/* Header avec couleur de marque */}
-          <div className="bg-gradient-to-r from-[#f26755] to-[#e55a4a] px-4 sm:px-6 py-4 sm:py-5 text-white">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-                  <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+      {/* Ajout d'un wrapper fixed pour isoler du layout */}
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+        <DialogContent className="w-[95vw] max-w-md mx-auto border-0 bg-white shadow-2xl p-0 overflow-hidden rounded-2xl max-h-[90vh] overflow-y-auto">
+          <div className="relative">
+            {/* Header avec couleur de marque */}
+            <div className="bg-gradient-to-r from-[#f26755] to-[#e55a4a] px-4 sm:px-6 py-4 sm:py-5 text-white">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                    <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                  </div>
+                  <div>
+                    <DialogTitle className="text-base sm:text-lg font-semibold">Nouveau devis</DialogTitle>
+                    <p className="text-xs sm:text-sm text-white/90">Créer un devis professionnel</p>
+                  </div>
                 </div>
-                <div>
-                  <DialogTitle className="text-base sm:text-lg font-semibold">Nouveau devis</DialogTitle>
-                  <p className="text-xs sm:text-sm text-white/90">Créer un devis professionnel</p>
-                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onOpenChange(false)}
+                  className="h-8 w-8 p-0 text-white/70 hover:text-white hover:bg-white/20 rounded-lg"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onOpenChange(false)}
-                className="h-8 w-8 p-0 text-white/70 hover:text-white hover:bg-white/20 rounded-lg"
-              >
-                <X className="h-4 w-4" />
-              </Button>
             </div>
-          </div>
 
-          {/* Contenu */}
-          <div className="p-4 sm:p-6">
+            {/* Contenu */}
+            <div className="p-4 sm:p-6">
             <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
               <div className="space-y-2">
                 <Label htmlFor="titre" className="text-sm font-medium text-gray-700">
@@ -159,9 +155,10 @@ export function CreateDevisModal({ open, onOpenChange, onCreateDevis }: CreateDe
                 </Button>
               </div>
             </form>
+            </div>
           </div>
-        </div>
-      </DialogContent>
+        </DialogContent>
+      </div>
     </Dialog>
   );
 }
