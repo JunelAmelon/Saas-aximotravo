@@ -66,7 +66,7 @@ const DialogContent = React.forwardRef<
 
       {/* Bouton de fermeture */}
       <DialogPrimitive.Close className="absolute top-4 right-4 rounded-md opacity-70 hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
-        <X className="h-5 w-5" />
+        <X className="h-5 w-5 hidden" />
         <span className="sr-only">Fermer</span>
       </DialogPrimitive.Close>
     </DialogPrimitive.Content>
