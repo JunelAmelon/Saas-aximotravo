@@ -8,6 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TVA_OPTIONS, PIECES_DISPONIBLES } from '@/types/devis';
 import { X, FileText, Percent } from 'lucide-react';
+import { Loader } from './ui/Loader';
+import { useAuth } from "@/lib/contexts/AuthContext";
 
 interface CreateDevisModalProps {
   open: boolean;
@@ -16,10 +18,12 @@ interface CreateDevisModalProps {
 }
 
 export function CreateDevisModal({ open, onOpenChange, onCreateDevis }: CreateDevisModalProps) {
+  const { currentUser } = useAuth();
   const [titre, setTitre] = useState('');
   const [tva, setTva] = useState<number | 'custom'>(20);
   const [customTva, setCustomTva] = useState('');
   const [devisConfigId, setDevisConfigId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const generateDevisNumber = useCallback(() => {
     const year = new Date().getFullYear();
@@ -35,7 +39,9 @@ export function CreateDevisModal({ open, onOpenChange, onCreateDevis }: CreateDe
 
     // Création immédiate du devis dans devisConfig
     try {
+      setLoading(true);
       const devisConfigData = {
+        userId: currentUser?.uid,
         titre,
         numero: generateDevisNumber(),
         tva: finalTva,
@@ -52,6 +58,8 @@ export function CreateDevisModal({ open, onOpenChange, onCreateDevis }: CreateDe
       onCreateDevis(titre, finalTva, id); // signature maintenue pour correspondre au parent
     } catch (err) {
       console.error('Erreur lors de la création du devis :', err);
+    } finally {
+      setLoading(false);
     }
 
     setTitre('');
@@ -154,8 +162,9 @@ export function CreateDevisModal({ open, onOpenChange, onCreateDevis }: CreateDe
                 <Button 
                   type="submit" 
                   className="w-full h-10 sm:h-11 bg-[#f26755] hover:bg-[#e55a4a] text-white font-medium rounded-lg shadow-sm hover:shadow-md transition-all duration-200 text-sm sm:text-base"
+                  disabled={loading}
                 >
-                  Créer le devis
+                  {loading ? <Loader size={22} /> : 'Créer le devis'}
                 </Button>
               </div>
             </form>

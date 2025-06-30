@@ -6,6 +6,7 @@ import type { DevisItem, PieceSelection, SurfaceData, ClientInfo, CompanyInfo } 
 
 // Typage de la configuration du devis (à enrichir selon les besoins réels)
 type DevisConfig = {
+  id?: string;
   titre: string;
   tva: number | string;
   status: string;
@@ -65,8 +66,8 @@ export const DevisConfigProvider: React.FC<DevisConfigProviderProps> = ({ devisI
 
   // Création initiale
   const createDevisConfig = useCallback(async (data: Partial<DevisConfig>) => {
-    const { id } = await addDocument("devisConfig", data);
-    setDevisConfig(data);
+    const { id } = await addDocument("devisConfig", { ...data, id: '' });
+    setDevisConfig({ ...data, id });
     setDevisConfigId(id);
     return id;
   }, []);

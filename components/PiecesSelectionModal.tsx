@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PieceSelection, PIECES_DISPONIBLES } from '@/types/devis';
 import { ArrowLeft, Home, ArrowRight, Check } from 'lucide-react';
+import { Loader } from './ui/Loader';
 import { useDevisConfig } from '@/components/DevisConfigContext';
 
 interface PiecesSelectionModalProps {
@@ -88,8 +89,12 @@ export function PiecesSelectionModal({
     setDevisConfigField('pieces', updated);
   };
 
-  const handleProceed = () => {
-    setDevisConfigField('pieces', localPieces);
+  const [loading, setLoading] = useState(false);
+
+  const handleProceed = async () => {
+    setLoading(true);
+    await setDevisConfigField('pieces', localPieces);
+    setLoading(false);
     onNext(); // Passe à l'étape suivante (CalculSurfaceModal)
   };
 
@@ -213,15 +218,15 @@ export function PiecesSelectionModal({
               
               <Button 
                 onClick={handleProceed}
-                disabled={!canProceed}
+                disabled={!canProceed || loading}
                 className={`w-full sm:w-auto h-9 sm:h-10 px-4 sm:px-6 font-medium rounded-lg transition-all duration-200 text-sm ${
-                  canProceed 
+                  canProceed && !loading
                     ? 'bg-[#f26755] hover:bg-[#e55a4a] text-white shadow-sm hover:shadow-md' 
                     : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                 }`}
               >
-                <span>Continuer</span>
-                <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4 ml-2" />
+                {loading ? <Loader size={20} /> : <><span>Continuer</span>
+                <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4 ml-2" /></>}
               </Button>
             </div>
           </div>

@@ -5,6 +5,7 @@ import { jsPDF } from 'jspdf';
 import { Button } from '@/components/ui/button';
 import { Devis, DevisItem } from '@/types/devis';
 import { Download, FileText } from 'lucide-react';
+import { Loader } from './ui/Loader';
 import { addProjectDocument } from '@/hooks/useProjectDocuments';
 import { useDevisConfig } from '@/components/DevisConfigContext';
 import { useParams } from 'next/navigation';
@@ -18,6 +19,8 @@ export const PDFGenerator: React.FC<PDFGeneratorProps> = ({
   className,
   iconOnly
 }) => {
+  
+  const [loading, setLoading] = React.useState(false);
   const params = useParams() || {};
   const { devisConfig } = useDevisConfig();
   const devis = devisConfig;
@@ -33,6 +36,7 @@ export const PDFGenerator: React.FC<PDFGeneratorProps> = ({
         : undefined;
 
   const generatePDF = async () => {
+    setLoading(true);
   // Précharger toutes les images customImage en base64
   const imageCache: Record<string, string> = {};
   const allItems: any[] = devisConfig?.selectedItems || [];
@@ -420,21 +424,37 @@ export const PDFGenerator: React.FC<PDFGeneratorProps> = ({
       const pdfUrl = await uploadPDFToCloudinary(pdfBlob, fileName);
       // 2. Enregistrer dans Firestore
       if (projectId && devis.titre) {
-        await addProjectDocument({
-          projectId,
-          name: devis.titre,
-          category: 'devis',
-          date: new Date().toISOString(),
-          size: `${Math.round(pdfBlob.size / 1024)} Ko`,
-          status: 'en attente',
-          url: pdfUrl,
-          montant: totalTTC || undefined,
-        });
+        // Vérifier s'il existe déjà un document devis pour ce devisConfigId
+        const { collection, query, where, getDocs, doc, updateDoc } = await import('firebase/firestore');
+        const { db } = await import('@/lib/firebase/config');
+        const docsRef = collection(db, 'documents');
+        const q = query(docsRef, where('projectId', '==', projectId), where('devisConfigId', '==', devisConfig.id));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          // Document existe, on met à jour l'url
+          const docId = querySnapshot.docs[0].id;
+          await updateDoc(doc(docsRef, docId), { url: pdfUrl });
+        } else {
+          // Sinon, on crée un nouveau document
+          await addProjectDocument({
+            projectId,
+            name: devis.titre,
+            category: 'devis',
+            date: new Date().toISOString(),
+            size: `${Math.round(pdfBlob.size / 1024)} Ko`,
+            status: 'en attente',
+            url: pdfUrl,
+            montant: totalTTC || undefined,
+            devisConfigId: devisConfig.id,
+          });
+        }
       }
       // 3. Télécharger localement
       pdf.save(fileName);
     } catch (err) {
       alert('Erreur lors de la sauvegarde du devis : ' + (err as any).message);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -442,9 +462,10 @@ export const PDFGenerator: React.FC<PDFGeneratorProps> = ({
     <Button
       onClick={generatePDF}
       className={className}
+      disabled={loading}
     >
-      <Download className="h-4 w-4" />
-      {!iconOnly && (
+      {loading ? <Loader size={20} /> : <Download className="h-4 w-4" />}
+      {!iconOnly && !loading && (
         <>
           <span className="ml-2">Télécharger PDF</span>
         </>
