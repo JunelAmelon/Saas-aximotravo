@@ -271,112 +271,109 @@ export default function CourtierProjects() {
           </button>
         </div>
       ) : (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {paginatedProjects.map((project) => {
-              const statusInfo = statusConfig[project.status as keyof typeof statusConfig];
-              return (
-                <div key={project.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 hover:shadow-md transition-all">
-                  <div className="flex items-start gap-4 mb-4">
-                    <div className="relative w-16 h-16 flex-shrink-0 rounded-full overflow-hidden border-2 border-[#f26755] group-hover:border-[#f26755]/80 transition-colors duration-200">
-                      <Image
-                        src={project.image || "/default-project.jpg"}
-                        alt={project.name}
-                        fill
-                        className="object-cover"
-                        sizes="64px"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {paginatedProjects.map((project) => {
+            const statusInfo = statusConfig[project.status as keyof typeof statusConfig];
+            return (
+              <div key={project.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 hover:shadow-md transition-all">
+                <div className="flex items-start gap-4 mb-4">
+                  <div className="relative w-16 h-16 flex-shrink-0 rounded-full overflow-hidden border-2 border-[#f26755] group-hover:border-[#f26755]/80 transition-colors duration-200">
+                    <Image
+                      src={project.image || "/default-project.jpg"}
+                      alt={project.name}
+                      fill
+                      className="object-cover"
+                      sizes="64px"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
                       <h3 className="text-lg font-medium text-gray-900 truncate">{project.name}</h3>
-                        {project.amoIncluded && <BadgeAmo />}
-                      </div>
-                      
+                      {project.amoIncluded && <BadgeAmo />}
+                    </div>
 
 
-                      <div className="mt-2">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${statusInfo.className}`}>
-                          {statusInfo.icon && <span className="mr-1">{statusInfo.icon}</span>}
-                          {statusInfo.label}
-                        </span>
-                      </div>
+
+                    <div className="mt-2">
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${statusInfo.className}`}>
+                        {statusInfo.icon && <span className="mr-1">{statusInfo.icon}</span>}
+                        {statusInfo.label}
+                      </span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
-                    <User className="h-4 w-4 text-[#f26755]" />
-                    <p className="text-sm text-gray-600 truncate">{project.clientName || "Non spécifié"}</p>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
-                    <Calendar className="h-4 w-4 text-[#f26755]" />
-                    <span>Créé le {project.date}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
-                    <MapPin className="h-4 w-4 text-[#f26755]" />
-                    <span>{project.location}</span>
-                  </div>
-
-                  <div className="mb-4 p-3 bg-gradient-to-r from-gray-50 to-white rounded-lg border border-gray-100">
-                    <p className="text-xs text-gray-500 mb-1">Budget total</p>
-                    <p className="text-xl font-semibold text-gray-800">
-                      {project.amount.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
-                    </p>
-                  </div>
-
-                  <Link
-                    href={`projects/${project.id}`}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#f26755] text-white rounded-md hover:bg-[#f26755]/90 transition-all text-sm group"
-                  >
-                    Voir le projet
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="transition-transform group-hover:-translate-y-1 group-hover:translate-x-1 rotate-45 origin-center"
-                    >
-                      <path d="M5 12h14" /> {/* Ligne horizontale (corps de l'avion) */}
-                      <path d="M12 5l7 7-7 7" /> {/* Flèche pointant vers le haut */}
-                    </svg>
-                  </Link>
                 </div>
-              );
-            })}
-          </div>
+                <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
+                  <User className="h-4 w-4 text-[#f26755]" />
+                  <p className="text-sm text-gray-600 truncate">{project.clientName || "Non spécifié"}</p>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
+                  <Calendar className="h-4 w-4 text-[#f26755]" />
+                  <span>Créé le {project.date}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
+                  <MapPin className="h-4 w-4 text-[#f26755]" />
+                  <span>{project.location}</span>
+                </div>
 
-          {totalPages > 1 && (
-            <div className="flex justify-center gap-2 mt-8">
-              <button
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="p-2 rounded-full border border-gray-200 hover:bg-gray-50 disabled:opacity-50 transition-all"
-              >
-                <ChevronLeft className="h-5 w-5 text-gray-600" />
-              </button>
-              {Array.from({ length: totalPages }).map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setCurrentPage(i + 1)}
-                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${currentPage === i + 1 ? 'bg-[#f26755] text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+                <div className="mb-4 p-3 bg-gradient-to-r from-gray-50 to-white rounded-lg border border-gray-100">
+                  <p className="text-xs text-gray-500 mb-1">Budget total</p>
+                  <p className="text-xl font-semibold text-gray-800">
+                    {project.amount.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
+                  </p>
+                </div>
+
+                <Link
+                  href={`projects/${project.id}`}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#f26755] text-white rounded-md hover:bg-[#f26755]/90 transition-all text-sm group"
                 >
-                  {i + 1}
-                </button>
-              ))}
-              <button
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                className="p-2 rounded-full border border-gray-200 hover:bg-gray-50 disabled:opacity-50 transition-all"
-              >
-                <ChevronRight className="h-5 w-5 text-gray-600" />
-              </button>
-            </div>
-          )}
-        </>
+                  Voir le projet
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="transition-transform group-hover:-translate-y-1 group-hover:translate-x-1 rotate-45 origin-center"
+                  >
+                    <path d="M5 12h14" /> {/* Ligne horizontale (corps de l'avion) */}
+                    <path d="M12 5l7 7-7 7" /> {/* Flèche pointant vers le haut */}
+                  </svg>
+                </Link>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {totalPages > 1 && (
+        <div className="flex justify-center gap-2 mt-8">
+          <button
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            className="p-2 rounded-full border border-gray-200 hover:bg-gray-50 disabled:opacity-50 transition-all"
+          >
+            <ChevronLeft className="h-5 w-5 text-gray-600" />
+          </button>
+          {Array.from({ length: totalPages }).map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrentPage(i + 1)}
+              className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${currentPage === i + 1 ? 'bg-[#f26755] text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+            >
+              {i + 1}
+            </button>
+          ))}
+          <button
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+            className="p-2 rounded-full border border-gray-200 hover:bg-gray-50 disabled:opacity-50 transition-all"
+          >
+            <ChevronRight className="h-5 w-5 text-gray-600" />
+          </button>
+        </div>
       )}
     </div>
   );
