@@ -473,7 +473,7 @@ export const LOTS_TECHNIQUES: LotTechnique[] = [
     ]
   },
   {
-    name: "Démolition & Dépose",
+    name: "Démolition & Déposes",
     icon: "Hammer",
     subcategories: [
       {

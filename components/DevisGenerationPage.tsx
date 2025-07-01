@@ -267,10 +267,10 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
           
           body { 
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            line-height: 1.6; 
+            line-height: 1.5; 
             color: #1f2937; 
             background: #ffffff;
-            font-size: 14px;
+            font-size: 13px;
           }
           
           .container { 
@@ -281,7 +281,7 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
             position: relative;
           }
           
-          /* En-tête moderne */
+          /* En-tête moderne inspiré de l'image */
           .header { 
             background: linear-gradient(135deg, #f26755 0%, #e55a4a 100%);
             color: white; 
@@ -301,40 +301,41 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
             border-radius: 50%;
           }
           
-          .header::after {
-            content: '';
-            position: absolute;
-            bottom: -30%;
-            left: -10%;
-            width: 150px;
-            height: 150px;
-            background: rgba(255,255,255,0.05);
-            border-radius: 50%;
-          }
-          
           .header-content {
             position: relative;
             z-index: 2;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
           }
           
-          .header h1 { 
-            font-size: 32px; 
+          .header-left h1 { 
+            font-size: 28px; 
             font-weight: 800;
             margin-bottom: 8px;
             letter-spacing: -0.5px;
           }
           
-          .header .subtitle { 
-            font-size: 16px; 
+          .header-left .subtitle { 
+            font-size: 14px; 
             opacity: 0.9;
             font-weight: 400;
           }
           
-          .header-info {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-            margin-top: 30px;
+          .header-right {
+            text-align: right;
+          }
+          
+          .etabli-le {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-bottom: 4px;
+          }
+          
+          .date-etablissement {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 20px;
           }
           
           .devis-number {
@@ -346,7 +347,7 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
           }
           
           .devis-number .label {
-            font-size: 12px;
+            font-size: 11px;
             opacity: 0.8;
             margin-bottom: 4px;
           }
@@ -356,54 +357,56 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
             font-weight: 700;
           }
           
-          /* Section informations */
+          /* Section informations - Layout en 2 colonnes comme l'image */
           .info-section {
-            padding: 40px;
+            padding: 30px 40px;
             background: #f8fafc;
-            border-bottom: 1px solid #e2e8f0;
           }
           
           .info-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 40px;
+            gap: 30px;
           }
           
           .info-card {
             background: white;
-            padding: 30px;
-            border-radius: 16px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
             border: 1px solid #e2e8f0;
           }
           
-          .info-card h3 {
-            color: #f26755;
-            font-size: 18px;
-            font-weight: 700;
-            margin-bottom: 20px;
+          .info-card-header {
             display: flex;
             align-items: center;
             gap: 10px;
+            margin-bottom: 20px;
           }
           
-          .info-card .icon {
-            width: 24px;
-            height: 24px;
+          .info-icon {
+            width: 20px;
+            height: 20px;
             background: linear-gradient(135deg, #f26755, #e55a4a);
-            border-radius: 6px;
+            border-radius: 4px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-size: 12px;
+            font-size: 10px;
+          }
+          
+          .info-card h3 {
+            color: #f26755;
+            font-size: 16px;
+            font-weight: 700;
           }
           
           .info-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 12px 0;
+            padding: 8px 0;
             border-bottom: 1px solid #f1f5f9;
           }
           
@@ -414,153 +417,102 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
           .info-label {
             color: #64748b;
             font-weight: 500;
+            font-size: 12px;
           }
           
           .info-value {
             color: #1e293b;
             font-weight: 600;
-          }
-          
-          /* Surfaces détaillées */
-          .surfaces-detail {
-            margin-top: 20px;
-            padding: 20px;
-            background: #f8fafc;
-            border-radius: 12px;
-            border: 1px solid #e2e8f0;
-          }
-          
-          .surfaces-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-top: 15px;
-          }
-          
-          .surface-item {
-            background: white;
-            padding: 16px;
-            border-radius: 10px;
-            border-left: 4px solid #f26755;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-          }
-          
-          .surface-name {
-            font-weight: 600;
-            color: #1e293b;
-            margin-bottom: 8px;
-            font-size: 14px;
-          }
-          
-          .surface-details {
             font-size: 12px;
-            color: #64748b;
-            line-height: 1.5;
           }
           
-          /* Section prestations */
+          /* Section prestations avec barre rouge à gauche */
           .prestations-section {
-            padding: 40px;
+            padding: 30px 40px;
           }
           
           .section-title {
-            font-size: 24px;
+            font-size: 20px;
             font-weight: 700;
             color: #1e293b;
-            margin-bottom: 30px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
+            margin-bottom: 25px;
+            padding-left: 15px;
+            border-left: 4px solid #f26755;
           }
           
-          .section-title::before {
-            content: '';
-            width: 4px;
-            height: 30px;
-            background: linear-gradient(135deg, #f26755, #e55a4a);
-            border-radius: 2px;
-          }
-          
-          /* Lots de prestations */
+          /* Lots de prestations - Style moderne */
           .lot-section {
-            margin-bottom: 40px;
+            margin-bottom: 30px;
             background: white;
-            border-radius: 16px;
+            border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
             border: 1px solid #e2e8f0;
           }
           
           .lot-header {
             background: linear-gradient(135deg, #f26755 0%, #e55a4a 100%);
             color: white;
-            padding: 20px 30px;
+            padding: 15px 25px;
             font-weight: 700;
-            font-size: 16px;
+            font-size: 14px;
             display: flex;
             align-items: center;
-            gap: 12px;
+            justify-content: space-between;
+          }
+          
+          .lot-header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
           }
           
           .lot-icon {
-            width: 24px;
-            height: 24px;
+            width: 20px;
+            height: 20px;
             background: rgba(255,255,255,0.2);
-            border-radius: 6px;
+            border-radius: 4px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 12px;
+            font-size: 10px;
           }
           
           .lot-stats {
-            margin-left: auto;
-            font-size: 14px;
+            font-size: 12px;
             opacity: 0.9;
           }
           
-          /* Items de prestation */
+          /* Items de prestation - Design épuré */
           .prestation-item {
-            padding: 30px;
+            padding: 25px;
             border-bottom: 1px solid #f1f5f9;
-            position: relative;
           }
           
           .prestation-item:last-child {
             border-bottom: none;
           }
           
-          .prestation-item::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 4px;
-            background: linear-gradient(135deg, #f26755, #e55a4a);
-            opacity: 0.3;
-          }
-          
           .prestation-header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 16px;
+            margin-bottom: 12px;
           }
           
           .prestation-title {
             font-weight: 700;
             color: #1e293b;
-            font-size: 16px;
-            margin-bottom: 6px;
+            font-size: 14px;
+            margin-bottom: 4px;
           }
           
           .prestation-category {
-            background: linear-gradient(135deg, #f26755, #e55a4a);
+            background: #f26755;
             color: white;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 11px;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 10px;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -568,95 +520,116 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
           
           .prestation-description {
             color: #64748b;
-            margin-bottom: 20px;
-            line-height: 1.6;
-            font-size: 13px;
+            margin-bottom: 15px;
+            line-height: 1.5;
+            font-size: 12px;
           }
           
-          /* Détails financiers */
+          /* Tableau des détails financiers - Style moderne */
           .prestation-details {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 20px;
             background: #f8fafc;
-            padding: 20px;
-            border-radius: 12px;
+            border-radius: 8px;
+            overflow: hidden;
             border: 1px solid #e2e8f0;
           }
           
-          .detail-item {
-            text-align: center;
+          .details-table {
+            width: 100%;
+            border-collapse: collapse;
           }
           
-          .detail-label {
-            font-size: 11px;
+          .details-table th {
+            background: #f1f5f9;
+            padding: 10px 15px;
+            text-align: center;
+            font-size: 10px;
+            font-weight: 600;
             color: #64748b;
-            margin-bottom: 6px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            border-right: 1px solid #e2e8f0;
+          }
+          
+          .details-table th:last-child {
+            border-right: none;
+          }
+          
+          .details-table td {
+            padding: 12px 15px;
+            text-align: center;
+            font-size: 12px;
             font-weight: 600;
-          }
-          
-          .detail-value {
-            font-weight: 700;
             color: #1e293b;
-            font-size: 15px;
+            border-right: 1px solid #e2e8f0;
           }
           
-          .detail-total {
+          .details-table td:last-child {
+            border-right: none;
             color: #f26755;
-            font-size: 16px;
+            font-weight: 700;
           }
           
           .detail-offered {
-            color: #10b981;
+            color: #10b981 !important;
             position: relative;
           }
           
-          .detail-offered::after {
-            content: '🎁 OFFERT';
-            font-size: 12px;
-            font-weight: 600;
+          .detail-offered .original-price {
+            text-decoration: line-through;
+            color: #9ca3af;
+            font-size: 10px;
           }
           
-          /* Pièces concernées */
+          .detail-offered .offered-badge {
+            background: #10b981;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-size: 9px;
+            margin-left: 5px;
+          }
+          
+          /* Pièces concernées - Style moderne */
           .pieces-concernees {
-            margin-top: 16px;
-            padding: 16px;
+            margin-top: 15px;
+            padding: 15px;
             background: #eff6ff;
-            border-radius: 10px;
+            border-radius: 8px;
             border: 1px solid #dbeafe;
           }
           
           .pieces-label {
-            font-size: 12px;
+            font-size: 11px;
             color: #1e40af;
             font-weight: 600;
             margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
           }
           
           .pieces-list {
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
+            gap: 6px;
           }
           
           .piece-tag {
             background: white;
             color: #1e40af;
-            padding: 4px 10px;
-            border-radius: 16px;
-            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 10px;
             font-weight: 500;
             border: 1px solid #dbeafe;
           }
           
-          /* Section totaux */
+          /* Section totaux - Design moderne avec cartes */
           .totaux-section {
             background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
             color: white;
-            padding: 40px;
-            margin-top: 40px;
+            padding: 35px 40px;
+            margin-top: 30px;
             position: relative;
             overflow: hidden;
           }
@@ -678,40 +651,45 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
           }
           
           .totaux-title {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 700;
-            margin-bottom: 30px;
+            margin-bottom: 25px;
             text-align: center;
           }
           
           .totaux-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 30px;
+            gap: 20px;
             text-align: center;
           }
           
           .total-item {
             background: rgba(255,255,255,0.1);
-            padding: 25px;
-            border-radius: 16px;
+            padding: 20px;
+            border-radius: 12px;
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255,255,255,0.2);
           }
           
           .total-item h4 {
-            font-size: 12px;
+            font-size: 11px;
             opacity: 0.8;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             text-transform: uppercase;
             letter-spacing: 1px;
             font-weight: 600;
           }
           
           .total-amount {
-            font-size: 24px;
+            font-size: 20px;
             font-weight: 800;
-            margin-bottom: 5px;
+            margin-bottom: 4px;
+          }
+          
+          .total-subtitle {
+            font-size: 10px;
+            opacity: 0.7;
           }
           
           .total-ttc {
@@ -719,17 +697,17 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
           }
           
           .total-ttc .total-amount {
-            font-size: 32px;
+            font-size: 24px;
             text-shadow: 0 2px 4px rgba(0,0,0,0.3);
           }
           
-          /* Footer */
+          /* Footer - Conditions générales */
           .footer {
             background: #f8fafc;
-            padding: 30px 40px;
+            padding: 25px 40px;
             text-align: center;
             border-top: 1px solid #e2e8f0;
-            margin-top: 40px;
+            margin-top: 30px;
           }
           
           .footer-content {
@@ -741,53 +719,73 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
             color: #1e293b;
             font-weight: 700;
             margin-bottom: 15px;
-            font-size: 16px;
+            font-size: 14px;
           }
           
-          .footer p {
+          .footer ul {
+            list-style: none;
+            padding: 0;
+            margin-bottom: 20px;
+          }
+          
+          .footer li {
             color: #64748b;
-            margin-bottom: 10px;
-            font-size: 13px;
+            margin-bottom: 8px;
+            font-size: 11px;
+            position: relative;
+            padding-left: 15px;
+          }
+          
+          .footer li::before {
+            content: '•';
+            color: #f26755;
+            position: absolute;
+            left: 0;
+            font-weight: bold;
           }
           
           .footer-highlight {
             background: linear-gradient(135deg, #f26755, #e55a4a);
             color: white;
-            padding: 15px 25px;
-            border-radius: 10px;
-            margin-top: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
             font-weight: 600;
-            font-size: 14px;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
           }
           
           /* Responsive */
           @media (max-width: 768px) {
             .info-grid, .totaux-grid {
               grid-template-columns: 1fr;
-              gap: 20px;
-            }
-            
-            .prestation-details {
-              grid-template-columns: repeat(2, 1fr);
+              gap: 15px;
             }
             
             .header, .info-section, .prestations-section {
               padding: 20px;
+            }
+            
+            .details-table th,
+            .details-table td {
+              padding: 8px 10px;
+              font-size: 10px;
             }
           }
           
           @media print {
             body { 
               background: white; 
-              font-size: 12px;
+              font-size: 11px;
             }
             .container { 
               box-shadow: none; 
               max-width: none;
             }
             .totaux-section::before,
-            .header::before,
-            .header::after {
+            .header::before {
               display: none;
             }
           }
@@ -798,14 +796,13 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
           <!-- En-tête moderne -->
           <div class="header">
             <div class="header-content">
-              <h1>DEVIS BTP PROFESSIONNEL</h1>
-              <p class="subtitle">Document contractuel • Étude personnalisée</p>
-              
-              <div class="header-info">
-                <div>
-                  <div style="font-size: 14px; opacity: 0.8; margin-bottom: 5px;">Établi le</div>
-                  <div style="font-size: 18px; font-weight: 600;">${currentDate}</div>
-                </div>
+              <div class="header-left">
+                <h1>DEVIS BTP PROFESSIONNEL</h1>
+                <p class="subtitle">Document contractuel • Étude personnalisée</p>
+              </div>
+              <div class="header-right">
+                <div class="etabli-le">Établi le</div>
+                <div class="date-etablissement">${currentDate}</div>
                 <div class="devis-number">
                   <div class="label">N° de devis</div>
                   <div class="value">${devis.numero}</div>
@@ -818,10 +815,10 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
           <div class="info-section">
             <div class="info-grid">
               <div class="info-card">
-                <h3>
-                  <span class="icon">📋</span>
-                  Informations du projet
-                </h3>
+                <div class="info-card-header">
+                  <div class="info-icon">📋</div>
+                  <h3>Informations du projet</h3>
+                </div>
                 <div class="info-row">
                   <span class="info-label">Titre du projet</span>
                   <span class="info-value">${devis.titre}</span>
@@ -841,10 +838,10 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
               </div>
               
               <div class="info-card">
-                <h3>
-                  <span class="icon">📐</span>
-                  Surfaces & Métrés
-                </h3>
+                <div class="info-card-header">
+                  <div class="info-icon">📐</div>
+                  <h3>Surfaces & Métrés</h3>
+                </div>
                 <div class="info-row">
                   <span class="info-label">Surface totale au sol</span>
                   <span class="info-value">${totalSurfaceAuSol.toFixed(2)} m²</span>
@@ -857,39 +854,21 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
                   <span class="info-label">Nombre de prestations</span>
                   <span class="info-value">${selectedItems.length}</span>
                 </div>
-                
-                ${devis.surfaceData && devis.surfaceData.length > 0 ? `
-                  <div class="surfaces-detail">
-                    <div style="font-weight: 600; color: #1e293b; margin-bottom: 10px;">Détail par espace :</div>
-                    <div class="surfaces-grid">
-                      ${devis.surfaceData.map(surface => `
-                        <div class="surface-item">
-                          <div class="surface-name">${surface.piece}</div>
-                          <div class="surface-details">
-                            Sol : ${surface.surfaceAuSol.toFixed(1)} m²<br>
-                            Murs : ${surface.surfaceMurs.toFixed(1)} m²<br>
-                            Hauteur : ${surface.hauteurSousPlafond.toFixed(1)} m
-                          </div>
-                        </div>
-                      `).join('')}
-                    </div>
-                  </div>
-                ` : ''}
               </div>
             </div>
           </div>
 
           <!-- Section prestations -->
           <div class="prestations-section">
-            <h2 class="section-title">
-              Détail des prestations
-            </h2>
+            <h2 class="section-title">Détail des prestations</h2>
 
             ${Object.entries(groupedItems).map(([lotName, items]) => `
               <div class="lot-section">
                 <div class="lot-header">
-                  <span class="lot-icon">🏗️</span>
-                  <span>${lotName}</span>
+                  <div class="lot-header-left">
+                    <div class="lot-icon">🏗️</div>
+                    <span>${lotName}</span>
+                  </div>
                   <span class="lot-stats">${items.length} prestation${items.length > 1 ? 's' : ''}</span>
                 </div>
                 
@@ -904,13 +883,13 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
                     <div class="prestation-header">
                       <div>
                         <div class="prestation-title">${item.optionLabel}</div>
-                        <div class="prestation-category">${item.subcategoryName}</div>
                       </div>
+                      <div class="prestation-category">${item.subcategoryName}</div>
                     </div>
                     
                     ${item.customImage ? `
-                      <div style="margin-bottom: 16px;">
-                        <img src="${item.customImage}" alt="Illustration" style="max-width: 200px; height: 120px; object-fit: cover; border-radius: 8px; border: 1px solid #e2e8f0;" />
+                      <div style="margin-bottom: 12px;">
+                        <img src="${item.customImage}" alt="Illustration" style="max-width: 150px; height: 80px; object-fit: cover; border-radius: 6px; border: 1px solid #e2e8f0;" />
                       </div>
                     ` : ''}
                     
@@ -919,37 +898,42 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
                     </div>
                     
                     <div class="prestation-details">
-                      <div class="detail-item">
-                        <div class="detail-label">Quantité</div>
-                        <div class="detail-value">${item.quantite.toFixed(2)} ${item.customUnit || item.unite}</div>
-                      </div>
-                      <div class="detail-item">
-                        <div class="detail-label">Prix unitaire</div>
-                        <div class="detail-value">${item.prix_ht.toFixed(2)} € HT</div>
-                      </div>
-                      <div class="detail-item">
-                        <div class="detail-label">TVA</div>
-                        <div class="detail-value">${itemTvaRate.toFixed(1)}%</div>
-                      </div>
-                      <div class="detail-item">
-                        <div class="detail-label">Total HT</div>
-                        <div class="detail-value">${itemHT.toFixed(2)} €</div>
-                      </div>
-                      <div class="detail-item">
-                        <div class="detail-label">Total TTC</div>
-                        ${item.isOffered ? `
-                          <div class="detail-value detail-offered">
-                            <span style="text-decoration: line-through; color: #9ca3af;">${itemTTC.toFixed(2)} €</span>
-                          </div>
-                        ` : `
-                          <div class="detail-value detail-total">${itemTTC.toFixed(2)} €</div>
-                        `}
-                      </div>
+                      <table class="details-table">
+                        <thead>
+                          <tr>
+                            <th>Quantité</th>
+                            <th>Prix unitaire</th>
+                            <th>TVA</th>
+                            <th>Total HT</th>
+                            <th>Total TTC</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td>${item.quantite.toFixed(2)} ${item.customUnit || item.unite}</td>
+                            <td>${item.prix_ht.toFixed(2)} € HT</td>
+                            <td>${itemTvaRate.toFixed(1)}%</td>
+                            <td>${itemHT.toFixed(2)} €</td>
+                            <td>
+                              ${item.isOffered ? `
+                                <div class="detail-offered">
+                                  <span class="original-price">${itemTTC.toFixed(2)} €</span>
+                                  <span class="offered-badge">OFFERT</span>
+                                </div>
+                              ` : `
+                                ${itemTTC.toFixed(2)} €
+                              `}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
                     </div>
                     
                     ${item.pieces.length > 0 ? `
                       <div class="pieces-concernees">
-                        <div class="pieces-label">🎯 Pièces concernées :</div>
+                        <div class="pieces-label">
+                          🎯 Pièces concernées :
+                        </div>
                         <div class="pieces-list">
                           ${item.pieces.map(piece => `
                             <span class="piece-tag">${piece}</span>
@@ -973,19 +957,19 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
                 <div class="total-item">
                   <h4>Total HT</h4>
                   <div class="total-amount">${totalHT.toFixed(2)} €</div>
-                  <div style="font-size: 11px; opacity: 0.7;">Hors taxes</div>
+                  <div class="total-subtitle">Hors taxes</div>
                 </div>
                 
                 <div class="total-item">
                   <h4>TVA (${averageTvaRate.toFixed(1)}%)</h4>
                   <div class="total-amount">${totalTVA.toFixed(2)} €</div>
-                  <div style="font-size: 11px; opacity: 0.7;">Taxes</div>
+                  <div class="total-subtitle">Taxes</div>
                 </div>
                 
                 <div class="total-item total-ttc">
                   <h4>Total TTC</h4>
                   <div class="total-amount">${totalTTC.toFixed(2)} €</div>
-                  <div style="font-size: 11px; opacity: 0.9;">Toutes taxes comprises</div>
+                  <div class="total-subtitle">Toutes taxes comprises</div>
                 </div>
               </div>
             </div>
@@ -995,10 +979,12 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
           <div class="footer">
             <div class="footer-content">
               <h4>Conditions générales</h4>
-              <p>• Devis valable 30 jours à compter de la date d'établissement</p>
-              <p>• Prix exprimés en euros, TVA variable selon prestations</p>
-              <p>• Travaux réalisés selon les règles de l'art et normes en vigueur</p>
-              <p>• Matériaux et main d'œuvre garantis selon conditions légales</p>
+              <ul>
+                <li>Devis valable 30 jours à compter de la date d'établissement</li>
+                <li>Prix exprimés en euros, TVA variable selon prestations</li>
+                <li>Travaux réalisés selon les règles de l'art et normes en vigueur</li>
+                <li>Matériaux et main d'œuvre garantis selon conditions légales</li>
+              </ul>
               
               <div class="footer-highlight">
                 📄 Document généré automatiquement par notre système de devis BTP professionnel
