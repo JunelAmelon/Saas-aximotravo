@@ -334,109 +334,101 @@ export default function ArtisanProjects() {
         <div className="flex items-center justify-center py-12">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#f26755]"></div>
         </div>
+      ) : paginatedProjects.length === 0 ? (
+        <div className="bg-white p-8 rounded-lg shadow-sm text-center">
+          <p className="text-gray-500 mb-4">Aucun projet trouvé</p>
+        </div>
       ) : (
-          paginatedProjects.length === 0 ? (
-            <div className="bg-white p-8 rounded-lg shadow-sm text-center">
-              <p className="text-gray-500 mb-4">Aucun projet trouvé</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {paginatedProjects.map((project) => {
-                const statusInfo =
-                  statusConfig[project.status as keyof typeof statusConfig];
-                return (
-                  <div
-                    key={project.id}
-                    className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 hover:shadow-md transition-all"
-                  >
-                    <div className="flex items-start gap-4 mb-4">
-                      <div className="relative w-16 h-16 flex-shrink-0 rounded-full overflow-hidden border-2 border-[#f26755] group-hover:border-[#f26755]/80 transition-colors duration-200">
-                        <Image
-                          src={project.image || "/default-project.jpg"}
-                          alt={project.name}
-                          fill
-                          className="object-cover"
-                          sizes="64px"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="text-lg font-medium text-gray-900 truncate">
-                            {project.name}
-                          </h3>
-                          {project.amoIncluded && <BadgeAmo />}
-                        </div>
-                        <div className="mt-2">
-                          {statusInfo ? (
-                            <span
-                              className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${statusInfo.className}`}
-                            >
-                              {statusInfo.icon && (
-                                <span className="mr-1">{statusInfo.icon}</span>
-                              )}
-                              {statusInfo.label}
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border bg-gray-100 text-gray-700 border-gray-300">
-                              {project.status}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
-                      <User className="h-4 w-4 text-[#f26755]" />
-                      <p className="text-sm text-gray-600 truncate">
-                        {project.client || "Non spécifié"}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
-                      <Calendar className="h-4 w-4 text-[#f26755]" />
-                      <span>Créé le {project.date}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
-                      <MapPin className="h-4 w-4 text-[#f26755]" />
-                      <span>{project.location}</span>
-                    </div>
-                    <div className="mb-4 p-3 bg-gradient-to-r from-gray-50 to-white rounded-lg border border-gray-100">
-                      <p className="text-xs text-gray-500 mb-1">Budget total</p>
-                      <p className="text-xl font-semibold text-gray-800">
-                        {project.amount
-                          ? project.amount.toLocaleString("fr-FR", {
-                              style: "currency",
-                              currency: "EUR",
-                            })
-                          : "N/A"}
-                      </p>
-                    </div>
-                    <Link
-                      href={`/artisan/projects/${project.id}`}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#f26755] text-white rounded-md hover:bg-[#f26755]/90 transition-all text-sm group"
-                    >
-                      Voir le projet
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="transition-transform group-hover:-translate-y-1 group-hover:translate-x-1 rotate-45 origin-center"
-                      >
-                        <path d="M5 12h14" />
-                        <path d="M12 5l7 7-7 7" />
-                      </svg>
-                    </Link>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {paginatedProjects.map((project) => {
+            const statusInfo =
+              statusConfig[project.status as keyof typeof statusConfig];
+            return (
+              <div
+                key={project.id}
+                className="bg-white rounded-2xl shadow-md border border-gray-100 p-6 group hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 ring-1 ring-gray-50/70 relative overflow-hidden"
+              >
+                <div className="flex items-start gap-4 mb-4">
+                  <div className="relative w-16 h-16 flex-shrink-0 rounded-full overflow-hidden border-2 border-[#f26755] group-hover:border-[#f26755]/80 transition-colors duration-200">
+                    <Image
+                      src={project.image || "/default-project.jpg"}
+                      alt={project.name}
+                      fill
+                      className="object-cover"
+                      sizes="64px"
+                    />
                   </div>
-                );
-              })}
-            </div>
-          )
-        )
-      }
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="text-lg font-medium text-gray-900 truncate">
+                        {project.name}
+                      </h3>
+                      {project.amoIncluded && <BadgeAmo />}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
+                  <User className="h-4 w-4 text-[#f26755]" />
+                  <p className="text-sm text-gray-600 truncate">
+                    {project.client || "Non spécifié"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
+                  <Calendar className="h-4 w-4 text-[#f26755]" />
+                  <span>Créé le {project.date}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
+                  <MapPin className="h-4 w-4 text-[#f26755]" />
+                  <span>{project.location}</span>
+                </div>
+                <div className="mb-4 p-3 bg-gradient-to-r from-orange-50 to-white rounded-lg border border-gray-100">
+                  <p className="text-xs text-gray-500 mb-1">Budget total</p>
+                  <p className="text-xl font-semibold text-gray-800">
+                    {project.amount?.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
+                  </p>
+                </div>
+                <div className="flex items-center justify-between mt-6">
+                  <Link
+                    href={`/artisan/projects/${project.id}`}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#f26755] text-white rounded-md hover:bg-[#f26755]/90 transition-all text-sm group"
+                  >
+                    Voir le projet
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="transition-transform group-hover:-translate-y-1 group-hover:translate-x-1 rotate-45 origin-center"
+                    >
+                      <path d="M5 12h14" />
+                      <path d="M12 5l7 7-7 7" />
+                    </svg>
+                  </Link>
+                  {statusInfo ? (
+                    <span
+                      className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${statusInfo.className}`}
+                    >
+                      {statusInfo.icon && (
+                        <span className="mr-1">{statusInfo.icon}</span>
+                      )}
+                      {statusInfo.label}
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border bg-gray-100 text-gray-700 border-gray-300">
+                      {project.status}
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
       {totalPages > 1 && (
         <div className="flex justify-center gap-2 mt-8">
           <button
