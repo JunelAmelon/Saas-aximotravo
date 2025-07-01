@@ -174,6 +174,17 @@ export const PriceAdjustmentModal: React.FC<PriceAdjustmentModalProps> = ({
             {/* Sélection des lots */}
             <div className="space-y-3">
               <Label className="text-sm font-medium text-gray-700">Lots à ajuster</Label>
+              <div className="flex justify-end mb-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="text-xs px-3 py-1 border-gray-300"
+                  onClick={() => setSelectedLots(lotTotals.map(lot => lot.lotName))}
+                  disabled={selectedLots.length === lotTotals.length}
+                >
+                  Tout sélectionner
+                </Button>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {lotTotals.map(({ lotName, total, itemCount }) => (
                   <div
