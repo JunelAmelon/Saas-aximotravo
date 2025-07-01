@@ -10,6 +10,7 @@ import { TVA_OPTIONS, PIECES_DISPONIBLES } from '@/types/devis';
 import { X, FileText, Percent } from 'lucide-react';
 import { Loader } from './ui/Loader';
 import { useAuth } from "@/lib/contexts/AuthContext";
+import { useParams } from 'next/navigation';
 
 interface CreateDevisModalProps {
   open: boolean;
@@ -24,6 +25,13 @@ export function CreateDevisModal({ open, onOpenChange, onCreateDevis }: CreateDe
   const [customTva, setCustomTva] = useState('');
   const [devisConfigId, setDevisConfigId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const params = useParams() || {};
+  const projectId =
+    typeof params.id === 'string'
+      ? params.id
+      : Array.isArray(params.id)
+        ? params.id[0]
+        : undefined;
 
   const generateDevisNumber = useCallback(() => {
     const year = new Date().getFullYear();
@@ -41,6 +49,7 @@ export function CreateDevisModal({ open, onOpenChange, onCreateDevis }: CreateDe
     try {
       setLoading(true);
       const devisConfigData = {
+        projectId,
         userId: currentUser?.uid,
         titre,
         numero: generateDevisNumber(),
@@ -53,6 +62,8 @@ export function CreateDevisModal({ open, onOpenChange, onCreateDevis }: CreateDe
         })),
       };
       const { id } = await import('@/lib/firebase/firestore').then(mod => mod.addDocument('devisConfig', devisConfigData));
+      // Ajoute l'id dans le document Firestore juste après création
+      await import('@/lib/firebase/firestore').then(mod => mod.updateDocument('devisConfig', id, { id }));
       console.log('DevisConfig créé avec ID:', id);
       setDevisConfigId(id);
       onCreateDevis(titre, finalTva, id); // signature maintenue pour correspondre au parent
