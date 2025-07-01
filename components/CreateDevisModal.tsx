@@ -21,7 +21,7 @@ interface CreateDevisModalProps {
 export function CreateDevisModal({ open, onOpenChange, onCreateDevis }: CreateDevisModalProps) {
   const { currentUser } = useAuth();
   const [titre, setTitre] = useState('');
-  const [tva, setTva] = useState<number | 'custom'>(20);
+  const [tva, setTva] = useState<number | 'custom'>(10);
   const [customTva, setCustomTva] = useState('');
   const [devisConfigId, setDevisConfigId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
