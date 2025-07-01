@@ -383,9 +383,14 @@ export default function ArtisanProjects() {
                 </div>
                 <div className="mb-4 p-3 bg-gradient-to-r from-orange-50 to-white rounded-lg border border-gray-100">
                   <p className="text-xs text-gray-500 mb-1">Budget total</p>
-                  <p className="text-xl font-semibold text-gray-800">
-                    {project.amount?.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl font-extrabold text-[#f26755] drop-shadow-sm">
+                      {project.amount?.toLocaleString("fr-FR", {
+                        style: "currency",
+                        currency: "EUR",
+                      })}
+                    </span>
+                  </div>
                 </div>
                 <div className="flex items-center justify-between mt-6">
                   <Link
