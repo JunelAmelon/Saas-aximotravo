@@ -15,6 +15,12 @@ import { usePendingArtisanInvitation } from "@/hooks/usePendingArtisanInvitation
 import { useCurrentUserId } from "@/hooks/useCurrentUserId";
 import { collection, doc, getDocs, getDoc, updateDoc, query, where, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
+import { CreateDevisModal } from '@/components/CreateDevisModal';
+import { PiecesSelectionModal } from '@/components/PiecesSelectionModal';
+import { CalculSurfaceModal } from '@/components/CalculSurfaceModal';
+import { DevisGenerationPage } from '@/components/DevisGenerationPage';
+import { useDevis } from '@/hooks/useDevis';
+import { DevisConfigProvider } from '@/components/DevisConfigContext';
 
 // --- TYPES & INTERFACES ---
 export interface User {
@@ -205,6 +211,26 @@ export const getArtisansByCourtier = async (courtierId: string, projectId?: stri
 import { getAuth } from "firebase/auth";
 
 export default function ProjectDetails() {
+  const [selectedDevisId, setSelectedDevisId] = useState<string | null>(null);
+  const [step, setStep] = useState<'create' | 'pieces' | 'calcul' | 'generation'>('create');
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const {
+    currentDevis,
+    createDevis,
+    updatePieces,
+    updateSurfaceData,
+    updateSelectedItems,
+    nextStep,
+    previousStep,
+    resetDevis
+  } = useDevis();
+
+  const handleBackToHome = () => {
+    resetDevis();
+    setShowCreateModal(false);
+  };
+  const handleCalculStep = () => setStep('calcul');
+  const handleGenerationStep = () => setStep('generation');
   // ...
   const [devis, setDevis] = useState<any[]>([]);
   const params = useParams<{ id: string; tab?: string }>();
@@ -362,6 +388,19 @@ export default function ProjectDetails() {
         >
           Réessayer
         </button>
+      </div>
+    );
+  }
+  if (step === 'generation' && selectedDevisId) {
+    return (
+      <div className="fixed inset-0 z-50 bg-white overflow-y-auto">
+        <DevisConfigProvider devisId={selectedDevisId}>
+          <DevisGenerationPage
+            onBack={() => {
+              setStep('calcul'); // Revenir à l'étape précédente
+            }}
+          />
+        </DevisConfigProvider>
       </div>
     );
   }
@@ -634,6 +673,16 @@ export default function ProjectDetails() {
         </div>
       </div>
       <div className="overflow-x-auto">
+        <div className="flex justify-end mb-2">
+          <button
+            type="button"
+            onClick={() => setShowCreateModal(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-[#f26755] hover:bg-[#e55a4a] text-white rounded shadow text-sm font-semibold transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            Créer un devis
+          </button>
+        </div>
         <h4 className="text-base font-semibold mb-2">Liste des devis</h4>
         <table className="min-w-full">
           <thead>
@@ -704,6 +753,43 @@ export default function ProjectDetails() {
             ))}
           </tbody>
         </table>
+        {/* Modals */}
+        <CreateDevisModal
+          open={showCreateModal}
+          onOpenChange={setShowCreateModal}
+          onCreateDevis={(titre, tva, id) => {
+            setSelectedDevisId(id);
+            setShowCreateModal(false);
+            setStep('pieces');
+          }}
+        />
+
+        {selectedDevisId && (
+          <DevisConfigProvider devisId={selectedDevisId}>
+            {selectedDevisId && (
+              <PiecesSelectionModal
+                open={step === 'pieces'}
+                itemId={selectedDevisId}
+                onNext={handleCalculStep}
+                onBack={handleBackToHome}
+                onOpenChange={() => { }}
+              />
+            )}
+
+            <CalculSurfaceModal
+              open={step === 'calcul'}
+              onNext={handleGenerationStep}
+              onBack={handleCalculStep}
+            />
+
+            {/* Affichage conditionnel de la génération du devis */}
+            {/* {step === 'generation' && (
+                      <DevisGenerationPage
+                        onBack={handleCalculStep}
+                      />
+                    )} */}
+          </DevisConfigProvider>
+        )}
       </div>
     </div>
   );

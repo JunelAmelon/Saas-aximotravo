@@ -29,7 +29,7 @@ export default function Sidebar({ userRole }: SidebarProps) {
         current: pathname === `${roleBasePath}/projects`,
       },
       {
-        name: "Planning",
+        name: "Événements",
         href: `${roleBasePath}/calendar`,
         icon: Calendar,
         current: pathname === `${roleBasePath}/calendar`,

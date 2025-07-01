@@ -6,6 +6,7 @@ import type { DevisItem, PieceSelection, SurfaceData, ClientInfo, CompanyInfo } 
 
 // Typage de la configuration du devis (à enrichir selon les besoins réels)
 type DevisConfig = {
+  id?: string;
   titre: string;
   tva: number | string;
   status: string;
@@ -55,7 +56,7 @@ export const DevisConfigProvider: React.FC<DevisConfigProviderProps> = ({ devisI
       const fetchDevis = async () => {
         const docSnap = await getDocumentGenerate('devisConfig', devisId);
         if (docSnap) {
-          setDevisConfig(docSnap);
+          setDevisConfig({ ...docSnap, id: devisId });
           setDevisConfigId(devisId);
         }
       };
@@ -65,8 +66,10 @@ export const DevisConfigProvider: React.FC<DevisConfigProviderProps> = ({ devisI
 
   // Création initiale
   const createDevisConfig = useCallback(async (data: Partial<DevisConfig>) => {
-    const { id } = await addDocument("devisConfig", data);
-    setDevisConfig(data);
+    const { id } = await addDocument("devisConfig", { ...data });
+    // Ajout de l'id dans le document Firestore juste après création
+    await updateDocument("devisConfig", id, { id });
+    setDevisConfig({ ...data, id });
     setDevisConfigId(id);
     return id;
   }, []);

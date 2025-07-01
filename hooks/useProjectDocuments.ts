@@ -18,9 +18,11 @@ export interface ProjectDocument {
   size: string;
   status: "signé" | "en attente";
   url: string;
+  montant?: number;
+  devisConfigId?: string;
 }
 
-export async function addProjectDocument({ projectId, name, category, date, size, status, url, montant }: {
+export async function addProjectDocument({ projectId, name, category, date, size, status, url, montant, devisConfigId }: {
   projectId: string;
   name: string;
   category: string;
@@ -29,6 +31,7 @@ export async function addProjectDocument({ projectId, name, category, date, size
   status: "signé" | "en attente";
   url: string;
   montant?: number;
+  devisConfigId?: string;
 }) {
   const docRef = await addDoc(collection(db, "documents"), {
     projectId,
@@ -48,6 +51,7 @@ export async function addProjectDocument({ projectId, name, category, date, size
       montant: montant ?? null,
       pdfUrl: url,
       projectId,
+      devisConfigId,
     });
   }
   return docRef.id;

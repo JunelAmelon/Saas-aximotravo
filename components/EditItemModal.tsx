@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DevisItem, TVA_OPTIONS, UNIT_OPTIONS } from '@/types/devis';
 import { X, Upload, Gift, Image as ImageIcon, Percent } from 'lucide-react';
-
+import { Loader } from './ui/Loader';
 import { useDevisConfig } from '@/components/DevisConfigContext';
 
 interface EditItemModalProps {
@@ -51,7 +51,10 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
     }
   };
 
+  const [loading, setLoading] = useState(false);
+
   const handleSave = async () => {
+    setLoading(true);
     let imageUrl = editedItem.customImage || '';
     if (imageFile) {
       // Uploader sur Cloudinary ici
@@ -72,6 +75,7 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
     };
     const updatedItems = (devisConfig?.selectedItems || []).map(i => i.id === updatedItem.id ? updatedItem : i);
     setDevisConfigField('selectedItems', updatedItems);
+    setLoading(false);
     onOpenChange(false);
   };
 
@@ -389,8 +393,9 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
               <Button
                 onClick={handleSave}
                 className="bg-[#f26755] hover:bg-[#e55a4a] text-white"
+                disabled={loading}
               >
-                Enregistrer
+                {loading ? <Loader size={20} /> : 'Enregistrer'}
               </Button>
             </div>
           </div>

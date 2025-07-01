@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DevisItem } from '@/types/devis';
 import { X, Calculator, TrendingDown, AlertCircle } from 'lucide-react';
+import { Loader } from './ui/Loader';
 import { useDevisConfig } from '@/components/DevisConfigContext';
 
 interface PriceAdjustmentModalProps {
@@ -95,10 +96,14 @@ export const PriceAdjustmentModal: React.FC<PriceAdjustmentModalProps> = ({
     calculateAdjustment();
   }, [targetPrice, selectedLots]);
 
-  const handleApply = () => {
+  const [loading, setLoading] = useState(false);
+
+  const handleApply = async () => {
     if (adjustedItems.length > 0) {
+      setLoading(true);
       const updatedItems = adjustedItems.map(item => ({ ...item, isSelected: true }));
-      setDevisConfigField('selectedItems', updatedItems);
+      await setDevisConfigField('selectedItems', updatedItems);
+      setLoading(false);
       onOpenChange(false);
     }
   };
@@ -169,6 +174,17 @@ export const PriceAdjustmentModal: React.FC<PriceAdjustmentModalProps> = ({
             {/* Sélection des lots */}
             <div className="space-y-3">
               <Label className="text-sm font-medium text-gray-700">Lots à ajuster</Label>
+              <div className="flex justify-end mb-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="text-xs px-3 py-1 border-gray-300"
+                  onClick={() => setSelectedLots(lotTotals.map(lot => lot.lotName))}
+                  disabled={selectedLots.length === lotTotals.length}
+                >
+                  Tout sélectionner
+                </Button>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {lotTotals.map(({ lotName, total, itemCount }) => (
                   <div
@@ -261,10 +277,10 @@ export const PriceAdjustmentModal: React.FC<PriceAdjustmentModalProps> = ({
                 </Button>
                 <Button
                   onClick={handleApply}
-                  disabled={!targetPrice || selectedLots.length === 0 || adjustedItems.length === 0}
+                  disabled={!targetPrice || selectedLots.length === 0 || adjustedItems.length === 0 || loading}
                   className="bg-[#f26755] hover:bg-[#e55a4a] text-white disabled:bg-gray-300"
                 >
-                  Appliquer l&apos;ajustement
+                  {loading ? <Loader size={20} /> : "Appliquer l'ajustement"}
                 </Button>
               </div>
             </div>

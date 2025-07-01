@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DevisItem, TVA_OPTIONS, UNIT_OPTIONS } from '@/types/devis';
 import { X, Plus, FileText, Package, Type, Percent } from 'lucide-react';
-
+import { Loader } from './ui/Loader';
 import { useDevisConfig } from '@/components/DevisConfigContext';
 
 interface CreateCustomItemModalProps {
@@ -62,9 +62,11 @@ export const CreateCustomItemModal: React.FC<CreateCustomItemModalProps> = ({
     setItemType('prestation');
   };
 
-  const handleCreate = () => {
-    if (!formData.optionLabel.trim()) return;
+  const [loading, setLoading] = useState(false);
 
+  const handleCreate = async () => {
+    if (!formData.optionLabel.trim()) return;
+    setLoading(true);
     const newItem: DevisItem = {
       id: crypto.randomUUID(),
       lotName: formData.lotName || 'Prestations personnalisées',
@@ -81,8 +83,9 @@ export const CreateCustomItemModal: React.FC<CreateCustomItemModalProps> = ({
       isOffered: itemType === 'texte'
     };
 
-    setDevisConfigField('selectedItems', [...(devisConfig?.selectedItems || []), newItem]);
+    await setDevisConfigField('selectedItems', [...(devisConfig?.selectedItems || []), newItem]);
     resetForm();
+    setLoading(false);
     onOpenChange(false);
   };
 
@@ -435,11 +438,10 @@ export const CreateCustomItemModal: React.FC<CreateCustomItemModalProps> = ({
                 </Button>
                 <Button
                   onClick={handleCreate}
-                  disabled={!formData.optionLabel.trim()}
+                  disabled={!formData.optionLabel.trim() || loading}
                   className="bg-[#f26755] hover:bg-[#e55a4a] text-white disabled:bg-gray-300 w-full sm:w-auto"
                 >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Ajouter au devis
+                  {loading ? <Loader size={20} /> : (<><Plus className="h-4 w-4 mr-2" />Ajouter au devis</>)}
                 </Button>
               </div>
             </div>

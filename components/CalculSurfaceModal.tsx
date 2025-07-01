@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SurfaceData } from '@/types/devis';
 import { ArrowLeft, Calculator, Home, ArrowRight, TrendingUp } from 'lucide-react';
+import { Loader } from './ui/Loader';
 
 import { useDevisConfig } from '@/components/DevisConfigContext';
 import { getAllSelectedPieces } from '@/utils/pieces';
@@ -69,8 +70,12 @@ export const CalculSurfaceModal: React.FC<CalculSurfaceModalProps> = ({
   }, [open]);
 
   // Pour sauvegarder les modifications dans le contexte devis
-  const handleSave = () => {
-    setDevisConfigField('surfaceData', localData);
+  const [loading, setLoading] = useState(false);
+
+  const handleSave = async () => {
+    setLoading(true);
+    await setDevisConfigField('surfaceData', localData);
+    setLoading(false);
   };
 
   // Calculs automatiques basés sur des formules réalistes
@@ -379,16 +384,19 @@ export const CalculSurfaceModal: React.FC<CalculSurfaceModalProps> = ({
               </div>
               
               <Button 
-                onClick={onNext}
-                disabled={!hasValidData}
+                onClick={async () => {
+                  await handleSave();
+                  onNext();
+                }}
+                disabled={!hasValidData || loading}
                 className={`w-full sm:w-auto h-9 sm:h-10 px-4 sm:px-6 font-medium rounded-lg transition-all duration-200 text-sm ${
-                  hasValidData 
+                  hasValidData && !loading
                     ? 'bg-[#f26755] hover:bg-[#e55a4a] text-white shadow-sm hover:shadow-md' 
                     : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                 }`}
               >
-                <span>Générer le devis</span>
-                <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4 ml-2" />
+                {loading ? <Loader size={20} /> : <><span>Générer le devis</span>
+                <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4 ml-2" /></>}
               </Button>
             </div>
           </div>
