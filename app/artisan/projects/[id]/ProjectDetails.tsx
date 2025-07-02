@@ -267,6 +267,9 @@ export const getArtisansByCourtier = async (
 import { getAuth } from "firebase/auth";
 
 export default function ProjectDetails() {
+  // ... (existing hooks)
+  // State to track invitation acceptance
+  const [invitationAccepted, setInvitationAccepted] = useState<boolean>(false);
   // --- Initialisation des paramètres et id projet ---
   const params = useParams<{ id: string; tab?: string }>();
   const { id } = params ?? {};
@@ -387,6 +390,25 @@ export default function ProjectDetails() {
     };
     fetchData();
   }, [id]);
+
+  // Effect to check invitation acceptance
+  useEffect(() => {
+    async function checkInvitationAccepted() {
+      if (!id || !currentUserId) {
+        setInvitationAccepted(false);
+        return;
+      }
+      const q = query(
+        collection(db, "artisan_projet"),
+        where("projetId", "==", id),
+        where("artisanId", "==", currentUserId),
+        where("status", "==", "accepté")
+      );
+      const snapshot = await getDocs(q);
+      setInvitationAccepted(snapshot.docs.length > 0);
+    }
+    checkInvitationAccepted();
+  }, [id, currentUserId]);
 
   // Récupération des devis du projet
   useEffect(() => {
@@ -637,60 +659,69 @@ export default function ProjectDetails() {
                 Informations client
               </h3>
               <div className="space-y-6 flex-1">
-                <div className="flex items-center gap-4 bg-gray-50 p-4 rounded-lg border border-gray-100">
-                  <div className="relative w-16 h-16 rounded-full overflow-hidden ring-2 ring-[#f26755] ring-offset-2">
-                    <Image
-                      src={
-                        project?.client.photoURL ||
-                        "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg"
-                      }
-                      alt={
-                        project?.client.firstName +
-                          " " +
-                          project?.client.lastName || ""
-                      }
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                  <div>
-                    <h4 className="font-medium text-gray-900">
-                      {project?.client.firstName +
-                        " " +
-                        project?.client.lastName}
-                    </h4>
-                    <p className="text-sm text-[#f26755]">
-                      {project?.client.company}
-                    </p>
-                  </div>
-                </div>
+                {invitationAccepted ? (
+                  <>
+                    <div className="flex items-center gap-4 bg-gray-50 p-4 rounded-lg border border-gray-100">
+                      <div className="relative w-16 h-16 rounded-full overflow-hidden ring-2 ring-[#f26755] ring-offset-2">
+                        <Image
+                          src={
+                            project?.client.photoURL ||
+                            "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg"
+                          }
+                          alt={
+                            project?.client.firstName +
+                              " " +
+                              project?.client.lastName || ""
+                          }
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-gray-900">
+                          {project?.client.firstName +
+                            " " +
+                            project?.client.lastName}
+                        </h4>
+                        <p className="text-sm text-[#f26755]">
+                          {project?.client.company}
+                        </p>
+                      </div>
+                    </div>
 
-                <div className="space-y-4 bg-gray-50 p-4 rounded-lg border border-gray-100">
-                  <div className="flex items-center gap-3 group">
-                    <div className="p-2 rounded-full bg-[#f26755]/10 group-hover:bg-[#f26755]/20 transition-colors">
-                      <Phone className="h-5 w-5 text-[#f26755]" />
+                    <div className="space-y-4 bg-gray-50 p-4 rounded-lg border border-gray-100">
+                      <div className="flex items-center gap-3 group">
+                        <div className="p-2 rounded-full bg-[#f26755]/10 group-hover:bg-[#f26755]/20 transition-colors">
+                          <Phone className="h-5 w-5 text-[#f26755]" />
+                        </div>
+                        <span className="text-sm text-gray-600">
+                          {project?.client.phone}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 group">
+                        <div className="p-2 rounded-full bg-[#f26755]/10 group-hover:bg-[#f26755]/20 transition-colors">
+                          <Mail className="h-5 w-5 text-[#f26755]" />
+                        </div>
+                        <span className="text-sm text-gray-600">
+                          {project?.client.email}
+                        </span>
+                      </div>
+                      <div className="flex items-start gap-3 group">
+                        <div className="p-2 rounded-full bg-[#f26755]/10 group-hover:bg-[#f26755]/20 transition-colors">
+                          <MapPin className="h-5 w-5 text-[#f26755]" />
+                        </div>
+                        <span className="text-sm text-gray-600">
+                          {project?.location}
+                        </span>
+                      </div>
                     </div>
-                    <span className="text-sm text-gray-600">
-                      {project?.client.phone}
-                    </span>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-32 text-gray-400 italic">
+                    <Eye className="h-8 w-8 mb-2" />
+                    Informations client masquées tant que l’invitation n’est pas acceptée.
                   </div>
-                  <div className="flex items-center gap-3 group">
-                    <div className="p-2 rounded-full bg-[#f26755]/10 group-hover:bg-[#f26755]/20 transition-colors">
-                      <Mail className="h-5 w-5 text-[#f26755]" />
-                    </div>
-                    <span className="text-sm text-gray-600">
-                      {project?.client.email}
-                    </span>
-                  </div>
-                  <div className="flex items-start gap-3 group">
-                    <div className="p-2 rounded-full bg-[#f26755]/10 group-hover:bg-[#f26755]/20 transition-colors">
-                      <MapPin className="h-5 w-5 text-[#f26755]" />
-                    </div>
-                    <span className="text-sm text-gray-600">
-                      {project?.location}
-                    </span>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
           </div>
@@ -736,27 +767,34 @@ export default function ProjectDetails() {
                       </span>
                     </div>
                     <div className="w-full bg-white p-3 rounded-lg border border-gray-100 mt-2">
-                      {projectArtisans.length > 0 ? (
-                        <div className="flex flex-col gap-2">
-                          {projectArtisans.map((artisan: any) => (
-                            <div
-                              key={artisan.uid}
-                              className="flex items-center gap-2"
-                            >
-                              <span className="bg-[#f26755]/10 rounded-full p-1">
-                                <User className="h-4 w-4 text-[#f26755]" />
-                              </span>
-                              <span className="text-gray-700 text-base font-medium truncate">
-                                {artisan.displayName}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-gray-400 italic">
-                          Aucun artisan assigné
-                        </span>
-                      )}
+                      {projectArtisans && projectArtisans.length > 0 ? (
+  <div className="flex flex-col gap-2">
+    {projectArtisans
+      .filter((artisan: any) => artisan.uid === currentUserId)
+      .map((artisan: any) => (
+        <div
+          key={artisan.uid}
+          className="flex items-center gap-2"
+        >
+          <span className="bg-[#f26755]/10 rounded-full p-1">
+            <User className="h-4 w-4 text-[#f26755]" />
+          </span>
+          <span className="text-gray-700 text-base font-medium truncate">
+            {artisan.displayName}
+          </span>
+        </div>
+      ))}
+    {projectArtisans.filter((artisan: any) => artisan.uid === currentUserId).length === 0 && (
+      <span className="text-gray-400 italic">
+        Aucun artisan assigné
+      </span>
+    )}
+  </div>
+) : (
+  <span className="text-gray-400 italic">
+    Aucun artisan assigné
+  </span>
+)}
                     </div>
                   </div>
                 </div>
