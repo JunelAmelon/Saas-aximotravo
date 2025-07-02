@@ -19,6 +19,7 @@ interface UseArtisanDashboardResult {
   loading: boolean;
   error: string | null;
   projects: any[];
+  recentsProjects: any[];
   appointments: Event[];
   clients: any[];
   activities: Activity[];
@@ -34,6 +35,7 @@ export function useArtisanDashboard(): UseArtisanDashboardResult {
   const [appointments, setAppointments] = useState<Event[]>([]);
   const [clients, setClients] = useState<any[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
+  const [recentsProjects, setRecentsProjects] = useState<any[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
     totalProjects: 0,
     activeProjects: 0,
@@ -90,6 +92,28 @@ export function useArtisanDashboard(): UseArtisanDashboardResult {
         })
       );
       setProjects(formattedProjects);
+
+      // Générer la liste des projets récents (acceptés, triés par acceptedAt)
+      const recents = (await Promise.all(
+        projectsData
+          .filter((inv: any) => inv.projetId && inv.status === 'accepté' && inv.acceptedAt)
+          .map(async (inv: any) => {
+            const project = await getDocument('projects', inv.projetId);
+            if (!project) return null;
+            return {
+              ...project,
+              id: inv.projetId,
+              acceptedAt: inv.acceptedAt,
+            };
+          })
+      ))
+        .filter(Boolean)
+        .sort((a: any, b: any) => {
+          const dateA = a.acceptedAt?.toDate ? a.acceptedAt.toDate() : new Date(a.acceptedAt);
+          const dateB = b.acceptedAt?.toDate ? b.acceptedAt.toDate() : new Date(b.acceptedAt);
+          return dateB.getTime() - dateA.getTime();
+        });
+      setRecentsProjects(recents);
 
       // 2. Fetch appointments/events where artisan is a participant
       // (Assume Event model and queryDocuments util)
@@ -159,6 +183,7 @@ export function useArtisanDashboard(): UseArtisanDashboardResult {
     loading,
     error,
     projects,
+    recentsProjects,
     appointments,
     clients,
     activities,

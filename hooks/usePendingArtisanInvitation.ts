@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { collection, query, where, getDocs, doc, updateDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 
 export function usePendingArtisanInvitation(artisanId: string, projectId: string) {
@@ -40,7 +40,10 @@ export function usePendingArtisanInvitation(artisanId: string, projectId: string
     setAccepting(true);
     setError(null);
     try {
-      await updateDoc(doc(db, "artisan_projet", pending.invitationId), { status: "accepté" });
+      await updateDoc(doc(db, "artisan_projet", pending.invitationId), {
+        status: "accepté",
+        acceptedAt: serverTimestamp(),
+      });
       setAccepted(true);
       setPending(null);
     } catch (e: any) {

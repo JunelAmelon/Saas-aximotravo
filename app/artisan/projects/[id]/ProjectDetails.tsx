@@ -550,13 +550,14 @@ export default function ProjectDetails() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link
-            href="/artisan/projects"
+          <button
+            type="button"
+            onClick={() => router.back()}
             className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700"
           >
             <ChevronLeft className="h-4 w-4 mr-1" />
             Retour
-          </Link>
+          </button>
           <h1 className="text-xl font-medium text-gray-900">
             Détails du projet
           </h1>
@@ -767,34 +768,27 @@ export default function ProjectDetails() {
                       </span>
                     </div>
                     <div className="w-full bg-white p-3 rounded-lg border border-gray-100 mt-2">
-                      {projectArtisans && projectArtisans.length > 0 ? (
-  <div className="flex flex-col gap-2">
-    {projectArtisans
-      .filter((artisan: any) => artisan.uid === currentUserId)
-      .map((artisan: any) => (
-        <div
-          key={artisan.uid}
-          className="flex items-center gap-2"
-        >
-          <span className="bg-[#f26755]/10 rounded-full p-1">
-            <User className="h-4 w-4 text-[#f26755]" />
-          </span>
-          <span className="text-gray-700 text-base font-medium truncate">
-            {artisan.displayName}
-          </span>
-        </div>
-      ))}
-    {projectArtisans.filter((artisan: any) => artisan.uid === currentUserId).length === 0 && (
-      <span className="text-gray-400 italic">
-        Aucun artisan assigné
-      </span>
-    )}
-  </div>
-) : (
-  <span className="text-gray-400 italic">
-    Aucun artisan assigné
-  </span>
-)}
+                      {projectArtisans.length > 0 ? (
+                        <div className="flex flex-col gap-2">
+                          {projectArtisans.map((artisan: any) => (
+                            <div
+                              key={artisan.uid}
+                              className="flex items-center gap-2"
+                            >
+                              <span className="bg-[#f26755]/10 rounded-full p-1">
+                                <User className="h-4 w-4 text-[#f26755]" />
+                              </span>
+                              <span className="text-gray-700 text-base font-medium truncate">
+                                {artisan.displayName}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 italic">
+                          Aucun artisan assigné
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

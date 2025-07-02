@@ -7,7 +7,7 @@ import ActivityFeed from "@/components/dashboard/ActivityFeed";
 import { useArtisanDashboard } from "@/hooks/useArtisanDashboard";
 
 export default function ArtisanDashboard() {
-  const { loading, error, projects, appointments, clients, activities, stats, refresh } = useArtisanDashboard();
+  const { loading, error, recentsProjects, appointments, clients, activities, stats, refresh } = useArtisanDashboard();
 
   if (loading) {
     return (
@@ -55,7 +55,7 @@ export default function ArtisanDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-3">
           <h2 className="text-lg font-medium text-gray-900 mb-4">Projets récents</h2>
-          <ProjectsTable projects={projects} />
+          <ProjectsTable projects={recentsProjects} />
         </div>
         {/* <div>
           <h2 className="text-lg font-medium text-gray-900 mb-4">Activités</h2>
