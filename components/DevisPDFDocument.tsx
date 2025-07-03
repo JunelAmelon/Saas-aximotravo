@@ -96,7 +96,14 @@ const styles = StyleSheet.create({
   prestationTitle: {
     fontWeight: 600,
     color: '#2D3748',
-    marginBottom: 6
+    marginBottom: 6,
+    fontSize: 11
+  },
+  prestationNumber: {
+    fontWeight: 700,
+    color: '#F26755',
+    marginRight: 8,
+    fontSize: 11
   },
   prestationDesc: {
     fontSize: 9,
@@ -296,6 +303,18 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#E2E8F0',
     textAlign: 'center'
+  },
+  // Header pour pages suivantes
+  pageHeader: {
+    marginBottom: 20,
+    paddingBottom: 10,
+    borderBottomWidth: 2,
+    borderBottomColor: '#F26755'
+  },
+  pageHeaderTitle: {
+    fontSize: 16,
+    fontWeight: 700,
+    color: '#F26755'
   }
 });
 
@@ -319,7 +338,8 @@ export const DevisPDFDocument = ({ devis }: { devis: Devis }) => {
 
   return (
     <Document>
-      <Page size="A4" style={styles.page} wrap>
+      {/* PAGE 1 : Header + Client + Intro */}
+      <Page size="A4" style={styles.page}>
         {/* Header élégant */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>DEVIS N°{devis.numero}</Text>
@@ -348,6 +368,14 @@ export const DevisPDFDocument = ({ devis }: { devis: Devis }) => {
             Dans l&apos;attente de votre retour, nous vous prions d&apos;agréer, Madame, Monsieur, l&apos;expression de nos salutations distinguées.
           </Text>
         </View>
+      </Page>
+
+      {/* PAGE 2 : Tableau récapitulatif des lots UNIQUEMENT */}
+      <Page size="A4" style={styles.page}>
+        {/* Header de page */}
+        <View style={styles.pageHeader}>
+          <Text style={styles.pageHeaderTitle}>RÉCAPITULATIF DES LOTS</Text>
+        </View>
 
         {/* Tableau récapitulatif des lots */}
         <View style={styles.lotTable}>
@@ -369,112 +397,127 @@ export const DevisPDFDocument = ({ devis }: { devis: Devis }) => {
             </View>
           ))}
         </View>
+      </Page>
 
-        {/* Détails des prestations */}
-        {Object.entries(lotGroups).map(([lotName, items], lotIndex) => (
-          <View key={lotIndex} wrap={false}>
-            <Text style={{ 
-              fontWeight: 700, 
-              color: '#F26755', 
-              marginBottom: 12,
-              fontSize: 12,
-              backgroundColor: '#F8FAFC',
-              padding: 8,
-              borderRadius: 4
-            }}>
+      {/* PAGES 3 à N : Détails des prestations par lot avec numérotation */}
+      {Object.entries(lotGroups).map(([lotName, items], lotIndex) => (
+        <Page key={lotIndex} size="A4" style={styles.page}>
+          {/* Header de page */}
+          <View style={styles.pageHeader}>
+            <Text style={styles.pageHeaderTitle}>
               LOT {lotIndex + 1} - {lotName.toUpperCase()}
             </Text>
-            
-            {items.map((item, itemIndex) => (
-              <View key={itemIndex} style={styles.prestationCard}>
-                <Text style={styles.prestationTitle}>{item.optionLabel}</Text>
-                <Text style={styles.prestationDesc}>{item.description}</Text>
-                
-                {/* Images */}
-                {item.customImage && (
-                  <View style={{ marginBottom: 10 }}>
-                    <Image 
-                      src={item.customImage} 
-                      style={{ 
-                        width: 80, 
-                        height: 60, 
-                        borderRadius: 4,
-                        borderWidth: 1,
-                        borderColor: '#E2E8F0'
-                      }} 
-                    />
-                  </View>
-                )}
-                
-                {/* Détails chiffrés stylisés */}
-                <View style={styles.detailsRow}>
-                  <Text style={styles.detailLabel}>Quantité</Text>
-                  <View style={styles.quantityContainer}>
-                    <Text style={styles.quantityText}>
-                      {item.quantite} {item.customUnit || item.unite}
-                    </Text>
-                  </View>
-                </View>
-                
-                <View style={styles.detailsRow}>
-                  <Text style={styles.detailLabel}>Prix unitaire HT</Text>
-                  <View style={styles.priceContainer}>
-                    <Text style={styles.priceText}>
-                      {item.prix_ht.toFixed(2)} €
-                    </Text>
-                  </View>
-                </View>
-                
-                <View style={[styles.detailsRow, { marginTop: 6 }]}>
-                  <Text style={[styles.detailLabel, { fontWeight: 600 }]}>Total HT</Text>
-                  <View style={styles.totalContainer}>
-                    <Text style={styles.totalText}>
-                      {(item.quantite * item.prix_ht).toFixed(2)} €
-                    </Text>
-                  </View>
-                </View>
-                
-                {/* Pièces jointes */}
-                {item.selectedPieces && item.selectedPieces.length > 0 && (
-                  <View style={styles.piecesSection}>
-                    <Text style={[styles.detailLabel, { marginBottom: 6 }]}>Pièces incluses:</Text>
-                    {item.selectedPieces.map((piece, pieceIndex) => (
-                      <View key={pieceIndex} style={styles.pieceItem}>
-                        <View style={styles.pieceBullet} />
-                        <Text style={[styles.detailValue, { fontSize: 8 }]}>{piece.name}</Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
-              </View>
-            ))}
           </View>
-        ))}
+          
+          {/* Prestations du lot avec numérotation */}
+          {items.map((item, itemIndex) => (
+            <View key={itemIndex} style={styles.prestationCard} wrap={false}>
+              {/* Titre avec numérotation */}
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 6 }}>
+                <Text style={styles.prestationNumber}>
+                  {lotIndex + 1}.{itemIndex + 1}
+                </Text>
+                <Text style={[styles.prestationTitle, { flex: 1 }]}>
+                  {item.optionLabel}
+                </Text>
+              </View>
+              
+              <Text style={styles.prestationDesc}>{item.description}</Text>
+              
+              {/* Images */}
+              {item.customImage && (
+                <View style={{ marginBottom: 10 }}>
+                  <Image 
+                    src={item.customImage} 
+                    style={{ 
+                      width: 80, 
+                      height: 60, 
+                      borderRadius: 4,
+                      borderWidth: 1,
+                      borderColor: '#E2E8F0'
+                    }} 
+                  />
+                </View>
+              )}
+              
+              {/* Détails chiffrés stylisés */}
+              <View style={styles.detailsRow}>
+                <Text style={styles.detailLabel}>Quantité</Text>
+                <View style={styles.quantityContainer}>
+                  <Text style={styles.quantityText}>
+                    {item.quantite} {item.customUnit || item.unite}
+                  </Text>
+                </View>
+              </View>
+              
+              <View style={styles.detailsRow}>
+                <Text style={styles.detailLabel}>Prix unitaire HT</Text>
+                <View style={styles.priceContainer}>
+                  <Text style={styles.priceText}>
+                    {item.prix_ht.toFixed(2)} €
+                  </Text>
+                </View>
+              </View>
+              
+              <View style={[styles.detailsRow, { marginTop: 6 }]}>
+                <Text style={[styles.detailLabel, { fontWeight: 600 }]}>Total HT</Text>
+                <View style={styles.totalContainer}>
+                  <Text style={styles.totalText}>
+                    {(item.quantite * item.prix_ht).toFixed(2)} €
+                  </Text>
+                </View>
+              </View>
+              
+              {/* Pièces jointes */}
+              {item.selectedPieces && item.selectedPieces.length > 0 && (
+                <View style={styles.piecesSection}>
+                  <Text style={[styles.detailLabel, { marginBottom: 6 }]}>Pièces incluses:</Text>
+                  {item.selectedPieces.map((piece, pieceIndex) => (
+                    <View key={pieceIndex} style={styles.pieceItem}>
+                      <View style={styles.pieceBullet} />
+                      <Text style={[styles.detailValue, { fontSize: 8 }]}>{piece.name}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          ))}
+        </Page>
+      ))}
+
+      {/* DERNIÈRE PAGE DÉDIÉE : Récapitulatif financier + Modalités de paiement + Signature */}
+      <Page size="A4" style={styles.page}>
+        {/* Header de la page financière */}
+        <View style={styles.pageHeader}>
+          <Text style={styles.pageHeaderTitle}>RÉCAPITULATIF FINANCIER</Text>
+        </View>
 
         {/* Section Totaux avec prix stylisés */}
         <View style={styles.totalsSection}>
-          <Text style={{ fontWeight: 700, color: '#2D3748', marginBottom: 12 }}>RÉCAPITULATIF FINANCIER</Text>
+          <Text style={{ fontWeight: 700, color: '#2D3748', marginBottom: 20, fontSize: 14 }}>
+            DÉTAIL DES MONTANTS
+          </Text>
           
-          <View style={[styles.detailsRow, { marginBottom: 8 }]}>
-            <Text style={styles.detailLabel}>Total HT</Text>
+          <View style={[styles.detailsRow, { marginBottom: 12 }]}>
+            <Text style={[styles.detailLabel, { fontSize: 12 }]}>Total HT</Text>
             <View style={styles.totalHTContainer}>
               <Text style={styles.totalHTText}>{totalHT.toFixed(2)} €</Text>
             </View>
           </View>
           
-          <View style={[styles.detailsRow, { marginBottom: 12 }]}>
-            <Text style={styles.detailLabel}>TVA (20%)</Text>
+          <View style={[styles.detailsRow, { marginBottom: 20 }]}>
+            <Text style={[styles.detailLabel, { fontSize: 12 }]}>TVA (20%)</Text>
             <View style={styles.tvaContainer}>
               <Text style={styles.tvaText}>{tva.toFixed(2)} €</Text>
             </View>
           </View>
           
           <View style={[styles.detailsRow, { 
-            paddingTop: 8, 
-            borderTopWidth: 1, 
-            borderTopColor: '#E2E8F0' 
+            paddingTop: 15, 
+            borderTopWidth: 2, 
+            borderTopColor: '#F26755' 
           }]}>
-            <Text style={[styles.detailLabel, { fontWeight: 700 }]}>Total TTC</Text>
+            <Text style={[styles.detailLabel, { fontWeight: 700, fontSize: 14 }]}>Total TTC</Text>
             <View style={styles.totalTTCContainer}>
               <Text style={styles.totalTTCText}>
                 {totalTTC.toFixed(2)} €
@@ -484,40 +527,47 @@ export const DevisPDFDocument = ({ devis }: { devis: Devis }) => {
         </View>
 
         {/* Modalités de paiement avec montants stylisés */}
-        <View style={{ marginTop: 25 }}>
+        <View style={{ marginTop: 40 }}>
           <Text style={{ 
             fontWeight: 700, 
             color: '#2D3748', 
-            marginBottom: 12,
-            paddingBottom: 6,
-            borderBottomWidth: 1,
-            borderBottomColor: '#E2E8F0'
+            marginBottom: 20,
+            paddingBottom: 10,
+            borderBottomWidth: 2,
+            borderBottomColor: '#F26755',
+            fontSize: 14
           }}>
             MODALITÉS DE PAIEMENT
           </Text>
           
           {payments.map((payment, index) => (
-            <View key={index} style={styles.paymentItem}>
+            <View key={index} style={[styles.paymentItem, { paddingVertical: 12 }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <View style={styles.paymentPercent}>
-                  <Text style={{ color: 'white', fontSize: 8, fontWeight: 700 }}>
+                <View style={[styles.paymentPercent, { width: 30, height: 30, borderRadius: 15 }]}>
+                  <Text style={{ color: 'white', fontSize: 9, fontWeight: 700 }}>
                     {payment.percent}%
                   </Text>
                 </View>
-                <Text style={{ fontSize: 10 }}>{payment.label}</Text>
+                <Text style={{ fontSize: 12, fontWeight: 500 }}>{payment.label}</Text>
               </View>
               <View style={styles.paymentAmountContainer}>
-                <Text style={styles.paymentAmountText}>{payment.amount.toFixed(2)} €</Text>
+                <Text style={[styles.paymentAmountText, { fontSize: 12 }]}>
+                  {payment.amount.toFixed(2)} €
+                </Text>
               </View>
             </View>
           ))}
         </View>
 
         {/* Signature */}
-        <View style={styles.signatureSection}>
+        <View style={[styles.signatureSection, { marginTop: 60 }]}>
           <View style={styles.signatureLine}>
-            <Text style={{ fontSize: 9, color: '#718096' }}>Fait à Paris, le {new Date().toLocaleDateString('fr-FR')}</Text>
-            <Text style={{ marginTop: 15, fontWeight: 600 }}>Signature</Text>
+            <Text style={{ fontSize: 10, color: '#718096' }}>
+              Fait à Paris, le {new Date().toLocaleDateString('fr-FR')}
+            </Text>
+            <Text style={{ marginTop: 20, fontWeight: 600, fontSize: 11 }}>
+              Signature du client
+            </Text>
           </View>
         </View>
       </Page>
