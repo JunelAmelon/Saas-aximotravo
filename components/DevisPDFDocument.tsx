@@ -111,7 +111,47 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     lineHeight: 1.4
   },
-  // Section détails avec couleurs
+  // Badges informatifs - simplifiés
+  badgeContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+    marginBottom: 10
+  },
+  badge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    borderWidth: 1
+  },
+  badgeOffered: {
+    backgroundColor: '#DCFCE7',
+    borderColor: '#86EFAC'
+  },
+  badgeOfferedText: {
+    fontSize: 7,
+    fontWeight: 700,
+    color: '#166534'
+  },
+  badgeTva: {
+    backgroundColor: '#DBEAFE',
+    borderColor: '#93C5FD'
+  },
+  badgeTvaText: {
+    fontSize: 7,
+    fontWeight: 600,
+    color: '#1E40AF'
+  },
+  badgeCategory: {
+    backgroundColor: '#FEF3C7',
+    borderColor: '#FDE68A'
+  },
+  badgeCategoryText: {
+    fontSize: 7,
+    fontWeight: 600,
+    color: '#92400E'
+  },
+  // Section détails avec couleurs simplifiées
   detailsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -126,53 +166,21 @@ const styles = StyleSheet.create({
     fontWeight: 600,
     color: '#2D3748'
   },
-  // Styles pour les prix et unités
-  priceContainer: {
-    backgroundColor: '#F0F9FF',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: '#BAE6FD'
-  },
+  // Styles pour les prix et unités - sans fond
   priceText: {
     fontSize: 9,
     fontWeight: 700,
     color: '#0369A1'
-  },
-  unitContainer: {
-    backgroundColor: '#F0FDF4',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 3,
-    borderWidth: 1,
-    borderColor: '#BBF7D0'
   },
   unitText: {
     fontSize: 8,
     fontWeight: 600,
     color: '#166534'
   },
-  totalContainer: {
-    backgroundColor: '#FEF2F2',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 5,
-    borderWidth: 1,
-    borderColor: '#FECACA'
-  },
   totalText: {
     fontSize: 10,
     fontWeight: 700,
     color: '#DC2626'
-  },
-  quantityContainer: {
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 3,
-    borderWidth: 1,
-    borderColor: '#FDE68A'
   },
   quantityText: {
     fontSize: 8,
@@ -211,6 +219,22 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: '#F26755',
     marginRight: 6
+  },
+  // Styles pour les pièces sélectionnées
+  pieceTag: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#DBEAFE',
+    borderWidth: 1,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginRight: 4,
+    marginBottom: 4
+  },
+  pieceTagText: {
+    fontSize: 8,
+    color: '#1E40AF',
+    fontWeight: 500
   },
   // Totaux premium
   totalsSection: {
@@ -259,6 +283,38 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 700,
     color: '#F26755'
+  },
+  // Styles pour le détail des TVA - simplifié
+  tvaDetailSection: {
+    marginTop: 20,
+    marginBottom: 20,
+    padding: 15,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0'
+  },
+  tvaDetailTitle: {
+    fontSize: 12,
+    fontWeight: 700,
+    color: '#2D3748',
+    marginBottom: 10
+  },
+  tvaDetailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+    paddingVertical: 4
+  },
+  tvaDetailLabel: {
+    fontSize: 10,
+    color: '#4A5568',
+    fontWeight: 500
+  },
+  tvaDetailAmount: {
+    fontSize: 10,
+    fontWeight: 700,
+    color: '#2D3748'
   },
   // Paiements stylés
   paymentItem: {
@@ -315,13 +371,51 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 700,
     color: '#F26755'
+  },
+  // Style pour prix barré
+  strikethrough: {
+    textDecoration: 'line-through',
+    color: '#9CA3AF'
   }
 });
 
 export const DevisPDFDocument = ({ devis }: { devis: Devis }) => {
-  const totalHT = devis.selectedItems.reduce((sum, item) => sum + (item.quantite * item.prix_ht), 0);
-  const tva = totalHT * 0.2;
-  const totalTTC = totalHT + tva;
+  // Calcul des totaux avec gestion de la TVA variable et des prestations offertes
+  let totalHT = 0;
+  let totalTVA = 0;
+  
+  // Calcul détaillé des TVA par taux - CORRECTION ICI
+  const tvaByRate: { [rate: number]: { baseHT: number, tvaAmount: number, count: number } } = {};
+
+  devis.selectedItems.forEach(item => {
+    // Récupérer le taux de TVA de l'item ou utiliser celui par défaut du devis
+    const itemTvaRate = item.tva !== undefined ? item.tva : (typeof devis.tva === 'number' ? devis.tva : parseFloat(devis.tva as string) || 20);
+    
+    if (!item.isOffered) {
+      const itemHT = item.prix_ht * item.quantite;
+      const itemTVA = itemHT * (itemTvaRate / 100);
+
+      totalHT += itemHT;
+      totalTVA += itemTVA;
+
+      // Grouper par taux de TVA - CORRECTION: utiliser itemTvaRate au lieu de taux fixe
+      if (!tvaByRate[itemTvaRate]) {
+        tvaByRate[itemTvaRate] = { baseHT: 0, tvaAmount: 0, count: 0 };
+      }
+      tvaByRate[itemTvaRate].baseHT += itemHT;
+      tvaByRate[itemTvaRate].tvaAmount += itemTVA;
+      tvaByRate[itemTvaRate].count += 1;
+    } else {
+      // Pour les prestations offertes, on les compte quand même dans les statistiques
+      if (!tvaByRate[itemTvaRate]) {
+        tvaByRate[itemTvaRate] = { baseHT: 0, tvaAmount: 0, count: 0 };
+      }
+      // On incrémente juste le compteur pour les prestations offertes
+      tvaByRate[itemTvaRate].count += 1;
+    }
+  });
+
+  const totalTTC = totalHT + totalTVA;
 
   const lotGroups = devis.selectedItems.reduce((groups, item) => {
     if (!groups[item.lotName]) groups[item.lotName] = [];
@@ -390,7 +484,9 @@ export const DevisPDFDocument = ({ devis }: { devis: Devis }) => {
               <View style={{ flex: 1, alignItems: 'flex-end' }}>
                 <View style={styles.tablePriceContainer}>
                   <Text style={styles.tablePriceText}>
-                    {items.reduce((sum, item) => sum + (item.quantite * item.prix_ht), 0).toFixed(2)} €
+                    {items.reduce((sum, item) => {
+                      return sum + (item.isOffered ? 0 : item.quantite * item.prix_ht);
+                    }, 0).toFixed(2)} €
                   </Text>
                 </View>
               </View>
@@ -410,78 +506,145 @@ export const DevisPDFDocument = ({ devis }: { devis: Devis }) => {
           </View>
           
           {/* Prestations du lot avec numérotation */}
-          {items.map((item, itemIndex) => (
-            <View key={itemIndex} style={styles.prestationCard} wrap={false}>
-              {/* Titre avec numérotation */}
-              <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 6 }}>
-                <Text style={styles.prestationNumber}>
-                  {lotIndex + 1}.{itemIndex + 1}
-                </Text>
-                <Text style={[styles.prestationTitle, { flex: 1 }]}>
-                  {item.optionLabel}
-                </Text>
-              </View>
-              
-              <Text style={styles.prestationDesc}>{item.description}</Text>
-              
-              {/* Images */}
-              {item.customImage && (
-                <View style={{ marginBottom: 10 }}>
-                  <Image 
-                    src={item.customImage} 
-                    style={{ 
-                      width: 80, 
-                      height: 60, 
-                      borderRadius: 4,
-                      borderWidth: 1,
-                      borderColor: '#E2E8F0'
-                    }} 
-                  />
+          {items.map((item, itemIndex) => {
+            const itemTvaRate = item.tva !== undefined ? item.tva : (typeof devis.tva === 'number' ? devis.tva : parseFloat(devis.tva as string) || 20);
+            const itemHT = item.prix_ht * item.quantite;
+            const itemTVA = itemHT * (itemTvaRate / 100);
+            const itemTTC = itemHT + itemTVA;
+
+            return (
+              <View key={itemIndex} style={styles.prestationCard} wrap={false}>
+                {/* Titre avec numérotation */}
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 6 }}>
+                  <Text style={styles.prestationNumber}>
+                    {lotIndex + 1}.{itemIndex + 1}
+                  </Text>
+                  <Text style={[styles.prestationTitle, { flex: 1 }]}>
+                    {item.optionLabel}
+                  </Text>
                 </View>
-              )}
-              
-              {/* Détails chiffrés stylisés */}
-              <View style={styles.detailsRow}>
-                <Text style={styles.detailLabel}>Quantité</Text>
-                <View style={styles.quantityContainer}>
+
+                {/* Badges informatifs - sans icônes */}
+                <View style={styles.badgeContainer}>
+                  {item.isOffered && (
+                    <View style={[styles.badge, styles.badgeOffered]}>
+                      <Text style={styles.badgeOfferedText}>OFFERT</Text>
+                    </View>
+                  )}
+                  <View style={[styles.badge, styles.badgeTva]}>
+                    <Text style={styles.badgeTvaText}>TVA {itemTvaRate}%</Text>
+                  </View>
+                  <View style={[styles.badge, styles.badgeCategory]}>
+                    <Text style={styles.badgeCategoryText}>{item.subcategoryName}</Text>
+                  </View>
+                </View>
+                
+                <Text style={styles.prestationDesc}>{item.description}</Text>
+                
+                {/* Images */}
+                {item.customImage && (
+                  <View style={{ marginBottom: 10 }}>
+                    <Image 
+                      src={item.customImage} 
+                      style={{ 
+                        width: 80, 
+                        height: 60, 
+                        borderRadius: 4,
+                        borderWidth: 1,
+                        borderColor: '#E2E8F0'
+                      }} 
+                    />
+                  </View>
+                )}
+                
+                {/* Détails chiffrés stylisés - sans fonds */}
+                <View style={styles.detailsRow}>
+                  <Text style={styles.detailLabel}>Quantité</Text>
                   <Text style={styles.quantityText}>
                     {item.quantite} {item.customUnit || item.unite}
                   </Text>
                 </View>
-              </View>
-              
-              <View style={styles.detailsRow}>
-                <Text style={styles.detailLabel}>Prix unitaire HT</Text>
-                <View style={styles.priceContainer}>
+                
+                <View style={styles.detailsRow}>
+                  <Text style={styles.detailLabel}>Prix unitaire HT</Text>
                   <Text style={styles.priceText}>
                     {item.prix_ht.toFixed(2)} €
                   </Text>
                 </View>
-              </View>
-              
-              <View style={[styles.detailsRow, { marginTop: 6 }]}>
-                <Text style={[styles.detailLabel, { fontWeight: 600 }]}>Total HT</Text>
-                <View style={styles.totalContainer}>
-                  <Text style={styles.totalText}>
-                    {(item.quantite * item.prix_ht).toFixed(2)} €
+
+                <View style={styles.detailsRow}>
+                  <Text style={styles.detailLabel}>TVA appliquée</Text>
+                  <Text style={styles.priceText}>
+                    {itemTvaRate}% = {itemTVA.toFixed(2)} €
                   </Text>
                 </View>
-              </View>
-              
-              {/* Pièces jointes */}
-              {item.selectedPieces && item.selectedPieces.length > 0 && (
-                <View style={styles.piecesSection}>
-                  <Text style={[styles.detailLabel, { marginBottom: 6 }]}>Pièces incluses:</Text>
-                  {item.selectedPieces.map((piece, pieceIndex) => (
-                    <View key={pieceIndex} style={styles.pieceItem}>
-                      <View style={styles.pieceBullet} />
-                      <Text style={[styles.detailValue, { fontSize: 8 }]}>{piece.name}</Text>
-                    </View>
-                  ))}
+                
+                <View style={[styles.detailsRow, { marginTop: 6 }]}>
+                  <Text style={[styles.detailLabel, { fontWeight: 600 }]}>Total HT</Text>
+                  <Text style={[styles.totalText, { 
+                    color: item.isOffered ? '#166534' : '#DC2626'
+                  }]}>
+                    {item.isOffered ? 'OFFERT' : `${itemHT.toFixed(2)} €`}
+                  </Text>
                 </View>
-              )}
-            </View>
-          ))}
+
+                <View style={styles.detailsRow}>
+                  <Text style={[styles.detailLabel, { fontWeight: 600 }]}>Total TTC</Text>
+                  {item.isOffered ? (
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <Text style={[styles.strikethrough, { fontSize: 10, marginRight: 5 }]}>
+                        {itemTTC.toFixed(2)} €
+                      </Text>
+                      <Text style={{ color: '#166534', fontSize: 12, fontWeight: 700 }}>
+                        OFFERT
+                      </Text>
+                    </View>
+                  ) : (
+                    <Text style={[styles.totalText, { 
+                      color: '#F26755',
+                      fontSize: 12,
+                      fontWeight: 700
+                    }]}>
+                      {itemTTC.toFixed(2)} €
+                    </Text>
+                  )}
+                </View>
+                
+                {/* Pièces concernées (pour calcul automatique) */}
+                {item.pieces && item.pieces.length > 0 && (
+                  <View style={styles.piecesSection}>
+                    <Text style={[styles.detailLabel, { 
+                      marginBottom: 8, 
+                      fontWeight: 600,
+                      color: '#374151'
+                    }]}>
+                      Pièces concernées:
+                    </Text>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                      {item.pieces.map((piece, pieceIndex) => (
+                        <View key={pieceIndex} style={styles.pieceTag}>
+                          <Text style={styles.pieceTagText}>{piece}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                )}
+
+                {/* Pièces jointes (selectedPieces) */}
+                {item.selectedPieces && item.selectedPieces.length > 0 && (
+                  <View style={styles.piecesSection}>
+                    <Text style={[styles.detailLabel, { marginBottom: 6 }]}>Pièces incluses:</Text>
+                    {item.selectedPieces.map((piece, pieceIndex) => (
+                      <View key={pieceIndex} style={styles.pieceItem}>
+                        <View style={styles.pieceBullet} />
+                        <Text style={[styles.detailValue, { fontSize: 8 }]}>{piece.name}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </View>
+            );
+          })}
         </Page>
       ))}
 
@@ -504,11 +667,50 @@ export const DevisPDFDocument = ({ devis }: { devis: Devis }) => {
               <Text style={styles.totalHTText}>{totalHT.toFixed(2)} €</Text>
             </View>
           </View>
-          
-          <View style={[styles.detailsRow, { marginBottom: 20 }]}>
-            <Text style={[styles.detailLabel, { fontSize: 12 }]}>TVA (20%)</Text>
-            <View style={styles.tvaContainer}>
-              <Text style={styles.tvaText}>{tva.toFixed(2)} €</Text>
+
+          {/* Détail des TVA par taux - design simplifié et CORRIGÉ */}
+          <View style={styles.tvaDetailSection}>
+            <Text style={styles.tvaDetailTitle}>Détail des TVA par taux</Text>
+            {Object.entries(tvaByRate)
+              .filter(([rate, data]) => data.baseHT > 0) // Ne montrer que les taux avec montant HT > 0
+              .sort(([a], [b]) => parseFloat(a) - parseFloat(b))
+              .map(([rate, data]) => (
+                <View key={rate} style={styles.tvaDetailRow}>
+                  <Text style={styles.tvaDetailLabel}>
+                    TVA {rate}% sur {data.baseHT.toFixed(2)} € HT ({data.count} prestation{data.count > 1 ? 's' : ''})
+                  </Text>
+                  <Text style={styles.tvaDetailAmount}>
+                    {data.tvaAmount.toFixed(2)} €
+                  </Text>
+                </View>
+              ))}
+            
+            {/* Afficher aussi les prestations offertes avec TVA 0 */}
+            {Object.entries(tvaByRate)
+              .filter(([rate, data]) => data.baseHT === 0 && data.count > 0)
+              .map(([rate, data]) => (
+                <View key={`offered-${rate}`} style={styles.tvaDetailRow}>
+                  <Text style={[styles.tvaDetailLabel, { color: '#166534' }]}>
+                    TVA {rate}% - {data.count} prestation{data.count > 1 ? 's' : ''} offerte{data.count > 1 ? 's' : ''}
+                  </Text>
+                  <Text style={[styles.tvaDetailAmount, { color: '#166534' }]}>
+                    0,00 €
+                  </Text>
+                </View>
+              ))}
+            
+            <View style={[styles.tvaDetailRow, { 
+              borderTopWidth: 1, 
+              borderTopColor: '#E2E8F0', 
+              paddingTop: 8, 
+              marginTop: 8 
+            }]}>
+              <Text style={[styles.tvaDetailLabel, { fontWeight: 700 }]}>
+                Total TVA
+              </Text>
+              <Text style={[styles.tvaDetailAmount, { fontWeight: 700, fontSize: 12 }]}>
+                {totalTVA.toFixed(2)} €
+              </Text>
             </View>
           </View>
           
