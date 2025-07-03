@@ -222,11 +222,11 @@ export const DevisPDFDocument = ({ devis }: { devis: Devis }) => {
           <Text style={styles.introText}>
             Madame, Monsieur,
             {"\n\n"}
-            Nous avons le plaisir de vous adresser notre devis détaillant l'ensemble des prestations proposées, incluant les fournitures ainsi que la main d'œuvre.
+            Nous avons le plaisir de vous adresser notre devis détaillant l&apos;ensemble des prestations proposées, incluant les fournitures ainsi que la main d&apos;œuvre.
             {"\n\n"}
-            Soucieuse de répondre au mieux à vos attentes, notre équipe reste à votre entière disposition pour toute demande d'éclaircissement ou d'ajustement. Nous mettons tout en œuvre pour que notre collaboration vous apporte pleine satisfaction.
+            Soucieuse de répondre au mieux à vos attentes, notre équipe reste à votre entière disposition pour toute demande d&apos;éclaircissement ou d&apos;ajustement. Nous mettons tout en œuvre pour que notre collaboration vous apporte pleine satisfaction.
             {"\n\n"}
-            Dans l'attente de votre retour, nous vous prions d'agréer, Madame, Monsieur, l'expression de nos salutations distinguées.
+            Dans l&apos;attente de votre retour, nous vous prions d&apos;agréer, Madame, Monsieur, l&apos;expression de nos salutations distinguées.
           </Text>
         </View>
 
@@ -312,7 +312,7 @@ export const DevisPDFDocument = ({ devis }: { devis: Devis }) => {
                     {item.selectedPieces.map((piece, pieceIndex) => (
                       <View key={pieceIndex} style={styles.pieceItem}>
                         <View style={styles.pieceBullet} />
-                        <Text style={[styles.detailValue, { fontSize: 8 }]}>{piece}</Text>
+                        <Text style={[styles.detailValue, { fontSize: 8 }]}>{piece.name}</Text>
                       </View>
                     ))}
                   </View>

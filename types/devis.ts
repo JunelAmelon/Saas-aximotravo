@@ -60,6 +60,14 @@ export interface DevisItem {
   customUnit?: string;
   originalPrix?: number;
   tva?: number; // TVA spécifique à cette prestation
+  selectedPieces?: DevisPiece[];
+}
+
+export interface DevisPiece {
+  url: string;
+  name?: string;
+  type?: string;
+  size?: number;
 }
 
 export const PIECES_DISPONIBLES = [
