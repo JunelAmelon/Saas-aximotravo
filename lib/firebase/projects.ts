@@ -41,6 +41,7 @@ export interface Project {
   firstDepositPercent: number;
   broker: any;
   amoIncluded?: boolean;
+  addressDetails?: string;
 }
 
 // Créer un nouveau projet

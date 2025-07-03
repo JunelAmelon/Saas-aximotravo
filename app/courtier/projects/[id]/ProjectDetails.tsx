@@ -16,6 +16,7 @@ import {
   Crown,
   User,
   Eye,
+  EyeOff,
   Download,
   Phone,
   Mail,
@@ -75,6 +76,7 @@ export interface User {
 }
 
 export interface ProjectDetails {
+  addressDetails?: string;
   id: string;
   name: string;
   description: string;
@@ -316,6 +318,7 @@ export const getArtisansByCourtier = async (
 import { getAuth } from "firebase/auth";
 
 export default function ProjectDetails() {
+  const [showAddressDetails, setShowAddressDetails] = useState(false);
   const [selectedDevisId, setSelectedDevisId] = useState<string | null>(null);
   const [step, setStep] = useState<
     "create" | "pieces" | "calcul" | "generation"
@@ -735,14 +738,33 @@ export default function ProjectDetails() {
                       {project?.client.email}
                     </span>
                   </div>
-                  <div className="flex items-start gap-3 group">
+                  <div
+                    className="flex items-center gap-3 group cursor-pointer select-none"
+                    onClick={() => setShowAddressDetails((v) => !v)}
+                  >
                     <div className="p-2 rounded-full bg-[#f26755]/10 group-hover:bg-[#f26755]/20 transition-colors">
                       <MapPin className="h-5 w-5 text-[#f26755]" />
                     </div>
                     <span className="text-sm text-gray-600">
                       {project?.location}
                     </span>
+                    {project?.addressDetails && (
+                      <span className="ml-2 text-[#f26755]">
+                        {showAddressDetails ? (
+                          <span className="inline-block align-middle">▼</span>
+                        ) : (
+                          <span className="inline-block align-middle">▶</span>
+                        )}
+                      </span>
+                    )}
                   </div>
+                  {project?.addressDetails && showAddressDetails && (
+                    <div className="flex items-start gap-3 group ml-8 mt-1">
+                      <span className="text-sm text-gray-500 italic">
+                        {project.addressDetails}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -961,13 +983,29 @@ export default function ProjectDetails() {
             aria-expanded={showFilters}
             aria-controls="devis-filters"
           >
-            <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707l-6.414 6.414A1 1 0 0013 13.414V19a1 1 0 01-1.447.894l-2-1A1 1 0 019 18v-4.586a1 1 0 00-.293-.707L2.293 6.707A1 1 0 012 6V4z" /></svg>
+            <svg
+              className="h-4 w-4 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707l-6.414 6.414A1 1 0 0013 13.414V19a1 1 0 01-1.447.894l-2-1A1 1 0 019 18v-4.586a1 1 0 00-.293-.707L2.293 6.707A1 1 0 012 6V4z"
+              />
+            </svg>
             <span>Filtres</span>
-            <span className="ml-1">{showFilters ? '▲' : '▼'}</span>
+            <span className="ml-1">{showFilters ? "▲" : "▼"}</span>
           </button>
           <div
             id="devis-filters"
-            className={`grid grid-cols-1 md:grid-cols-2 gap-2 mt-1 transition-all duration-200 ${showFilters ? 'opacity-100 max-h-40' : 'opacity-0 max-h-0 pointer-events-none overflow-hidden'}`}
+            className={`grid grid-cols-1 md:grid-cols-2 gap-2 mt-1 transition-all duration-200 ${
+              showFilters
+                ? "opacity-100 max-h-40"
+                : "opacity-0 max-h-0 pointer-events-none overflow-hidden"
+            }`}
             aria-hidden={!showFilters}
           >
             <input

@@ -100,6 +100,7 @@ export interface ProjectDetails {
   client: User;
   artisans?: User[];
   amoIncluded?: boolean;
+  addressDetails?: string;
 }
 
 // --- SERVICES & FONCTIONS UTILITAIRES FIRESTORE ---
@@ -267,6 +268,8 @@ export const getArtisansByCourtier = async (
 import { getAuth } from "firebase/auth";
 
 export default function ProjectDetails() {
+  // État pour afficher/masquer les détails d'adresse
+  const [showAddressDetails, setShowAddressDetails] = useState<boolean>(false);
   // ... (existing hooks)
   // State to track invitation acceptance
   const [invitationAccepted, setInvitationAccepted] = useState<boolean>(false);
@@ -707,14 +710,33 @@ export default function ProjectDetails() {
                           {project?.client.email}
                         </span>
                       </div>
-                      <div className="flex items-start gap-3 group">
+                      <div
+                        className="flex items-center gap-3 group cursor-pointer select-none"
+                        onClick={() => setShowAddressDetails((v) => !v)}
+                      >
                         <div className="p-2 rounded-full bg-[#f26755]/10 group-hover:bg-[#f26755]/20 transition-colors">
                           <MapPin className="h-5 w-5 text-[#f26755]" />
                         </div>
                         <span className="text-sm text-gray-600">
                           {project?.location}
                         </span>
+                        {project?.addressDetails && (
+                          <span className="ml-2 text-[#f26755]">
+                            {showAddressDetails ? (
+                              <span className="inline-block align-middle">▼</span>
+                            ) : (
+                              <span className="inline-block align-middle">▶</span>
+                            )}
+                          </span>
+                        )}
                       </div>
+                      {project?.addressDetails && showAddressDetails && (
+                        <div className="flex items-start gap-3 group ml-8 mt-1">
+                          <span className="text-sm text-gray-500 italic">
+                            {project.addressDetails}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </>
                 ) : (

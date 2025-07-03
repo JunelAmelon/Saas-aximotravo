@@ -45,6 +45,7 @@ export default function NewProject() {
     progress: 0,
     type: "",
     location: "",
+    addressDetails: "",
     firstDepositPercent: "",
     description: "",
     image: "",
@@ -97,6 +98,7 @@ export default function NewProject() {
         progress: 0,
         type: "",
         location: "",
+        addressDetails: "",
         firstDepositPercent: "",
         description: "",
         image: "",
@@ -279,6 +281,18 @@ export default function NewProject() {
               onChange={handleChange}
               className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f26755] focus:border-transparent transition-all shadow-sm"
               placeholder="Adresse ou ville"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Informations complémentaires sur l'adresse</label>
+            <textarea
+              name="addressDetails"
+              value={form.addressDetails}
+              onChange={handleChange}
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f26755] focus:border-transparent transition-all shadow-sm"
+              placeholder="Étage, code porte, bâtiment, précisions..."
+              rows={2}
             />
           </div>
 

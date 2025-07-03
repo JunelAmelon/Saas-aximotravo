@@ -25,6 +25,7 @@ export interface CreateProjectInput {
   clientEmail: string;
   image?: string;
   amoIncluded?: boolean;
+  addressDetails?: string;
 }
 
 export function useCreateProject() {
@@ -48,6 +49,7 @@ export function useCreateProject() {
         clientEmail,
         image,
         amoIncluded,
+        addressDetails,
         ...projectData
       } = data;
       // 1. Vérifier si le client existe déjà
@@ -120,6 +122,7 @@ export function useCreateProject() {
         broker,
         image: image || undefined,
         amoIncluded: amoIncluded ?? false,
+        addressDetails: addressDetails || '',
       });
       // 6. Créer automatiquement le premier accompte (nouvelle structure)
       const accompteAmount = data.budget * (data.firstDepositPercent / 100);
