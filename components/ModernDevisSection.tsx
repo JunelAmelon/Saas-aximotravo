@@ -15,8 +15,8 @@ interface DevisItem {
 }
 
 interface ModernDevisSectionProps {
-  activeDevisTab: string;
-  setActiveDevisTab: (tab: string) => void;
+  activeDevisTab: "generes" | "uploades";
+  setActiveDevisTab: (tab: "generes" | "uploades") => void;
   paginatedDevis: DevisItem[];
   listDevisConfigs: DevisItem[];
   paginatedDevisConfigs: DevisItem[];
@@ -581,3 +581,4 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
   );
 };
 
+ 
