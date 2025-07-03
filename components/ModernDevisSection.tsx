@@ -296,43 +296,46 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
 
   return (
     <div className="mt-8">
-      {/* Onglets modernes */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex bg-gray-100 rounded-xl p-1">
+      {/* Onglets modernes - RESPONSIVE */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div className="flex bg-gray-100 rounded-xl p-1 w-full sm:w-auto">
           <button
-            className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
+            className={`flex-1 sm:flex-none px-4 sm:px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
               activeDevisTab === "uploades"
                 ? "bg-white text-[#f26755] shadow-sm"
                 : "text-gray-600 hover:text-gray-800"
             }`}
             onClick={() => setActiveDevisTab("uploades")}
           >
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center sm:justify-start gap-2">
               <FileText className="h-4 w-4" />
-              Devis importés
+              <span className="hidden sm:inline">Devis importés</span>
+              <span className="sm:hidden">Importés</span>
             </div>
           </button>
           <button
-            className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
+            className={`flex-1 sm:flex-none px-4 sm:px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
               activeDevisTab === "generes"
                 ? "bg-white text-[#f26755] shadow-sm"
                 : "text-gray-600 hover:text-gray-800"
             }`}
             onClick={() => setActiveDevisTab("generes")}
           >
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center sm:justify-start gap-2">
               <Calendar className="h-4 w-4" />
-              Devis créés
+              <span className="hidden sm:inline">Devis créés</span>
+              <span className="sm:hidden">Créés</span>
             </div>
           </button>
         </div>
 
         <button
           onClick={() => setShowCreateModal(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#f26755] hover:bg-[#e55a4a] text-white rounded-xl font-semibold text-sm shadow-lg hover:shadow-xl transition-all duration-200"
+          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#f26755] hover:bg-[#e55a4a] text-white rounded-xl font-semibold text-sm shadow-lg hover:shadow-xl transition-all duration-200"
         >
           <Plus className="h-4 w-4" />
-          Créer un devis
+          <span className="hidden sm:inline">Créer un devis</span>
+          <span className="sm:hidden">Créer</span>
         </button>
       </div>
 
