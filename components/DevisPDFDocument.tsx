@@ -765,7 +765,7 @@ export const DevisPDFDocument = ({ devis }: { devis: Devis }) => {
         <View style={[styles.signatureSection, { marginTop: 60 }]}>
           <View style={styles.signatureLine}>
             <Text style={{ fontSize: 10, color: '#718096' }}>
-              Fait à Paris, le {new Date().toLocaleDateString('fr-FR')}
+              Fait le {new Date().toLocaleDateString('fr-FR')}
             </Text>
             <Text style={{ marginTop: 20, fontWeight: 600, fontSize: 11 }}>
               Signature du client

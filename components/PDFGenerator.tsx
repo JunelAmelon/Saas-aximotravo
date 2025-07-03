@@ -2,12 +2,13 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Download, FileText } from 'lucide-react';
+import { Download, Eye, X } from 'lucide-react';
 import { Loader } from './ui/Loader';
 import { addProjectDocument } from '@/hooks/useProjectDocuments';
 import { useDevisConfig } from '@/components/DevisConfigContext';
 import { useParams } from 'next/navigation';
 import { DevisPDFDocument } from './DevisPDFDocument';
+import { PDFPreview } from './PDFPreview';
 import { pdf } from '@react-pdf/renderer';
 import { Devis } from '@/types/devis';
 
@@ -16,6 +17,7 @@ export const PDFGenerator: React.FC<{ className?: string; iconOnly?: boolean }> 
   iconOnly,
 }) => {
   const [loading, setLoading] = React.useState(false);
+  const [showPreview, setShowPreview] = React.useState(false);
   const params = useParams() || {};
   const { devisConfig } = useDevisConfig();
   const devis = devisConfig as Devis;
@@ -44,10 +46,22 @@ export const PDFGenerator: React.FC<{ className?: string; iconOnly?: boolean }> 
         return data.secure_url;
       }
 
-      // Calcul du montant TTC
-      const totalHT = devis.selectedItems.reduce((sum, item) => sum + (item.quantite * item.prix_ht), 0);
-      const tvaRate = typeof devis.tva === 'number' ? devis.tva : parseFloat(devis.tva as string) || 20;
-      const totalTTC = totalHT * (1 + tvaRate / 100);
+      // Calcul du montant TTC avec TVA variable
+      let totalHT = 0;
+      let totalTVA = 0;
+
+      devis.selectedItems.forEach(item => {
+        if (!item.isOffered) {
+          const itemTvaRate = item.tva !== undefined ? item.tva : (typeof devis.tva === 'number' ? devis.tva : parseFloat(devis.tva as string) || 20);
+          const itemHT = item.prix_ht * item.quantite;
+          const itemTVA = itemHT * (itemTvaRate / 100);
+
+          totalHT += itemHT;
+          totalTVA += itemTVA;
+        }
+      });
+
+      const totalTTC = totalHT + totalTVA;
 
       // 2. Upload PDF to Cloudinary
       const pdfUrl = await uploadPDFToCloudinary(pdfBlob, fileName);
@@ -97,9 +111,60 @@ export const PDFGenerator: React.FC<{ className?: string; iconOnly?: boolean }> 
   };
 
   return (
-    <Button onClick={generatePDF} className={className} disabled={loading}>
-      {loading ? <Loader size={20} /> : <Download className="h-4 w-4" />}
-      {!iconOnly && !loading && <span className="ml-2">Télécharger PDF</span>}
-    </Button>
+    <>
+      <div className="flex gap-2">
+        {/* Bouton Aperçu */}
+        <Button 
+          onClick={() => setShowPreview(true)} 
+          variant="outline"
+          className={className}
+          disabled={loading}
+        >
+          <Eye className="h-4 w-4" />
+          {!iconOnly && <span className="ml-2">Aperçu</span>}
+        </Button>
+
+        {/* Bouton Télécharger */}
+        <Button onClick={generatePDF} className={className} disabled={loading}>
+          {loading ? <Loader size={20} /> : <Download className="h-4 w-4" />}
+          {!iconOnly && !loading && <span className="ml-2">Télécharger PDF</span>}
+        </Button>
+      </div>
+
+      {/* Modal de prévisualisation */}
+      {showPreview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-6xl max-h-[95vh] bg-white rounded-2xl shadow-2xl overflow-hidden">
+            <div className="bg-gradient-to-r from-[#F26755] to-[#e55a4a] px-6 py-4 text-white flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold">Aperçu du devis PDF</h3>
+                <p className="text-sm text-white/90">Prévisualisation de votre devis</p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={generatePDF}
+                  className="bg-white text-[#F26755] hover:bg-gray-100 rounded-lg"
+                  disabled={loading}
+                >
+                  {loading ? <Loader size={16} /> : <Download className="h-4 w-4" />}
+                  {!loading && <span className="ml-2">Télécharger</span>}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowPreview(false)}
+                  className="text-white hover:bg-white/20 rounded-lg"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            <div className="h-[calc(95vh-120px)] overflow-auto">
+              <PDFPreview devis={devis} />
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
