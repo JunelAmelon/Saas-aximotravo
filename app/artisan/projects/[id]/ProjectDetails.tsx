@@ -285,15 +285,12 @@ export const getArtisansByCourtier = async (
 import { getAuth } from "firebase/auth";
 
 export default function ProjectDetails() {
-<<<<<<< HEAD
   // État pour afficher/masquer les détails d'adresse
   const [showAddressDetails, setShowAddressDetails] = useState<boolean>(false);
   // ... (existing hooks)
-=======
   const [currentPageUpload, setCurrentPageUpload] = useState(1);
   const itemsPerPageUpload = 5;
   const [activeDevisTab, setActiveDevisTab] = React.useState<'generes' | 'uploades'>('uploades');
->>>>>>> 99fdfe942d924751b16a9ff627a22a9e5b3e933b
   // State to track invitation acceptance
   const [invitationAccepted, setInvitationAccepted] = useState<boolean>(false);
   const [invitationStatus, setInvitationStatus] = useState<"none" | "pending" | "accepted">("none");
