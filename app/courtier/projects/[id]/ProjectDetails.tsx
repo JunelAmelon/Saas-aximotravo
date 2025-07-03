@@ -1036,7 +1036,7 @@ export default function ProjectDetails() {
             onClick={() => setActiveDevisTab("uploades")}
             type="button"
           >
-            Devis
+            Devis importés
           </button>
           <button
             className={
