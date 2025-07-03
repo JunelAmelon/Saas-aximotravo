@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SurfaceData } from '@/types/devis';
@@ -21,6 +22,7 @@ export const CalculSurfaceModal: React.FC<CalculSurfaceModalProps> = ({
   onNext, 
   onBack
 }) => {
+  const router = useRouter();
   const { devisConfig, setDevisConfigField } = useDevisConfig();
   const [localData, setLocalData] = useState<SurfaceData[]>([]);
 
@@ -196,7 +198,7 @@ export const CalculSurfaceModal: React.FC<CalculSurfaceModalProps> = ({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={onBack}
+                onClick={() => router.back()}
                 className="h-9 w-9 p-0 text-white/70 hover:text-white hover:bg-white/20 rounded-lg"
               >
                 <ArrowLeft className="h-4 w-4" />
