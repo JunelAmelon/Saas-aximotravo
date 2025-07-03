@@ -289,6 +289,7 @@ export default function ProjectDetails() {
   const [activeDevisTab, setActiveDevisTab] = React.useState<'generes' | 'uploades'>('uploades');
   // State to track invitation acceptance
   const [invitationAccepted, setInvitationAccepted] = useState<boolean>(false);
+  const [invitationStatus, setInvitationStatus] = useState<"none" | "pending" | "accepted">("none");
   // --- Initialisation des paramètres et id projet ---
   const params = useParams<{ id: string; tab?: string }>();
   const { id } = params ?? {};
@@ -436,6 +437,31 @@ export default function ProjectDetails() {
     checkInvitationAccepted();
   }, [id, currentUserId]);
 
+  useEffect(() => {
+    async function checkInvitationStatus() {
+      if (!id || !currentUserId) {
+        setInvitationStatus("none");
+        return;
+      }
+      const q = query(
+        collection(db, "artisan_projet"),
+        where("projetId", "==", id),
+        where("artisanId", "==", currentUserId),
+        where("status", "in", ["pending", "accepté"])
+      );
+      const snapshot = await getDocs(q);
+      if (snapshot.empty) {
+        setInvitationStatus("none");
+      } else {
+        const status = snapshot.docs[0].data().status;
+        if (status === "pending") setInvitationStatus("pending");
+        else if (status === "accepté") setInvitationStatus("accepted");
+        else setInvitationStatus("none");
+      }
+    }
+    checkInvitationStatus();
+  }, [id, currentUserId]);
+
   // Récupération des devis du projet
   const { currentUser } = useAuth();
   useEffect(() => {
@@ -561,6 +587,14 @@ export default function ProjectDetails() {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#f21515]"></div>
+      </div>
+    );
+  }
+
+  if (invitationStatus === "none") {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <p className="text-gray-500">Vous n’avez pas l’autorisation d’accéder à ce projet.</p>
       </div>
     );
   }
