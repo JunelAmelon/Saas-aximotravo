@@ -147,7 +147,8 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
           label: item.optionLabel,
           unite: item.unite,
           prix_ht: item.prix_ht,
-          description: item.description
+          description: item.description,
+          tva: item.tva ?? 10
         };
         const autoQuantity = calculateAutoQuantity(option, pieces);
 
