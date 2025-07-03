@@ -119,6 +119,73 @@ const styles = StyleSheet.create({
     fontWeight: 600,
     color: '#2D3748'
   },
+  // Styles pour les prix et unités
+  priceContainer: {
+    backgroundColor: '#F0F9FF',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#BAE6FD'
+  },
+  priceText: {
+    fontSize: 9,
+    fontWeight: 700,
+    color: '#0369A1'
+  },
+  unitContainer: {
+    backgroundColor: '#F0FDF4',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 3,
+    borderWidth: 1,
+    borderColor: '#BBF7D0'
+  },
+  unitText: {
+    fontSize: 8,
+    fontWeight: 600,
+    color: '#166534'
+  },
+  totalContainer: {
+    backgroundColor: '#FEF2F2',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: '#FECACA'
+  },
+  totalText: {
+    fontSize: 10,
+    fontWeight: 700,
+    color: '#DC2626'
+  },
+  quantityContainer: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 3,
+    borderWidth: 1,
+    borderColor: '#FDE68A'
+  },
+  quantityText: {
+    fontSize: 8,
+    fontWeight: 600,
+    color: '#92400E'
+  },
+  // Styles pour les montants du tableau
+  tablePriceContainer: {
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#A7F3D0'
+  },
+  tablePriceText: {
+    fontSize: 10,
+    fontWeight: 700,
+    color: '#059669'
+  },
   // Section pièces jointes
   piecesSection: {
     marginTop: 10,
@@ -147,6 +214,45 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     borderLeftColor: '#F26755'
   },
+  totalHTContainer: {
+    backgroundColor: '#F0F9FF',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: '#BAE6FD'
+  },
+  totalHTText: {
+    fontSize: 11,
+    fontWeight: 700,
+    color: '#0369A1'
+  },
+  tvaContainer: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: '#FDE68A'
+  },
+  tvaText: {
+    fontSize: 11,
+    fontWeight: 700,
+    color: '#92400E'
+  },
+  totalTTCContainer: {
+    backgroundColor: '#FEF2F2',
+    paddingHorizontal: 15,
+    paddingVertical: 6,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#F26755'
+  },
+  totalTTCText: {
+    fontSize: 14,
+    fontWeight: 700,
+    color: '#F26755'
+  },
   // Paiements stylés
   paymentItem: {
     flexDirection: 'row',
@@ -165,6 +271,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 10
+  },
+  paymentAmountContainer: {
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#A7F3D0'
+  },
+  paymentAmountText: {
+    fontSize: 10,
+    fontWeight: 700,
+    color: '#059669'
   },
   // Signature élégante
   signatureSection: {
@@ -240,9 +359,13 @@ export const DevisPDFDocument = ({ devis }: { devis: Devis }) => {
           {Object.entries(lotGroups).map(([lotName, items], index) => (
             <View key={index} style={[styles.tableRow, { backgroundColor: index % 2 === 0 ? '#FFFFFF' : '#F8FAFC' }]}>
               <Text style={{ flex: 3 }}>Lot {index + 1} - {lotName}</Text>
-              <Text style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
-                {items.reduce((sum, item) => sum + (item.quantite * item.prix_ht), 0).toFixed(2)} €
-              </Text>
+              <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                <View style={styles.tablePriceContainer}>
+                  <Text style={styles.tablePriceText}>
+                    {items.reduce((sum, item) => sum + (item.quantite * item.prix_ht), 0).toFixed(2)} €
+                  </Text>
+                </View>
+              </View>
             </View>
           ))}
         </View>
@@ -283,26 +406,32 @@ export const DevisPDFDocument = ({ devis }: { devis: Devis }) => {
                   </View>
                 )}
                 
-                {/* Détails chiffrés */}
+                {/* Détails chiffrés stylisés */}
                 <View style={styles.detailsRow}>
                   <Text style={styles.detailLabel}>Quantité</Text>
-                  <Text style={[styles.detailValue, { color: '#F26755' }]}>
-                    {item.quantite} {item.customUnit || item.unite}
-                  </Text>
+                  <View style={styles.quantityContainer}>
+                    <Text style={styles.quantityText}>
+                      {item.quantite} {item.customUnit || item.unite}
+                    </Text>
+                  </View>
                 </View>
                 
                 <View style={styles.detailsRow}>
                   <Text style={styles.detailLabel}>Prix unitaire HT</Text>
-                  <Text style={styles.detailValue}>
-                    {item.prix_ht.toFixed(2)} €
-                  </Text>
+                  <View style={styles.priceContainer}>
+                    <Text style={styles.priceText}>
+                      {item.prix_ht.toFixed(2)} €
+                    </Text>
+                  </View>
                 </View>
                 
                 <View style={[styles.detailsRow, { marginTop: 6 }]}>
                   <Text style={[styles.detailLabel, { fontWeight: 600 }]}>Total HT</Text>
-                  <Text style={[styles.detailValue, { fontSize: 10, color: '#2D3748' }]}>
-                    {(item.quantite * item.prix_ht).toFixed(2)} €
-                  </Text>
+                  <View style={styles.totalContainer}>
+                    <Text style={styles.totalText}>
+                      {(item.quantite * item.prix_ht).toFixed(2)} €
+                    </Text>
+                  </View>
                 </View>
                 
                 {/* Pièces jointes */}
@@ -322,18 +451,22 @@ export const DevisPDFDocument = ({ devis }: { devis: Devis }) => {
           </View>
         ))}
 
-        {/* Section Totaux */}
+        {/* Section Totaux avec prix stylisés */}
         <View style={styles.totalsSection}>
           <Text style={{ fontWeight: 700, color: '#2D3748', marginBottom: 12 }}>RÉCAPITULATIF FINANCIER</Text>
           
           <View style={[styles.detailsRow, { marginBottom: 8 }]}>
             <Text style={styles.detailLabel}>Total HT</Text>
-            <Text style={styles.detailValue}>{totalHT.toFixed(2)} €</Text>
+            <View style={styles.totalHTContainer}>
+              <Text style={styles.totalHTText}>{totalHT.toFixed(2)} €</Text>
+            </View>
           </View>
           
           <View style={[styles.detailsRow, { marginBottom: 12 }]}>
             <Text style={styles.detailLabel}>TVA (20%)</Text>
-            <Text style={styles.detailValue}>{tva.toFixed(2)} €</Text>
+            <View style={styles.tvaContainer}>
+              <Text style={styles.tvaText}>{tva.toFixed(2)} €</Text>
+            </View>
           </View>
           
           <View style={[styles.detailsRow, { 
@@ -342,17 +475,15 @@ export const DevisPDFDocument = ({ devis }: { devis: Devis }) => {
             borderTopColor: '#E2E8F0' 
           }]}>
             <Text style={[styles.detailLabel, { fontWeight: 700 }]}>Total TTC</Text>
-            <Text style={[styles.detailValue, { 
-              fontSize: 12, 
-              color: '#F26755',
-              fontWeight: 700 
-            }]}>
-              {totalTTC.toFixed(2)} €
-            </Text>
+            <View style={styles.totalTTCContainer}>
+              <Text style={styles.totalTTCText}>
+                {totalTTC.toFixed(2)} €
+              </Text>
+            </View>
           </View>
         </View>
 
-        {/* Modalités de paiement */}
+        {/* Modalités de paiement avec montants stylisés */}
         <View style={{ marginTop: 25 }}>
           <Text style={{ 
             fontWeight: 700, 
@@ -375,7 +506,9 @@ export const DevisPDFDocument = ({ devis }: { devis: Devis }) => {
                 </View>
                 <Text style={{ fontSize: 10 }}>{payment.label}</Text>
               </View>
-              <Text style={{ fontWeight: 600 }}>{payment.amount.toFixed(2)} €</Text>
+              <View style={styles.paymentAmountContainer}>
+                <Text style={styles.paymentAmountText}>{payment.amount.toFixed(2)} €</Text>
+              </View>
             </View>
           ))}
         </View>
