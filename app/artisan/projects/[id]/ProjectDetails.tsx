@@ -61,6 +61,7 @@ import { CalculSurfaceModal } from "@/components/CalculSurfaceModal";
 import { DevisGenerationPage } from "@/components/DevisGenerationPage";
 import { useDevis } from "@/hooks/useDevis";
 import { DevisConfigProvider } from "@/components/DevisConfigContext";
+import { useAuth } from "@/lib/contexts/AuthContext";
 
 // --- TYPES & INTERFACES ---
 export interface User {
@@ -140,6 +141,22 @@ export const getUserById = async (
 /**
  * Récupère les détails d'un projet enrichi avec client et courtier
  */
+export const getDevisConfigForProject = async (projectId: string, userId: string) => {
+  try {
+    const devisConfigRef = collection(db, "devisConfig");
+    const q = query(
+      devisConfigRef,
+      where("projectId", "==", projectId),
+      where("userId", "==", userId)
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  } catch (error) {
+    console.error("Erreur lors de la récupération des devisConfig:", error);
+    return [];
+  }
+};
+
 export const getProjectDetail = async (
   id: string
 ): Promise<ProjectDetails | null> => {
@@ -268,11 +285,18 @@ export const getArtisansByCourtier = async (
 import { getAuth } from "firebase/auth";
 
 export default function ProjectDetails() {
+<<<<<<< HEAD
   // État pour afficher/masquer les détails d'adresse
   const [showAddressDetails, setShowAddressDetails] = useState<boolean>(false);
   // ... (existing hooks)
+=======
+  const [currentPageUpload, setCurrentPageUpload] = useState(1);
+  const itemsPerPageUpload = 5;
+  const [activeDevisTab, setActiveDevisTab] = React.useState<'generes' | 'uploades'>('uploades');
+>>>>>>> 99fdfe942d924751b16a9ff627a22a9e5b3e933b
   // State to track invitation acceptance
   const [invitationAccepted, setInvitationAccepted] = useState<boolean>(false);
+  const [invitationStatus, setInvitationStatus] = useState<"none" | "pending" | "accepted">("none");
   // --- Initialisation des paramètres et id projet ---
   const params = useParams<{ id: string; tab?: string }>();
   const { id } = params ?? {};
@@ -351,6 +375,7 @@ export default function ProjectDetails() {
   const handleCalculStep = () => setStep("calcul");
   const handleGenerationStep = () => setStep("generation");
   // ..
+  const [listDevisConfigs, setListDevisConfigs] = useState<any[]>([]);
   const [project, setProject] = useState<ProjectDetails | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -371,6 +396,12 @@ export default function ProjectDetails() {
     id || ""
   );
   const router = useRouter();
+
+  const totalUploadPages = Math.ceil(listDevisConfigs.length / itemsPerPageUpload);
+  const paginatedDevisConfigs = listDevisConfigs.slice(
+    (currentPageUpload - 1) * itemsPerPageUpload,
+    currentPageUpload * itemsPerPageUpload
+  );
 
   useEffect(() => {
     const fetchData = async () => {
@@ -413,11 +444,38 @@ export default function ProjectDetails() {
     checkInvitationAccepted();
   }, [id, currentUserId]);
 
-  // Récupération des devis du projet
   useEffect(() => {
-    if (!id) return;
+    async function checkInvitationStatus() {
+      if (!id || !currentUserId) {
+        setInvitationStatus("none");
+        return;
+      }
+      const q = query(
+        collection(db, "artisan_projet"),
+        where("projetId", "==", id),
+        where("artisanId", "==", currentUserId),
+        where("status", "in", ["pending", "accepté"])
+      );
+      const snapshot = await getDocs(q);
+      if (snapshot.empty) {
+        setInvitationStatus("none");
+      } else {
+        const status = snapshot.docs[0].data().status;
+        if (status === "pending") setInvitationStatus("pending");
+        else if (status === "accepté") setInvitationStatus("accepted");
+        else setInvitationStatus("none");
+      }
+    }
+    checkInvitationStatus();
+  }, [id, currentUserId]);
+
+  // Récupération des devis du projet
+  const { currentUser } = useAuth();
+  useEffect(() => {
+    if (!id || !currentUser?.uid) return;
     getDevisForProject(id).then(setDevis);
-  }, [id]);
+    getDevisConfigForProject(id, currentUser.uid).then(setListDevisConfigs);
+  }, [id, currentUser?.uid]);
 
   // Récupération des artisans acceptés du projet
   useEffect(() => {
@@ -465,6 +523,25 @@ export default function ProjectDetails() {
       return () => clearTimeout(timeout);
     }
   }, [pendingInvitation.refused, router]);
+
+  const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
+  const handleUpdateDevisConfigStatus = async (devisConfigId: string, newStatus: string) => {
+    setUpdatingStatusId(devisConfigId); // Active le loader pour cette ligne
+    try {
+      const devisConfigRef = doc(db, "devisConfig", devisConfigId);
+      await updateDoc(devisConfigRef, { status: newStatus });
+
+      setListDevisConfigs((prev) =>
+        prev.map((item) =>
+          item.id === devisConfigId ? { ...item, status: newStatus } : item
+        )
+      );
+    } catch (error) {
+      alert("Erreur lors de la mise à jour du statut du devisConfig");
+    } finally {
+      setUpdatingStatusId(null); // Désactive le loader
+    }
+  };
 
   const handleSendRequest = async () => {
     if (!selectedArtisanIds.length || !project?.id) return;
@@ -521,6 +598,14 @@ export default function ProjectDetails() {
     );
   }
 
+  if (invitationStatus === "none") {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <p className="text-gray-500">Vous n’avez pas l’autorisation d’accéder à ce projet.</p>
+      </div>
+    );
+  }
+
   // Afficher un message d'erreur
   if (error) {
     return (
@@ -548,6 +633,12 @@ export default function ProjectDetails() {
       </div>
     );
   }
+
+  // Fonction pour ouvrir la génération/édition d'un devis existant
+  const handleEditDevisConfig = (devisConfigId: string) => {
+    setSelectedDevisId(devisConfigId);
+    setStep("generation");
+  };
 
   return (
     <div className="space-y-8">
@@ -674,8 +765,8 @@ export default function ProjectDetails() {
                           }
                           alt={
                             project?.client.firstName +
-                              " " +
-                              project?.client.lastName || ""
+                            " " +
+                            project?.client.lastName || ""
                           }
                           fill
                           className="object-cover"
@@ -818,106 +909,106 @@ export default function ProjectDetails() {
             </div>
           </div>
         </div>
-</div>
-        {/* Section invitation artisan : seulement si l'invitation de l'artisan connecté pour ce projet est 'pending' */}
-        {currentUserId &&
-          (() => {
-            if (pendingInvitation?.pending) {
-              return (
-                <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
-                  <h4 className="text-sm font-medium mb-4 flex items-center text-gray-900">
-                    Invitation en attente
-                    <span className="ml-2 p-2 rounded-full bg-[#f26755]/10">
-                      <User className="h-4 w-4 text-[#f26755]" />
-                    </span>
-                  </h4>
-                  <div className="bg-white p-4 rounded-md border border-gray-100 flex flex-col gap-4 items-center">
-                    <span className="text-sm text-gray-600 text-center">
-                      Vous avez été invité sur ce projet. Acceptez ou refusez
-                      l&apos;invitation pour participer.
-                    </span>
-                    {pendingInvitation.refused ? (
-                      <div className="w-full flex flex-col items-center">
-                        <span className="text-sm text-red-600 flex items-center gap-2">
-                          <X className="h-4 w-4" /> Invitation refusée
-                        </span>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="flex flex-col md:flex-row gap-2 w-full">
-                          <button
-                            onClick={pendingInvitation.acceptInvitation}
-                            disabled={
-                              pendingInvitation.accepting ||
-                              pendingInvitation.accepted ||
-                              pendingInvitation.refusing
-                            }
-                            className={cn(
-                              "w-full px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2",
-                              pendingInvitation.accepted
-                                ? "bg-green-100 text-green-700 cursor-not-allowed"
-                                : "bg-[#f26755] text-white hover:bg-[#f26755]/90"
-                            )}
-                          >
-                            {pendingInvitation.accepted ? (
-                              <>
-                                <Check className="h-4 w-4" />
-                                Invitation acceptée
-                              </>
-                            ) : pendingInvitation.accepting ? (
-                              <>
-                                <span className="loader mr-2"></span>
-                                Acceptation...
-                              </>
-                            ) : (
-                              <>
-                                <Send className="h-4 w-4" />
-                                Accepter l&apos;invitation
-                              </>
-                            )}
-                          </button>
-                          <button
-                            onClick={pendingInvitation.refuseInvitation}
-                            disabled={
-                              pendingInvitation.refusing ||
+      </div>
+      {/* Section invitation artisan : seulement si l'invitation de l'artisan connecté pour ce projet est 'pending' */}
+      {currentUserId &&
+        (() => {
+          if (pendingInvitation?.pending) {
+            return (
+              <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                <h4 className="text-sm font-medium mb-4 flex items-center text-gray-900">
+                  Invitation en attente
+                  <span className="ml-2 p-2 rounded-full bg-[#f26755]/10">
+                    <User className="h-4 w-4 text-[#f26755]" />
+                  </span>
+                </h4>
+                <div className="bg-white p-4 rounded-md border border-gray-100 flex flex-col gap-4 items-center">
+                  <span className="text-sm text-gray-600 text-center">
+                    Vous avez été invité sur ce projet. Acceptez ou refusez
+                    l&apos;invitation pour participer.
+                  </span>
+                  {pendingInvitation.refused ? (
+                    <div className="w-full flex flex-col items-center">
+                      <span className="text-sm text-red-600 flex items-center gap-2">
+                        <X className="h-4 w-4" /> Invitation refusée
+                      </span>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex flex-col md:flex-row gap-2 w-full">
+                        <button
+                          onClick={pendingInvitation.acceptInvitation}
+                          disabled={
+                            pendingInvitation.accepting ||
+                            pendingInvitation.accepted ||
+                            pendingInvitation.refusing
+                          }
+                          className={cn(
+                            "w-full px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2",
+                            pendingInvitation.accepted
+                              ? "bg-green-100 text-green-700 cursor-not-allowed"
+                              : "bg-[#f26755] text-white hover:bg-[#f26755]/90"
+                          )}
+                        >
+                          {pendingInvitation.accepted ? (
+                            <>
+                              <Check className="h-4 w-4" />
+                              Invitation acceptée
+                            </>
+                          ) : pendingInvitation.accepting ? (
+                            <>
+                              <span className="loader mr-2"></span>
+                              Acceptation...
+                            </>
+                          ) : (
+                            <>
+                              <Send className="h-4 w-4" />
+                              Accepter l&apos;invitation
+                            </>
+                          )}
+                        </button>
+                        <button
+                          onClick={pendingInvitation.refuseInvitation}
+                          disabled={
+                            pendingInvitation.refusing ||
+                            pendingInvitation.refused ||
+                            pendingInvitation.accepted
+                          }
+                          className={cn(
+                            "w-full px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2 border border-red-500 text-red-600 bg-white hover:bg-red-50",
+                            (pendingInvitation.refusing ||
                               pendingInvitation.refused ||
-                              pendingInvitation.accepted
-                            }
-                            className={cn(
-                              "w-full px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2 border border-red-500 text-red-600 bg-white hover:bg-red-50",
-                              (pendingInvitation.refusing ||
-                                pendingInvitation.refused ||
-                                pendingInvitation.accepted) &&
-                                "opacity-60 cursor-not-allowed"
-                            )}
-                          >
-                            {pendingInvitation.refusing ? (
-                              <>
-                                <span className="loader mr-2"></span>
-                                Refus en cours...
-                              </>
-                            ) : (
-                              <>
-                                <X className="h-4 w-4" />
-                                Refuser l&apos;invitation
-                              </>
-                            )}
-                          </button>
-                        </div>
-                        {pendingInvitation.error && (
-                          <span className="text-xs text-red-500 mt-2">
-                            {pendingInvitation.error}
-                          </span>
-                        )}
-                      </>
-                    )}
-                  </div>
+                              pendingInvitation.accepted) &&
+                            "opacity-60 cursor-not-allowed"
+                          )}
+                        >
+                          {pendingInvitation.refusing ? (
+                            <>
+                              <span className="loader mr-2"></span>
+                              Refus en cours...
+                            </>
+                          ) : (
+                            <>
+                              <X className="h-4 w-4" />
+                              Refuser l&apos;invitation
+                            </>
+                          )}
+                        </button>
+                      </div>
+                      {pendingInvitation.error && (
+                        <span className="text-xs text-red-500 mt-2">
+                          {pendingInvitation.error}
+                        </span>
+                      )}
+                    </>
+                  )}
                 </div>
-              );
-            }
-            return null;
-          })()}
-      
+              </div>
+            );
+          }
+          return null;
+        })()}
+
       <div className="overflow-x-auto">
         <div className="flex justify-end mb-2">
           <button
@@ -932,211 +1023,459 @@ export default function ProjectDetails() {
         <h4 className="text-base font-semibold mb-2">Liste des devis</h4>
         {/* Filtres devis */}
         <div className="mb-2 w-full">
-  {/* Bouton filtre */}
-  <button
-    type="button"
-    className="flex items-center gap-1 text-xs text-gray-500 border border-gray-200 rounded px-2 py-1 bg-white hover:bg-gray-50 transition-all shadow-sm mb-1"
-    onClick={() => setShowFilters((prev) => !prev)}
-    aria-expanded={showFilters}
-    aria-controls="devis-filters"
-  >
-    <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707l-6.414 6.414A1 1 0 0013 13.414V19a1 1 0 01-1.447.894l-2-1A1 1 0 019 18v-4.586a1 1 0 00-.293-.707L2.293 6.707A1 1 0 012 6V4z" /></svg>
-    <span>Filtres</span>
-    <span className="ml-1">{showFilters ? '▲' : '▼'}</span>
-  </button>
-  {/* Champs de filtre masqués/affichés */}
-  <div
-    id="devis-filters"
-    className={`grid grid-cols-1 md:grid-cols-2 gap-2 mt-1 transition-all duration-200 ${showFilters ? 'opacity-100 max-h-40' : 'opacity-0 max-h-0 pointer-events-none overflow-hidden'}`}
-    aria-hidden={!showFilters}
-  >
-    <input
-      type="text"
-      placeholder="Titre"
-      name="titre"
-      value={filters.titre}
-      onChange={handleFilterChange}
-      className="w-full border border-gray-200 bg-transparent rounded px-2 py-1 text-xs text-gray-500 placeholder-gray-300 focus:ring-1 focus:ring-gray-300 focus:border-gray-300 transition-all"
-    />
-    <select
-      name="statut"
-      value={filters.statut}
-      onChange={handleFilterChange}
-      className="w-full border border-gray-200 bg-transparent rounded px-2 py-1 text-xs text-gray-500 focus:ring-1 focus:ring-gray-300 focus:border-gray-300 transition-all"
-    >
-      <option value="">Tous statuts</option>
-      <option value="Validé">Validé</option>
-      <option value="En attente">En attente</option>
-      <option value="Refusé">Refusé</option>
-      <option value="Annulé">Annulé</option>
-      <option value="Envoyé">Envoyé</option>
-    </select>
-  </div>
-</div>
-
-        {/* Tableau paginé/filtré */}
-        <div className="overflow-x-auto rounded-lg border border-gray-100 bg-white">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Titre
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Type
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Statut
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Montant (€)
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-100">
-              {paginatedDevis.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="text-center py-4 text-gray-400">
-                    Aucun devis trouvé.
-                  </td>
-                </tr>
-              ) : (
-                paginatedDevis.map((devisItem) => (
-                  <tr
-                    key={devisItem.id}
-                    className="hover:bg-gray-50 transition-colors"
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {devisItem.titre || "-"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {devisItem.type || "-"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={cn(
-                          "px-2 py-0.5 rounded-full font-semibold text-xs",
-                          devisItem.statut === "Validé" &&
-                            "bg-green-100 text-green-700",
-                          devisItem.statut === "En attente" &&
-                            "bg-yellow-100 text-yellow-700",
-                          devisItem.statut === "Refusé" &&
-                            "bg-red-100 text-red-700",
-                          devisItem.statut === "Annulé" &&
-                            "bg-gray-200 text-gray-600",
-                          devisItem.statut === "Envoyé" &&
-                            "bg-blue-100 text-blue-700"
-                        )}
-                        style={{ textTransform: "capitalize" }}
-                      >
-                        {(() => {
-                          switch (devisItem.statut) {
-                            case "Validé":
-                              return "Validé";
-                            case "En attente":
-                              return "En attente";
-                            case "Refusé":
-                              return "Refusé";
-                            case "Annulé":
-                              return "Annulé";
-                            case "Envoyé":
-                              return "Envoyé";
-                            default:
-                              return devisItem.statut || "-";
-                          }
-                        })()}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {typeof devisItem.montant === "number"
-                        ? devisItem.montant.toLocaleString("fr-FR", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          }) + " €"
-                        : "-"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {devisItem.pdfUrl ? (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger className="text-gray-400 hover:text-gray-600">
-                            •••
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent>
-                            <DropdownMenuItem asChild>
-                              <a
-                                href={devisItem.pdfUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                <Eye className="h-4 w-4 mr-2" />
-                                Visualiser le PDF
-                              </a>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                              <a
-                                href={devisItem.pdfUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                download
-                              >
-                                <Download className="h-4 w-4 mr-2" />
-                                Télécharger le PDF
-                              </a>
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      ) : (
-                        <span className="text-gray-400 italic text-xs">
-                          Aucune action
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+          {/* Bouton filtre */}
+          <button
+            type="button"
+            className="flex items-center gap-1 text-xs text-gray-500 border border-gray-200 rounded px-2 py-1 bg-white hover:bg-gray-50 transition-all shadow-sm mb-1"
+            onClick={() => setShowFilters((prev) => !prev)}
+            aria-expanded={showFilters}
+            aria-controls="devis-filters"
+          >
+            <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707l-6.414 6.414A1 1 0 0013 13.414V19a1 1 0 01-1.447.894l-2-1A1 1 0 019 18v-4.586a1 1 0 00-.293-.707L2.293 6.707A1 1 0 012 6V4z" /></svg>
+            <span>Filtres</span>
+            <span className="ml-1">{showFilters ? '▲' : '▼'}</span>
+          </button>
+          {/* Champs de filtre masqués/affichés */}
+          <div
+            id="devis-filters"
+            className={`grid grid-cols-1 md:grid-cols-2 gap-2 mt-1 transition-all duration-200 ${showFilters ? 'opacity-100 max-h-40' : 'opacity-0 max-h-0 pointer-events-none overflow-hidden'}`}
+            aria-hidden={!showFilters}
+          >
+            <input
+              type="text"
+              placeholder="Titre"
+              name="titre"
+              value={filters.titre}
+              onChange={handleFilterChange}
+              className="w-full border border-gray-200 bg-transparent rounded px-2 py-1 text-xs text-gray-500 placeholder-gray-300 focus:ring-1 focus:ring-gray-300 focus:border-gray-300 transition-all"
+            />
+            <select
+              name="statut"
+              value={filters.statut}
+              onChange={handleFilterChange}
+              className="w-full border border-gray-200 bg-transparent rounded px-2 py-1 text-xs text-gray-500 focus:ring-1 focus:ring-gray-300 focus:border-gray-300 transition-all"
+            >
+              <option value="">Tous statuts</option>
+              <option value="Validé">Validé</option>
+              <option value="En attente">En attente</option>
+              <option value="Refusé">Refusé</option>
+              <option value="Annulé">Annulé</option>
+              <option value="Envoyé">Envoyé</option>
+            </select>
+          </div>
         </div>
 
-        {/* Pagination */}
-        <div className="flex flex-col md:flex-row items-center justify-between mt-4 gap-2">
-          <div className="text-sm text-gray-500">
-            Affichage de {(currentPage - 1) * itemsPerPage + 1} à{" "}
-            {Math.min(currentPage * itemsPerPage, filteredDevis.length)} sur{" "}
-            {filteredDevis.length} éléments
-          </div>
-          <div className="flex gap-1">
+        {/* Onglets pour alterner entre devis générés et devis uploadés */}
+        <div className="mt-8">
+          <div className="flex space-x-2 border-b mb-4">
             <button
-              onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-              disabled={currentPage === 1}
-              className="px-3 py-1 border rounded text-sm bg-white hover:bg-gray-50 disabled:opacity-50"
+              className={activeDevisTab === 'uploades' ? 'border-b-2 border-[#f26755] font-bold text-[#f26755] px-3 py-2' : 'text-gray-500 px-3 py-2'}
+              onClick={() => setActiveDevisTab('uploades')}
+              type="button"
             >
-              Précédent
+              Devis
             </button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-              <button
-                key={page}
-                onClick={() => setCurrentPage(page)}
-                className={cn(
-                  "px-3 py-1 border rounded text-sm bg-white hover:bg-[#f26755]/10 transition-colors",
-                  currentPage === page &&
-                    "bg-[#f26755] text-white border-[#f26755]"
-                )}
-              >
-                {page}
-              </button>
-            ))}
             <button
-              onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 border rounded text-sm bg-white hover:bg-gray-50 disabled:opacity-50"
+              className={activeDevisTab === 'generes' ? 'border-b-2 border-[#f26755] font-bold text-[#f26755] px-3 py-2' : 'text-gray-500 px-3 py-2'}
+              onClick={() => setActiveDevisTab('generes')}
+              type="button"
             >
-              Suivant
+              Devis Créés
             </button>
           </div>
+
+          {/* Tableau des devis générés (existant) */}
+          {activeDevisTab === 'uploades' && (
+            <div className="overflow-x-auto">
+              <div className="flex justify-between mb-4">
+                <h4 className="text-base font-semibold">Liste des devis</h4>
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-[#f26755] hover:bg-[#e55a4a] text-white rounded shadow text-sm font-semibold transition-colors"
+                >
+                  <Plus className="h-4 w-4" />
+                  Créer un devis
+                </button>
+              </div>
+              {/* Filtres devis minimalistes, masqués par défaut */}
+              <div className="mb-2 w-full">
+                <button
+                  type="button"
+                  className="flex items-center gap-1 text-xs text-gray-500 border border-gray-200 rounded px-2 py-1 bg-white hover:bg-gray-50 transition-all shadow-sm mb-1"
+                  onClick={() => setShowFilters((prev: boolean) => !prev)}
+                  aria-expanded={showFilters}
+                  aria-controls="devis-filters"
+                >
+                  <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707l-6.414 6.414A1 1 0 0013 13.414V19a1 1 0 01-1.447.894l-2-1A1 1 0 019 18v-4.586a1 1 0 00-.293-.707L2.293 6.707A1 1 0 012 6V4z" /></svg>
+                  <span>Filtres</span>
+                  <span className="ml-1">{showFilters ? '▲' : '▼'}</span>
+                </button>
+                <div
+                  id="devis-filters"
+                  className={`grid grid-cols-1 md:grid-cols-2 gap-2 mt-1 transition-all duration-200 ${showFilters ? 'opacity-100 max-h-40' : 'opacity-0 max-h-0 pointer-events-none overflow-hidden'}`}
+                  aria-hidden={!showFilters}
+                >
+                  <input
+                    type="text"
+                    placeholder="Filtrer par titre"
+                    name="titre"
+                    value={filters.titre}
+                    onChange={handleFilterChange}
+                    className="w-full border border-gray-200 bg-transparent rounded px-2 py-1 text-xs text-gray-500 placeholder-gray-300 focus:ring-1 focus:ring-gray-300 focus:border-gray-300 transition-all"
+                  />
+                  <select
+                    name="statut"
+                    value={filters.statut}
+                    onChange={handleFilterChange}
+                    className="w-full border border-gray-200 bg-transparent rounded px-2 py-1 text-xs text-gray-500 focus:ring-1 focus:ring-gray-300 focus:border-gray-300 transition-all"
+                  >
+                    <option value="">Tous les statuts</option>
+                    <option value="Validé">Validé</option>
+                    <option value="En attente">En attente</option>
+                    <option value="Refusé">Refusé</option>
+                    <option value="Annulé">Annulé</option>
+                    <option value="Envoyé">Envoyé</option>
+                  </select>
+                </div>
+              </div>
+              {/* Tableau */}
+              <table className="min-w-full">
+                <thead>
+                  <tr className="bg-gray-100 text-sm">
+                    <th className="py-2 px-4 text-left">Titre</th>
+                    <th className="py-2 px-4 text-left">Type</th>
+                    <th className="py-2 px-4 text-left">Statut</th>
+                    <th className="py-2 px-4 text-left">Montant (€)</th>
+                    <th className="py-2 px-4 text-left">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedDevis.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="text-center py-4 text-gray-400">
+                        Aucun devis trouvé.
+                      </td>
+                    </tr>
+                  ) : (
+                    paginatedDevis.map((devisItem) => (
+                      <tr key={devisItem.id} className="border-b hover:bg-gray-50">
+                        <td className="py-2 px-4">{devisItem.titre || "-"}</td>
+                        <td className="py-2 px-4">{devisItem.type || "-"}</td>
+                        <td className="py-2 px-4">
+                          <span
+                            className={cn(
+                              "px-2 py-0.5 rounded-full font-semibold text-xs",
+                              devisItem.statut === "Validé" &&
+                              "bg-green-100 text-green-700",
+                              devisItem.statut === "En attente" &&
+                              "bg-yellow-100 text-yellow-700",
+                              devisItem.statut === "Refusé" &&
+                              "bg-red-100 text-red-700",
+                              devisItem.statut === "Annulé" &&
+                              "bg-gray-200 text-gray-600",
+                              devisItem.statut === "Envoyé" &&
+                              "bg-blue-100 text-blue-700"
+                            )}
+                            style={{ textTransform: "capitalize" }}
+                          >
+                            {(() => {
+                              switch (devisItem.statut) {
+                                case "Validé":
+                                  return "Validé";
+                                case "En attente":
+                                  return "En attente";
+                                case "Refusé":
+                                  return "Refusé";
+                                case "Annulé":
+                                  return "Annulé";
+                                case "Envoyé":
+                                  return "Envoyé";
+                                default:
+                                  return devisItem.statut || "-";
+                              }
+                            })()}
+                          </span>
+                        </td>
+                        <td className="py-2 px-4">
+                          {typeof devisItem.montant === "number"
+                            ? devisItem.montant.toLocaleString("fr-FR", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            }) + " €"
+                            : "-"}
+                        </td>
+                        <td className="py-2 px-4">
+                          {devisItem.pdfUrl ? (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger className="text-gray-400 hover:text-gray-600">
+                                •••
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent>
+                                <DropdownMenuItem asChild>
+                                  <a
+                                    href={devisItem.pdfUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    <Eye className="h-4 w-4 mr-2" />
+                                    Visualiser le PDF
+                                  </a>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem asChild>
+                                  <a
+                                    href={devisItem.pdfUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    download
+                                  >
+                                    <Download className="h-4 w-4 mr-2" />
+                                    Télécharger le PDF
+                                  </a>
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          ) : (
+                            <button
+                              className="text-[#f26755] hover:underline text-sm"
+                              onClick={() => setSelectedDevisId(devisItem.id)}
+                            >
+                              Voir
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+              {/* Pagination */}
+              <div className="flex items-center justify-between mt-4">
+                <div className="text-sm text-gray-500">
+                  Affichage de {(currentPage - 1) * itemsPerPage + 1} à{" "}
+                  {Math.min(currentPage * itemsPerPage, filteredDevis.length)} sur{" "}
+                  {filteredDevis.length} éléments
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1 border rounded text-sm disabled:opacity-50"
+                  >
+                    Précédent
+                  </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`px-3 py-1 border rounded text-sm ${currentPage === page ? "bg-[#f26755] text-white" : ""
+                        }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1 border rounded text-sm disabled:opacity-50"
+                  >
+                    Suivant
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Tableau des devis uploadés */}
+          {activeDevisTab === 'generes' && (
+            <div className="overflow-x-auto">
+              <div className="flex justify-between mb-4">
+                <h4 className="text-base font-semibold mb-4">Devis Créés</h4>
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-[#f26755] hover:bg-[#e55a4a] text-white rounded shadow text-sm font-semibold transition-colors"
+                >
+                  <Plus className="h-4 w-4" />
+                  Créer un devis
+                </button>
+              </div>
+              <table className="min-w-full">
+                <thead>
+                  <tr className="bg-gray-100 text-sm">
+                    <th className="py-2 px-4 text-left">Numéro</th>
+                    <th className="py-2 px-4 text-left">Titre</th>
+                    <th className="py-2 px-4 text-left">Statut</th>
+                    <th className="py-2 px-4 text-left">Montant (€)</th>
+                    <th className="py-2 px-4 text-left">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {listDevisConfigs && listDevisConfigs.length > 0 ? (
+                    paginatedDevisConfigs.map((doc) => (
+                      <tr key={doc.id} className="border-b hover:bg-gray-50">
+                        <td className="py-2 px-4">{doc.numero || '-'}</td>
+                        <td className="py-2 px-4">{doc.titre || '-'}</td>
+                        <td className="py-2 px-4">
+                          {(() => {
+                            const statusOptions = [
+                              { value: "En cours", label: "En cours", color: "#fbbf24" }, // jaune
+                              { value: "Annulé", label: "Annulé", color: "#f87171" },    // rouge
+                              { value: "Validé", label: "Validé", color: "#22c55e" },    // vert
+                              { value: "À modifier", label: "À modifier", color: "#3b82f6" } // bleu
+                            ];
+
+                            // Affiche le loader si la ligne est en cours de mise à jour
+                            if (updatingStatusId === doc.id) {
+                              return (
+                                <span className="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-500">
+                                  <svg className="animate-spin h-4 w-4 mr-1 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                                  </svg>
+                                  Mise à jour…
+                                </span>
+                              );
+                            }
+
+                            // Sinon, affiche le select comme avant
+                            return (
+                              <select
+                                className="
+            rounded-lg
+            px-3 py-1.5
+            text-xs font-semibold
+            shadow
+            border-2 border-transparent
+            focus:border-blue-400 focus:ring-2 focus:ring-blue-200
+            transition
+            outline-none
+            hover:border-blue-300
+            cursor-pointer
+            min-w-[110px]
+            bg-opacity-90
+          "
+                                value={doc.status || 'En cours'}
+                                onChange={e => handleUpdateDevisConfigStatus(doc.id, e.target.value)}
+                                disabled={updatingStatusId !== null}
+                                style={{
+                                  backgroundColor: statusOptions.find(opt => opt.value === (doc.status || 'En cours'))?.color || undefined,
+                                  color: '#222',
+                                  fontWeight: 600
+                                }}
+                              >
+                                {statusOptions.map(opt => (
+                                  <option
+                                    key={opt.value}
+                                    value={opt.value}
+                                    style={{ backgroundColor: opt.color, color: '#222' }}
+                                  >
+                                    {opt.label}
+                                  </option>
+                                ))}
+                              </select>
+                            );
+                          })()}
+                        </td>
+                        <td className="py-2 px-4">
+                          {Array.isArray(doc.selectedItems) && doc.selectedItems.length > 0
+                            ? doc.selectedItems
+                              .reduce(
+                                (sum: number, item: { quantite: number; prix_ht: number; tva?: number | string }) => {
+                                  const tva = typeof item.tva === "number"
+                                    ? item.tva
+                                    : parseFloat(item.tva as string) || 20;
+                                  return sum + (item.quantite * item.prix_ht * (1 + tva / 100));
+                                },
+                                0
+                              )
+                              .toLocaleString("fr-FR", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              }) + " €"
+                            : "-"}
+                        </td>
+                        <td className="py-2 px-4">
+                          {/* {doc.url ? (
+                                  <a
+                                    href={doc.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:underline text-sm"
+                                  >
+                                    Voir / Télécharger
+                                  </a>
+                                ) : (
+                                  <span className="text-gray-400">Non disponible</span>
+                                )} */}
+                          <button
+                            className="
+            ml-2
+            px-3 py-1
+            rounded-md
+            bg-[#f26755]
+            text-white
+            font-semibold
+            text-xs
+            shadow
+            hover:bg-[#e55a4a]
+            hover:shadow-md
+            transition
+            focus:outline-none
+            focus:ring-2 focus:ring-[#f26755]/40
+            active:scale-95
+          "
+                            onClick={() => handleEditDevisConfig(doc.id)}
+                          >
+                            Modifier
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={5} className="text-center py-4 text-gray-400">
+                        Aucun devis uploadé trouvé.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+              {/* Pagination devis uploadés */}
+              <div className="flex items-center justify-between mt-4">
+                <div className="text-sm text-gray-500">
+                  Affichage de {(currentPageUpload - 1) * itemsPerPageUpload + 1} à{" "}
+                  {Math.min(currentPageUpload * itemsPerPageUpload, listDevisConfigs.length)} sur{" "}
+                  {listDevisConfigs.length} éléments
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setCurrentPageUpload((p) => Math.max(p - 1, 1))}
+                    disabled={currentPageUpload === 1}
+                    className="px-3 py-1 border rounded text-sm disabled:opacity-50"
+                  >
+                    Précédent
+                  </button>
+                  {Array.from({ length: totalUploadPages }, (_, i) => i + 1).map((page) => (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPageUpload(page)}
+                      className={`px-3 py-1 border rounded text-sm ${currentPageUpload === page ? "bg-[#f26755] text-white" : ""}`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => setCurrentPageUpload((p) => Math.min(p + 1, totalUploadPages))}
+                    disabled={currentPageUpload === totalUploadPages}
+                    className="px-3 py-1 border rounded text-sm disabled:opacity-50"
+                  >
+                    Suivant
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
         {/* Modals */}
         <CreateDevisModal
@@ -1157,7 +1496,7 @@ export default function ProjectDetails() {
                 itemId={selectedDevisId}
                 onNext={handleCalculStep}
                 onBack={handleBackToHome}
-                onOpenChange={() => {}}
+                onOpenChange={() => { }}
               />
             )}
 
