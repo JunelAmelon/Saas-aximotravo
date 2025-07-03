@@ -256,7 +256,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
           </button>
           
           {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-            let pageNum;
+            let pageNum: number;
             if (totalPages <= 5) {
               pageNum = i + 1;
             } else if (currentPage <= 3) {
@@ -581,4 +581,3 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
   );
 };
 
- 
