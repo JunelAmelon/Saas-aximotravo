@@ -115,10 +115,10 @@ export const TVAHelper: React.FC<TVAHelperProps> = ({ onSelectTVA }) => {
 
   return (
     <>
-      {/* Bouton d'aide TVA */}
+      {/* Bouton d'aide TVA avec les couleurs de la marque */}
       <button
         onClick={() => setIsOpen(true)}
-        className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white rounded-xl font-semibold text-sm shadow-lg hover:shadow-xl transition-all duration-200 group"
+        className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#f26755] to-[#e55a4a] hover:from-[#e55a4a] hover:to-[#d54d3f] text-white rounded-xl font-semibold text-sm shadow-lg hover:shadow-xl transition-all duration-200 group"
       >
         <div className="p-1 bg-white/20 rounded-full group-hover:bg-white/30 transition-colors">
           <Calculator className="h-4 w-4" />
@@ -131,8 +131,8 @@ export const TVAHelper: React.FC<TVAHelperProps> = ({ onSelectTVA }) => {
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="w-full max-w-4xl max-h-[90vh] bg-white rounded-2xl shadow-2xl overflow-hidden">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-4 text-white">
+            {/* Header avec les couleurs de la marque */}
+            <div className="bg-gradient-to-r from-[#f26755] to-[#e55a4a] px-6 py-4 text-white">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-white/20 rounded-full">
@@ -140,7 +140,7 @@ export const TVAHelper: React.FC<TVAHelperProps> = ({ onSelectTVA }) => {
                   </div>
                   <div>
                     <h3 className="text-xl font-bold">Assistant TVA BTP</h3>
-                    <p className="text-indigo-100 text-sm">Trouvez le bon taux en 30 secondes</p>
+                    <p className="text-white/90 text-sm">Trouvez le bon taux en 30 secondes</p>
                   </div>
                 </div>
                 <button
@@ -191,19 +191,19 @@ export const TVAHelper: React.FC<TVAHelperProps> = ({ onSelectTVA }) => {
                   {/* Guide rapide */}
                   <div className="mt-8 bg-gray-50 rounded-xl p-6">
                     <h5 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                      <Info className="h-5 w-5 text-blue-500" />
+                      <Info className="h-5 w-5 text-[#f26755]" />
                       Guide rapide
                     </h5>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                      <div className="bg-white p-4 rounded-lg">
+                      <div className="bg-white p-4 rounded-lg border border-gray-100">
                         <div className="font-semibold text-red-600 mb-2">TVA 20%</div>
                         <div className="text-gray-600">Construction neuve, extension</div>
                       </div>
-                      <div className="bg-white p-4 rounded-lg">
+                      <div className="bg-white p-4 rounded-lg border border-gray-100">
                         <div className="font-semibold text-blue-600 mb-2">TVA 10%</div>
                         <div className="text-gray-600">Rénovation classique (+2 ans)</div>
                       </div>
-                      <div className="bg-white p-4 rounded-lg">
+                      <div className="bg-white p-4 rounded-lg border border-gray-100">
                         <div className="font-semibold text-green-600 mb-2">TVA 5,5%</div>
                         <div className="text-gray-600">Rénovation énergétique</div>
                       </div>
@@ -282,7 +282,7 @@ export const TVAHelper: React.FC<TVAHelperProps> = ({ onSelectTVA }) => {
                     </button>
                     <button
                       onClick={handleConfirm}
-                      className="flex-1 px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl font-semibold hover:from-indigo-600 hover:to-purple-700 transition-all shadow-lg"
+                      className="flex-1 px-6 py-3 bg-gradient-to-r from-[#f26755] to-[#e55a4a] text-white rounded-xl font-semibold hover:from-[#e55a4a] hover:to-[#d54d3f] transition-all shadow-lg"
                     >
                       Utiliser ce taux ({selectedTVA}%)
                     </button>
