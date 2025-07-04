@@ -105,7 +105,7 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
       description: option.description,
       quantite: 1,
       pieces: [],
-      tva: option.tva // Utiliser la TVA par défaut du devis
+      tva: option.tva
     };
 
     setDevisConfigField('selectedItems', [...selectedItems, newItem]);

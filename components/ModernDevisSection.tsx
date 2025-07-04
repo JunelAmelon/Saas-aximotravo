@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Plus, Eye, Download, Filter, ChevronLeft, ChevronRight, MoreHorizontal, FileText, Calendar, Euro, Search } from 'lucide-react';
-
+import { MoreVertical, UserCheck } from "lucide-react";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { useParams } from 'next/navigation';
 interface DevisItem {
   id: string;
   titre?: string;
@@ -12,6 +14,27 @@ interface DevisItem {
   selectedItems?: any[];
   status?: string;
   url?: string;
+  attribution?: {
+    artisanName?: string;
+    artisanId?: string;
+  };
+}
+
+import { collection, query, where, getDocs, getDoc, doc, updateDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase/config";
+export interface User {
+  uid: string;
+  displayName: string;
+  email: string;
+  role: string;
+  createdAt: string;
+  updatedAt?: string;
+  courtierId: string;
+  phone?: string;
+  company?: string;
+  firstName?: string;
+  lastName?: string;
+  photoURL?: string;
 }
 
 interface ModernDevisSectionProps {
@@ -59,58 +82,104 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
   setSelectedDevisId,
   handleEditDevisConfig,
   handleUpdateDevisConfigStatus,
-  updatingStatusId
+  updatingStatusId,
 }) => {
+  const [acceptedArtisans, setAcceptedArtisans] = useState<User[]>([]);
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [assignDevisId, setAssignDevisId] = useState<string | null>(null);
+  const params = useParams() || {};
+  const [selectedArtisanId, setSelectedArtisanId] = useState<string>("");
+
+  // Récupération des artisans acceptés du projet
+  const projectId = params.id ? (Array.isArray(params.id) ? params.id[0] : params.id) : undefined;
+  React.useEffect(() => {
+    if (!projectId) return;
+    async function getAcceptedArtisansForProject(projectId: string) {
+      const q = query(
+        collection(db, "artisan_projet"),
+        where("projetId", "==", projectId),
+        where("status", "==", "accepté") // ou "accepted" selon ta base
+      );
+      const snapshot = await getDocs(q);
+      const artisanIds = snapshot.docs.map((docSnap) => docSnap.data().artisanId);
+      const users = await Promise.all(
+        artisanIds.map(async (uid) => {
+          const userDoc = await getDoc(doc(db, "users", uid));
+          return userDoc.exists() ? { ...(userDoc.data() as User), uid } : null;
+        })
+      );
+      return users.filter((u): u is User => u !== null);
+    }
+    getAcceptedArtisansForProject(projectId).then(setAcceptedArtisans);
+  }, [projectId]);
+
+  // Fonction d'attribution d'un devis à un artisan
+  async function attribuerDevis(devisId: string, artisanId: string, artisanName: string) {
+    try {
+      const devisRef = doc(db, "devisConfig", devisId);
+      await updateDoc(devisRef, {
+        attribution: {
+          artisanId,
+          artisanName
+        }
+      });
+      window.alert("Attribution réussie !");
+    } catch (err) {
+      console.error("Erreur lors de l'attribution:", err);
+      window.alert("Erreur lors de l'attribution du devis.");
+    }
+  }
+
   const [showFilters, setShowFilters] = useState(false);
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      'Validé': { 
-        bg: 'bg-emerald-50', 
-        text: 'text-emerald-700', 
+      'Validé': {
+        bg: 'bg-emerald-50',
+        text: 'text-emerald-700',
         border: 'border-emerald-200',
         icon: '✓'
       },
-      'En attente': { 
-        bg: 'bg-amber-50', 
-        text: 'text-amber-700', 
+      'En attente': {
+        bg: 'bg-amber-50',
+        text: 'text-amber-700',
         border: 'border-amber-200',
         icon: '⏳'
       },
-      'En cours': { 
-        bg: 'bg-sky-50', 
-        text: 'text-sky-700', 
+      'En cours': {
+        bg: 'bg-sky-50',
+        text: 'text-sky-700',
         border: 'border-sky-200',
         icon: '🔄'
       },
-      'Refusé': { 
-        bg: 'bg-rose-50', 
-        text: 'text-rose-700', 
+      'Refusé': {
+        bg: 'bg-rose-50',
+        text: 'text-rose-700',
         border: 'border-rose-200',
         icon: '✗'
       },
-      'Annulé': { 
-        bg: 'bg-slate-50', 
-        text: 'text-slate-700', 
+      'Annulé': {
+        bg: 'bg-slate-50',
+        text: 'text-slate-700',
         border: 'border-slate-200',
         icon: '⊘'
       },
-      'Envoyé': { 
-        bg: 'bg-violet-50', 
-        text: 'text-violet-700', 
+      'Envoyé': {
+        bg: 'bg-violet-50',
+        text: 'text-violet-700',
         border: 'border-violet-200',
         icon: '📤'
       },
-      'À modifier': { 
-        bg: 'bg-orange-50', 
-        text: 'text-orange-700', 
+      'À modifier': {
+        bg: 'bg-orange-50',
+        text: 'text-orange-700',
         border: 'border-orange-200',
         icon: '✏️'
       }
     };
 
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig['En attente'];
-    
+
     return (
       <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border ${config.bg} ${config.text} ${config.border}`}>
         <span className="text-xs">{config.icon}</span>
@@ -119,9 +188,9 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
     );
   };
 
-  const StatusSelect = ({ value, onChange, disabled, docId }: { 
-    value: string; 
-    onChange: (value: string) => void; 
+  const StatusSelect = ({ value, onChange, disabled, docId }: {
+    value: string;
+    onChange: (value: string) => void;
     disabled: boolean;
     docId: string;
   }) => {
@@ -171,11 +240,11 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
         >
           <MoreHorizontal className="h-4 w-4 text-gray-500" />
         </button>
-        
+
         {isOpen && (
           <>
-            <div 
-              className="fixed inset-0 z-10" 
+            <div
+              className="fixed inset-0 z-10"
               onClick={() => setIsOpen(false)}
             />
             <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
@@ -222,12 +291,12 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
     );
   };
 
-  const Pagination = ({ 
-    currentPage, 
-    totalPages, 
-    onPageChange, 
-    totalItems, 
-    itemsPerPage 
+  const Pagination = ({
+    currentPage,
+    totalPages,
+    onPageChange,
+    totalItems,
+    itemsPerPage
   }: {
     currentPage: number;
     totalPages: number;
@@ -245,7 +314,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
           <span className="font-semibold">{endItem}</span> sur{" "}
           <span className="font-semibold">{totalItems}</span> éléments
         </div>
-        
+
         <div className="flex items-center gap-2">
           <button
             onClick={() => onPageChange(Math.max(currentPage - 1, 1))}
@@ -254,7 +323,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
-          
+
           {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
             let pageNum: number;
             if (totalPages <= 5) {
@@ -266,22 +335,21 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
             } else {
               pageNum = currentPage - 2 + i;
             }
-            
+
             return (
               <button
                 key={pageNum}
                 onClick={() => onPageChange(pageNum)}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  currentPage === pageNum
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentPage === pageNum
                     ? "bg-[#f26755] text-white shadow-sm"
                     : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
-                }`}
+                  }`}
               >
                 {pageNum}
               </button>
             );
           })}
-          
+
           <button
             onClick={() => onPageChange(Math.min(currentPage + 1, totalPages))}
             disabled={currentPage === totalPages}
@@ -300,11 +368,10 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div className="flex bg-gray-100 rounded-xl p-1 w-full sm:w-auto">
           <button
-            className={`flex-1 sm:flex-none px-4 sm:px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
-              activeDevisTab === "uploades"
+            className={`flex-1 sm:flex-none px-4 sm:px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${activeDevisTab === "uploades"
                 ? "bg-white text-[#f26755] shadow-sm"
                 : "text-gray-600 hover:text-gray-800"
-            }`}
+              }`}
             onClick={() => setActiveDevisTab("uploades")}
           >
             <div className="flex items-center justify-center sm:justify-start gap-2">
@@ -314,11 +381,10 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
             </div>
           </button>
           <button
-            className={`flex-1 sm:flex-none px-4 sm:px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
-              activeDevisTab === "generes"
+            className={`flex-1 sm:flex-none px-4 sm:px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${activeDevisTab === "generes"
                 ? "bg-white text-[#f26755] shadow-sm"
                 : "text-gray-600 hover:text-gray-800"
-            }`}
+              }`}
             onClick={() => setActiveDevisTab("generes")}
           >
             <div className="flex items-center justify-center sm:justify-start gap-2">
@@ -348,11 +414,10 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
               <h4 className="text-lg font-bold text-gray-900">Devis importés</h4>
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                  showFilters 
-                    ? "bg-[#f26755] text-white shadow-sm" 
+                className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${showFilters
+                    ? "bg-[#f26755] text-white shadow-sm"
                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                }`}
+                  }`}
               >
                 <Filter className="h-4 w-4" />
                 Filtres
@@ -360,9 +425,8 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
             </div>
 
             {/* Filtres */}
-            <div className={`transition-all duration-300 overflow-hidden ${
-              showFilters ? "max-h-32 opacity-100" : "max-h-0 opacity-0"
-            }`}>
+            <div className={`transition-all duration-300 overflow-hidden ${showFilters ? "max-h-32 opacity-100" : "max-h-0 opacity-0"
+              }`}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-100">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -445,9 +509,9 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                           <span className="font-semibold text-gray-900">
                             {typeof devisItem.montant === "number"
                               ? devisItem.montant.toLocaleString("fr-FR", {
-                                  minimumFractionDigits: 2,
-                                  maximumFractionDigits: 2,
-                                })
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })
                               : "-"}
                           </span>
                         </div>
@@ -493,6 +557,9 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                     Titre
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Attribué
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                     Statut
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
@@ -518,6 +585,11 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                         </div>
                       </td>
                       <td className="px-6 py-4">
+                        <div className="font-medium text-gray-900">
+                          {doc.attribution?.artisanName || "-"}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
                         <StatusSelect
                           value={doc.status || "En cours"}
                           onChange={(value) => handleUpdateDevisConfigStatus(doc.id, value)}
@@ -531,25 +603,36 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                           <span className="font-semibold text-gray-900">
                             {Array.isArray(doc.selectedItems) && doc.selectedItems.length > 0
                               ? doc.selectedItems
-                                  .reduce((sum: number, item: any) => {
-                                    const tva = typeof item.tva === "number" ? item.tva : parseFloat(item.tva as string) || 20;
-                                    return sum + item.quantite * item.prix_ht * (1 + tva / 100);
-                                  }, 0)
-                                  .toLocaleString("fr-FR", {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2,
-                                  })
+                                .reduce((sum: number, item: any) => {
+                                  const tva = typeof item.tva === "number" ? item.tva : parseFloat(item.tva as string) || 20;
+                                  return sum + item.quantite * item.prix_ht * (1 + tva / 100);
+                                }, 0)
+                                .toLocaleString("fr-FR", {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })
                               : "-"}
                           </span>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <button
-                          onClick={() => handleEditDevisConfig(doc.id)}
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-[#f26755] hover:bg-[#e55a4a] text-white rounded-lg font-semibold text-sm shadow-sm hover:shadow-md transition-all duration-200"
-                        >
-                          Modifier
-                        </button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button className="inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100">
+                              <MoreVertical className="w-5 h-5 text-gray-500" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEditDevisConfig(doc.id)}>
+                              <FileText className="w-4 h-4 mr-2" /> Modifier
+                            </DropdownMenuItem>
+                            {(!doc.attribution || !doc.attribution.artisanId) && (
+                              <DropdownMenuItem onClick={() => { setAssignDevisId(doc.id); setShowAssignModal(true); }}>
+                                <UserCheck className="w-4 h-4 mr-2" /> Attribuer
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </td>
                     </tr>
                   ))
@@ -578,6 +661,50 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
               itemsPerPage={itemsPerPageUpload}
             />
           )}
+        </div>
+      )}
+
+      {/* Modal d'attribution */}
+      {showAssignModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md relative">
+            <button
+              className="absolute top-2 right-2 text-gray-400 hover:text-gray-700"
+              onClick={() => { setShowAssignModal(false); setAssignDevisId(null); setSelectedArtisanId(""); }}
+            >
+              <span className="sr-only">Fermer</span>
+              ×
+            </button>
+            <h3 className="text-lg font-semibold mb-4">Attribuer le devis à un artisan</h3>
+            <label className="block mb-2 text-sm font-medium text-gray-700">Choisir un artisan</label>
+            <select
+              className="w-full border rounded px-3 py-2 mb-4"
+              value={selectedArtisanId}
+              onChange={e => setSelectedArtisanId(e.target.value)}
+            >
+              <option value="">Sélectionner...</option>
+              {acceptedArtisans.map(artisan => (
+                <option key={artisan.uid} value={artisan.uid}>
+                  {artisan.displayName || artisan.email}
+                </option>
+              ))}
+            </select>
+            <button
+              className="w-full bg-[#f26755] hover:bg-[#e55a4a] text-white font-semibold py-2 rounded"
+              disabled={!selectedArtisanId}
+              onClick={async () => {
+                if (!assignDevisId || !selectedArtisanId) return;
+                const artisan = acceptedArtisans.find(a => a.uid === selectedArtisanId);
+                if (!artisan) return;
+                await attribuerDevis(assignDevisId, artisan.uid, artisan.displayName || artisan.email);
+                setShowAssignModal(false);
+                setAssignDevisId(null);
+                setSelectedArtisanId("");
+              }}
+            >
+              Confirmer l&apos;attribution
+            </button>
+          </div>
         </div>
       )}
     </div>
