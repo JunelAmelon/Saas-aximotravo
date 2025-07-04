@@ -3,6 +3,8 @@ import { Plus, Eye, Download, Filter, ChevronLeft, ChevronRight, MoreHorizontal,
 import { MoreVertical, UserCheck } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { useParams } from 'next/navigation';
+import { TVAHelper } from './TVAHelper';
+
 interface DevisItem {
   id: string;
   titre?: string;
@@ -22,6 +24,7 @@ interface DevisItem {
 
 import { collection, query, where, getDocs, getDoc, doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
+
 export interface User {
   uid: string;
   displayName: string;
@@ -395,14 +398,17 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
           </button>
         </div>
 
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#f26755] hover:bg-[#e55a4a] text-white rounded-xl font-semibold text-sm shadow-lg hover:shadow-xl transition-all duration-200"
-        >
-          <Plus className="h-4 w-4" />
-          <span className="hidden sm:inline">Créer un devis</span>
-          <span className="sm:hidden">Créer</span>
-        </button>
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+          <TVAHelper />
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#f26755] hover:bg-[#e55a4a] text-white rounded-xl font-semibold text-sm shadow-lg hover:shadow-xl transition-all duration-200"
+          >
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Créer un devis</span>
+            <span className="sm:hidden">Créer</span>
+          </button>
+        </div>
       </div>
 
       {/* Contenu des onglets */}
@@ -638,7 +644,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center">
+                    <td colSpan={6} className="px-6 py-12 text-center">
                       <div className="flex flex-col items-center gap-3">
                         <Calendar className="h-12 w-12 text-gray-300" />
                         <p className="text-gray-500 font-medium">Aucun devis créé</p>
