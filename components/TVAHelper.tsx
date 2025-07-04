@@ -284,7 +284,7 @@ export const TVAHelper: React.FC<TVAHelperProps> = ({ onSelectTVA }) => {
                       onClick={handleConfirm}
                       className="flex-1 px-6 py-3 bg-gradient-to-r from-[#f26755] to-[#e55a4a] text-white rounded-xl font-semibold hover:from-[#e55a4a] hover:to-[#d54d3f] transition-all shadow-lg"
                     >
-                      Utiliser ce taux ({selectedTVA}%)
+                      Compris !
                     </button>
                   </div>
                 </div>
