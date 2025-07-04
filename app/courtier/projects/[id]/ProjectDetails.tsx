@@ -348,8 +348,8 @@ export default function ProjectDetails() {
   >("uploades");
   const [selectedDevisId, setSelectedDevisId] = useState<string | null>(null);
   const [step, setStep] = useState<
-    "create" | "pieces" | "calcul" | "generation"
-  >("create");
+    "create" | "pieces" | "calcul" | "generation" | null
+  >(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const {
@@ -364,11 +364,17 @@ export default function ProjectDetails() {
   } = useDevis();
 
   const handleBackToHome = () => {
-    resetDevis();
-    setShowCreateModal(false);
+    setStep(null);
+    router.push(`/artisan/projects/${id}`); // Redirige vers la page ProjectDetails
   };
+  const handleSelectPieces = () => setStep("pieces");
   const handleCalculStep = () => setStep("calcul");
   const handleGenerationStep = () => setStep("generation");
+  // ..
+  const handleBackToCreate = () => {
+    setStep(null); // Ferme PiecesSelectionModal
+    setShowCreateModal(true); // Réaffiche la modale de création
+  };
   const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
   // ...
   const [devis, setDevis] = useState<any[]>([]);
@@ -634,7 +640,7 @@ export default function ProjectDetails() {
         <DevisConfigProvider devisId={selectedDevisId}>
           <DevisGenerationPage
             onBack={() => {
-              setStep("calcul"); // Revenir à l'étape précédente
+              handleBackToHome; // Revenir à l'étape précédente
             }}
           />
         </DevisConfigProvider>
@@ -1048,7 +1054,7 @@ export default function ProjectDetails() {
         updatingStatusId={updatingStatusId}
       />
 
-      {/* Modals pour création de devis et étapes */}
+      {/* Modals */}
       <CreateDevisModal
         open={showCreateModal}
         onOpenChange={setShowCreateModal}
@@ -1061,22 +1067,21 @@ export default function ProjectDetails() {
 
       {selectedDevisId && (
         <DevisConfigProvider devisId={selectedDevisId}>
-          {selectedDevisId && (
-            <PiecesSelectionModal
-              open={step === "pieces"}
-              itemId={selectedDevisId}
-              onNext={handleCalculStep}
-              onBack={handleBackToHome}
-            />
-          )}
+          <PiecesSelectionModal
+            open={step === "pieces"}
+            itemId={selectedDevisId}
+            onNext={handleCalculStep}
+            onBack={handleBackToCreate}
+          />
 
           <CalculSurfaceModal
             open={step === "calcul"}
             onNext={handleGenerationStep}
-            onBack={handleCalculStep}
+            onBack={handleSelectPieces}
           />
-
-          <DevisGenerationPage onBack={() => router.back()} />
+          {step === "generation" && (
+            <DevisGenerationPage onBack={handleBackToHome} />
+          )}
         </DevisConfigProvider>
       )}
     </div>
