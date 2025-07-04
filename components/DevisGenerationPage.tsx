@@ -93,9 +93,7 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
     item: LotItem,
     option: LotOption
   ) => {
-    // TVA par défaut du devis
-    const defaultTva = typeof devis.tva === 'number' ? devis.tva : parseFloat(devis.tva as string) || 20;
-
+    
     const newItem: DevisItem = {
       id: crypto.randomUUID(),
       lotName: lot.name,
@@ -107,7 +105,7 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
       description: option.description,
       quantite: 1,
       pieces: [],
-      tva: defaultTva // Utiliser la TVA par défaut du devis
+      tva: option.tva // Utiliser la TVA par défaut du devis
     };
 
     setDevisConfigField('selectedItems', [...selectedItems, newItem]);
