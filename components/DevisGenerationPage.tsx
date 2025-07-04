@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useRouter, useParams } from 'next/navigation';
 import Image from 'next/image';
 import { useDevisConfig } from '@/components/DevisConfigContext';
 import { Button } from '@/components/ui/button';
@@ -36,6 +37,8 @@ const getIcon = (iconName: string) => {
 export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
   onBack
 }) => {
+  const router = useRouter();
+
   const { devisConfig, setDevisConfigField } = useDevisConfig();
   const devis = devisConfig;
   const selectedItems = devisConfig?.selectedItems || [];
@@ -273,7 +276,7 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={onBack}
+                onClick={() => onBack()}
                 className="h-9 w-9 sm:h-10 sm:w-10 p-0 text-white/80 hover:text-white hover:bg-white/20 rounded-xl transition-all duration-200"
               >
                 <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />

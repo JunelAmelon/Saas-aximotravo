@@ -198,7 +198,7 @@ export const CalculSurfaceModal: React.FC<CalculSurfaceModalProps> = ({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => router.back()}
+                onClick={() => onBack()}
                 className="h-9 w-9 p-0 text-white/70 hover:text-white hover:bg-white/20 rounded-lg"
               >
                 <ArrowLeft className="h-4 w-4" />

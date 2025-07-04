@@ -337,6 +337,7 @@ export const getArtisansByCourtier = async (
 };
 
 import { getAuth } from "firebase/auth";
+import router from "next/router";
 
 export default function ProjectDetails() {
   const [showAddressDetails, setShowAddressDetails] = useState(false);
@@ -1066,7 +1067,6 @@ export default function ProjectDetails() {
               itemId={selectedDevisId}
               onNext={handleCalculStep}
               onBack={handleBackToHome}
-              onOpenChange={() => {}}
             />
           )}
 
@@ -1075,6 +1075,8 @@ export default function ProjectDetails() {
             onNext={handleGenerationStep}
             onBack={handleCalculStep}
           />
+
+          <DevisGenerationPage onBack={() => router.back()} />
         </DevisConfigProvider>
       )}
     </div>

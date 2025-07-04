@@ -13,7 +13,6 @@ import { useDevisConfig } from '@/components/DevisConfigContext';
 
 interface PiecesSelectionModalProps {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
   itemId: string;
   onNext: () => void;
   onBack: () => void;
@@ -21,7 +20,6 @@ interface PiecesSelectionModalProps {
 
 export function PiecesSelectionModal({ 
   open, 
-  onOpenChange, 
   itemId, 
   onNext, 
   onBack 
