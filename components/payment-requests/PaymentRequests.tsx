@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { CLOUDINARY_UPLOAD_PRESET } from "@/lib/cloudinary";
 import { Modal } from "@/components/ui/modal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ import {
   Download,
   Image as ImageIcon,
 } from "lucide-react";
+const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/auto/upload`;
 
 interface ProjectPayment {
   id: string;
@@ -362,9 +364,13 @@ export default function PaymentRequests() {
               Dans l’attente de votre retour, je vous prie d’agréer, Madame, Monsieur, l’expression de mes salutations distinguées.
             </p>
             <div style="margin-top:32px; font-size:15px; color:#222;">
-              <b>${userConnectedInfo?.lastName || ''}</b><b>${userConnectedInfo?.firstName || ''}</b><br>
-              <span style="color:#f26755;">${userConnectedInfo?.email || ''}</span><br>
-              <span>${userConnectedInfo?.phoneNumber || ''}</span>
+              <b>${userConnectedInfo?.lastName || ""}</b><b>${
+            userConnectedInfo?.firstName || ""
+          }</b><br>
+              <span style="color:#f26755;">${
+                userConnectedInfo?.email || ""
+              }</span><br>
+              <span>${userConnectedInfo?.phoneNumber || ""}</span>
             </div>
           </td>
         </tr>
@@ -396,6 +402,7 @@ export default function PaymentRequests() {
   };
 
   // Ajout paiement
+
   const handleAddPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
@@ -408,6 +415,38 @@ export default function PaymentRequests() {
         setFormLoading(false);
         return;
       }
+
+      // Upload images
+      let imageUrls: string[] = [];
+      if (files && files.length > 0) {
+        for (const file of files) {
+          const data = new FormData();
+          data.append("file", file);
+          data.append("upload_preset", CLOUDINARY_UPLOAD_PRESET || "");
+          const res = await fetch(CLOUDINARY_UPLOAD_URL, {
+            method: "POST",
+            body: data,
+          });
+          const result = await res.json();
+          if (result.secure_url) imageUrls.push(result.secure_url);
+        }
+      }
+      // Upload documents
+      let documentUrls: string[] = [];
+      if (documentFiles && documentFiles.length > 0) {
+        for (const file of documentFiles) {
+          const data = new FormData();
+          data.append("file", file);
+          data.append("upload_preset", CLOUDINARY_UPLOAD_PRESET || "");
+          const res = await fetch(CLOUDINARY_UPLOAD_URL, {
+            method: "POST",
+            body: data,
+          });
+          const result = await res.json();
+          if (result.secure_url) documentUrls.push(result.secure_url);
+        }
+      }
+
       const accompteData = {
         projectId,
         title,
@@ -416,8 +455,8 @@ export default function PaymentRequests() {
         date: new Date().toISOString(),
         status:
           "en_attente" as import("@/hooks/useProjectPayments").PaymentStatus,
-        images: [],
-        documents: [],
+        images: imageUrls,
+        documents: documentUrls,
         dateValidation: "",
       };
       await addPayment(accompteData);
@@ -726,7 +765,7 @@ export default function PaymentRequests() {
                 {toast.message}
               </div>
             )}
-            <div className="relative p-6">
+            <div className="relative p-6 flex flex-col h-full">
               {/* Header */}
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
@@ -768,58 +807,60 @@ export default function PaymentRequests() {
                 </div>
               </div>
 
-              {/* Description */}
-              <p className="text-gray-600 text-sm leading-relaxed mb-4 line-clamp-2">
-                {payment.description}
-              </p>
+              <div className="flex-1 flex flex-col">
+                {/* Description */}
+                <p className="text-gray-600 text-sm leading-relaxed mb-4 line-clamp-2">
+                  {payment.description}
+                </p>
 
-              {/* Media Section */}
-              <div className="space-y-3 mb-6">
-                {/* Images */}
-                {payment.images && payment.images.length > 0 && (
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1 text-[#f26755]">
-                      <ImageIcon className="h-4 w-4" />
-                      <span className="text-sm font-medium">
-                        {payment.images.length}
-                      </span>
+                {/* Media Section */}
+                <div className="space-y-3 mb-6">
+                  {/* Images */}
+                  {payment.images && payment.images.length > 0 && (
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1 text-[#f26755]">
+                        <ImageIcon className="h-4 w-4" />
+                        <span className="text-sm font-medium">
+                          {payment.images.length}
+                        </span>
+                      </div>
+                      <div className="flex gap-2">
+                        {payment.images
+                          .slice(0, 3)
+                          .map((img: string, idx: number) => (
+                            <img
+                              key={idx}
+                              src={img}
+                              alt={`Justificatif ${idx + 1}`}
+                              className="w-12 h-12 object-cover rounded-lg border-2 border-gray-200 cursor-pointer hover:border-[#f26755] transition-colors"
+                              onClick={() => setSelectedImage(img)}
+                            />
+                          ))}
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      {payment.images
-                        .slice(0, 3)
-                        .map((img: string, idx: number) => (
-                          <img
-                            key={idx}
-                            src={img}
-                            alt={`Justificatif ${idx + 1}`}
-                            className="w-12 h-12 object-cover rounded-lg border-2 border-gray-200 cursor-pointer hover:border-[#f26755] transition-colors"
-                            onClick={() => setSelectedImage(img)}
-                          />
-                        ))}
+                  )}
+                  {/* Documents */}
+                  {payment.documents && payment.documents.length > 0 && (
+                    <div className="flex flex-col gap-2 mt-2">
+                      {payment.documents.map((docUrl: string, idx: number) => (
+                        <a
+                          key={idx}
+                          href={docUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-[#f26755] hover:underline"
+                        >
+                          <FileText className="h-4 w-4" />
+                          <span>Document {idx + 1}</span>
+                        </a>
+                      ))}
                     </div>
-                  </div>
-                )}
-                {/* Documents */}
-                {payment.documents && payment.documents.length > 0 && (
-                  <div className="flex flex-col gap-2 mt-2">
-                    {payment.documents.map((docUrl: string, idx: number) => (
-                      <a
-                        key={idx}
-                        href={docUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-[#f26755] hover:underline"
-                      >
-                        <FileText className="h-4 w-4" />
-                        <span>Document {idx + 1}</span>
-                      </a>
-                    ))}
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
 
               {/* Actions */}
-              <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+              <div className="flex items-center justify-between pt-4 border-t border-gray-100 mt-auto">
                 <button
                   className="text-sm font-medium text-[#f26755] hover:text-[#f26755]/80 flex items-center gap-1 transition-colors"
                   onClick={() => handleViewDetails(payment)}
