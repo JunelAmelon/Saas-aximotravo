@@ -460,6 +460,108 @@ export default function PaymentRequests() {
         dateValidation: "",
       };
       await addPayment(accompteData);
+
+      // Juste après await addPayment(accompteData);
+
+      try {
+        const clientData = recipients.find(
+          (r) => r.role.toLowerCase() === "client"
+        );
+        const nomProjet = project?.name || "";
+        const typeProjet = project?.type || "";
+        const descriptionProjet = project?.description || "";
+        const dateDebut = project?.startDate
+          ? new Date(project.startDate).toLocaleDateString("fr-FR")
+          : "";
+        const dateFin = project?.estimatedEndDate
+          ? new Date(project.estimatedEndDate).toLocaleDateString("fr-FR")
+          : "";
+        const montantAcompte = amount;
+        const dateEcheance = new Date().toLocaleDateString("fr-FR");
+        const motifAcompte = description;
+        const lienEspaceClient = "#"; // Remplace par le vrai lien si tu l'as
+        const nomExpediteur = `${userConnectedInfo?.firstName || ""} ${
+          userConnectedInfo?.lastName || ""
+        }`;
+        const emailExpediteur = userConnectedInfo?.email || "";
+        const telephoneExpediteur = userConnectedInfo?.phoneNumber || "";
+
+        const html = `
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<table width="100%" bgcolor="#f8f9fb" cellpadding="0" cellspacing="0" style="padding:24px 0;">
+  <tr>
+    <td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px; background:#fff; border-radius:12px; box-shadow:0 2px 8px #0001;">
+        <tr>
+          <td align="center" bgcolor="#f26755" style="padding:24px 0; border-radius:12px 12px 0 0;">
+            <h2 style="color:#fff; margin:0; font-size:22px; font-family:Segoe UI, Arial, sans-serif; letter-spacing:1px;">Demande d’acompte</h2>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:32px 24px 24px 24px; font-family:Segoe UI, Arial, sans-serif;">
+            <p style="font-size:16px; color:#222; margin-bottom:22px;">Madame, Monsieur,</p>
+            <p style="font-size:15px; color:#222; margin-bottom:22px;">
+              Dans le cadre de la mise en œuvre du projet <span style="color:#f26755; font-weight:bold;">${nomProjet}</span>, nous vous sollicitons pour le règlement d’un acompte afin de garantir le bon démarrage des travaux.
+            </p>
+            <div style="background:#f8f9fb; border-radius:10px; padding:18px 20px 14px 20px; margin-bottom:26px; border:1px solid #ececec;">
+              <div style="font-size:15px; color:#f26755; font-weight:600; margin-bottom:10px;">🔍 Détails du projet</div>
+              <ul style="padding-left:18px; margin:0; color:#333; font-size:15px;">
+                <li><b>Nom du projet :</b> ${nomProjet}</li>
+                <li><b>Type :</b> ${typeProjet}</li>
+                <li><b>Description :</b> <i>${descriptionProjet}</i></li>
+                <li><b>Date de début prévue :</b> ${dateDebut}</li>
+                <li><b>Date de fin estimée :</b> ${dateFin}</li>
+              </ul>
+            </div>
+            <div style="background:#f4f4f4; border-radius:8px; padding:14px 18px; margin-bottom:24px; border:1px solid #eee;">
+              <div style="font-size:15px; color:#222; margin-bottom:6px;">
+                <b>Montant de l’acompte :</b> <span style="color:#009966; font-weight:bold;">${montantAcompte} €</span>
+              </div>
+              <div style="font-size:15px; color:#333; margin-bottom:5px;">
+                <b>Échéance :</b> <span style="color:#f26755; font-weight:bold;">${dateEcheance}</span>
+              </div>
+              <div style="font-size:15px; color:#333;">
+                <b>Motif :</b> <i>${motifAcompte}</i>
+              </div>
+            </div>
+            <p style="font-size:15px; color:#444; margin-bottom:18px;">
+              Nous vous serions reconnaissants de bien vouloir effectuer ce versement dans les meilleurs délais afin de respecter le planning établi.
+            </p>
+            <div style="text-align:center; margin-bottom:32px;">
+              <a href="${lienEspaceClient}" style="background:#f26755; color:#fff; text-decoration:none; padding:12px 28px; border-radius:6px; font-weight:600; font-size:15px; display:inline-block;">Accéder à mon espace</a>
+            </div>
+            <p style="font-size:15px; color:#444; margin-bottom:18px;">
+              Pour toute question ou document complémentaire, n'hésitez pas à me contacter directement.
+            </p>
+            <p style="font-size:15px; color:#444; margin-bottom:0;">
+              Dans l’attente de votre retour, je vous prie d’agréer, Madame, Monsieur, l’expression de mes salutations distinguées.
+            </p>
+            <div style="margin-top:32px; font-size:15px; color:#222;">
+              <b>${nomExpediteur}</b><br>
+              <span style="color:#f26755;">${emailExpediteur}</span><br>
+              <span>${telephoneExpediteur}</span>
+            </div>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+  `;
+
+        await fetch("/api/send-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            to: clientData?.email || "",
+            subject: `Demande d'acompte pour le projet ${nomProjet}`,
+            html,
+          }),
+        });
+      } catch (emailErr) {
+        // Optionnel : toast ou log d'erreur d'envoi d'email
+      }
+
       setForm({ title: "", description: "", amount: "", files: [] });
       setDocumentFiles([]);
       setOpenAddModal(false);
