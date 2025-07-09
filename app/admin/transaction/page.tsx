@@ -23,11 +23,8 @@ export default function TransactionsAdminPage() {
 
     // Prépare l'URL d'autorisation Revolut
     const clientId = process.env.NEXT_PUBLIC_REVOLUT_CLIENT_ID;
-    console.log("Client ID : ", clientId);
     const redirectUri = typeof window !== "undefined" ? window.location.origin + "/revolut/callback" : "";
-    console.log("Redirect URI : ", redirectUri);
     const revolutAuthUrl = clientId && redirectUri ? `https://sandbox-business.revolut.com/app-confirm?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code` : "";
-    console.log("Revolut Auth URL : ", revolutAuthUrl);
 
     // Liste des paiements Firestore
     const [payments, setPayments] = useState<ProjectPayment[]>([]);
