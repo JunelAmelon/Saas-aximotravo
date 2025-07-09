@@ -1,35 +1,20 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Modal } from "@/components/ui/modal";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Euro,
-  Check,
-  X,
-  Clock,
-  Mail,
-  Upload,
-  Send,
-  ChevronRight,
-  ArrowLeft,
-  Plus,
-  Eye,
-  Calendar,
-  FileText,
-  Download,
-  Image as ImageIcon,
-} from "lucide-react";
+import { useState, useEffect } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Modal } from '@/components/ui/modal';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Euro, Check, X, Clock, Mail, Upload, Send, ChevronRight, ArrowLeft, Plus, Eye, Calendar, FileText, Download, Image as ImageIcon } from 'lucide-react';
 
+// Mock types to match your existing structure
 interface ProjectPayment {
   id: string;
   title: string;
   description: string;
   amount: number;
   date: string;
-  status: "validé" | "en_attente";
+  status: 'validé' | 'en_attente';
   images?: string[];
   documents?: string[];
   dateValidation?: string;
@@ -43,135 +28,98 @@ interface Recipient {
   required?: boolean;
 }
 
+// Mock data for demonstration with documents
+const mockRequests: ProjectPayment[] = [
+  {
+    id: '1',
+    title: 'Versement au démarrage',
+    description: 'Premier versement pour le démarrage du projet de rénovation',
+    amount: 5000,
+    date: '2024-01-15',
+    status: 'validé',
+    images: [
+      'https://images.pexels.com/photos/1181263/pexels-photo-1181263.jpeg?auto=compress&cs=tinysrgb&w=800',
+      'https://images.pexels.com/photos/1181248/pexels-photo-1181248.jpeg?auto=compress&cs=tinysrgb&w=800'
+    ],
+    documents: [
+      'https://example.com/devis-renovation.pdf',
+      'https://example.com/contrat-travaux.pdf'
+    ]
+  },
+  {
+    id: '2',
+    title: 'Versement mi chantier',
+    description: 'Versement intermédiaire pour les travaux en cours',
+    amount: 7500,
+    date: '2024-01-20',
+    status: 'en_attente',
+    images: [
+      'https://images.pexels.com/photos/1181406/pexels-photo-1181406.jpeg?auto=compress&cs=tinysrgb&w=800'
+    ],
+    documents: [
+      'https://example.com/facture-intermediaire.pdf'
+    ]
+  },
+  {
+    id: '3',
+    title: 'A la fin des travaux',
+    description: 'Versement final pour la finalisation du projet',
+    amount: 3000,
+    date: '2024-01-25',
+    status: 'en_attente',
+    documents: [
+      'https://example.com/rapport-final.pdf',
+      'https://example.com/garantie-travaux.pdf'
+    ]
+  }
+];
+
 interface PaymentRequestsProps {
   projectId?: string;
 }
 
-import { useParams } from "next/navigation";
-// Pour la correction de typage AccompteStatus
-// (optionnel: vous pouvez aussi faire un import type en haut)
-
-import { getProjectById } from "@/lib/firebase/projects";
-import { useProjectPayments, addPayment } from "@/hooks/useProjectPayments";
-
-export default function PaymentRequests() {
-  // Extraction de l'ID du projet via useParams (même logique que ProjectNotes)
-  const params = useParams() ?? {};
-  const projectId = Array.isArray(params.id)
-    ? params.id[0]
-    : (params.id as string);
-  console.log(projectId); // Pour debug
-
+export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
   // Mock user role - replace with your actual auth logic
-  const [userRole, setUserRole] = useState<string | null>("client");
+  const [userRole, setUserRole] = useState<string | null>('client');
+  
+  // Mock data - replace with your actual data fetching
+  const requests = mockRequests;
+  const loading = false;
+  const error = null;
 
-  // Paiements via hook custom
-  const {
-    payments,
-    loading: paymentsLoading,
-    error: paymentsError,
-  } = useProjectPayments(projectId);
-
-  const [selectedRequest, setSelectedRequest] = useState<ProjectPayment | null>(
-    null
-  );
-
-  // State pour le projet Firebase
-  const [project, setProject] = useState<any>(null);
-  const [projectLoading, setProjectLoading] = useState(true);
-  const [projectError, setProjectError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchProject = async () => {
-      if (!projectId) return;
-      setProjectLoading(true);
-      setProjectError(null);
-      try {
-        const data = await getProjectById(projectId);
-        if (data) {
-          setProject(data);
-        } else {
-          setProject(null);
-          setProjectError("Projet introuvable");
-        }
-      } catch (err: any) {
-        setProjectError("Erreur lors de la récupération du projet");
-        setProject(null);
-      } finally {
-        setProjectLoading(false);
-      }
-    };
-    fetchProject();
-  }, [projectId]);
-
-  console.log(project);
-  console.log(payments);
+  const [selectedRequest, setSelectedRequest] = useState<ProjectPayment | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isValidationDrawerOpen, setIsValidationDrawerOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [documentFiles, setDocumentFiles] = useState<File[]>([]);
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState('');
   const [isNotificationSent, setIsNotificationSent] = useState(false);
-  // États pour la relance d'email
-  const [relanceLoadingId, setRelanceLoadingId] = useState<string | null>(null);
-  const [relanceSuccess, setRelanceSuccess] = useState<string | null>(null);
-  const [relanceErrorId, setRelanceErrorId] = useState<string | null>(null);
-  const [toast, setToast] = useState<{
-    type: "success" | "error";
-    message: string;
-  } | null>(null);
 
-  // Toast auto-hide
-  useEffect(() => {
-    if (toast) {
-      const timer = setTimeout(() => setToast(null), 5000);
-      return () => clearTimeout(timer);
+  const [recipients] = useState<Recipient[]>([
+    {
+      id: "1",
+      name: "Jean Dupont",
+      email: "jean.dupont@example.com",
+      role: "Client"
+    },
+    {
+      id: "2",
+      name: "Marie Martin",
+      email: "marie.martin@example.com",
+      role: "Courtier",
+      required: true
+    },
+    {
+      id: "3",
+      name: "Pierre Durand",
+      email: "pierre.durand@example.com",
+      role: "Pilote"
     }
-  }, [toast]);
-
-  const [recipients, setRecipients] = useState<Recipient[]>([]);
-
-  const [userConnectedInfo, setUserConnectedInfo] = useState<any>(null);
-
-  useEffect(() => {
-    async function fetchRecipientsAndUser() {
-      if (!project) return;
-      try {
-        const usersModule = await import("@/lib/firebase/users");
-        // Récupérer le client du projet
-        const clientUser = await usersModule.getClientUserFromProject(project);
-        let recipientsArr: Recipient[] = [];
-        if (clientUser) {
-          recipientsArr.push({
-            id: clientUser.uid,
-            name:
-              clientUser.displayName ||
-              clientUser.firstName + " " + clientUser.lastName ||
-              clientUser.email ||
-              "Client",
-            email: clientUser.email,
-            role: "Client",
-            required: true,
-          });
-        }
-        setRecipients(recipientsArr);
-
-        // Récupérer l'utilisateur connecté
-        const userInfo = await usersModule.getCurrentUserInfo();
-        setUserConnectedInfo(userInfo);
-        console.log("Utilisateur connecté:", userInfo);
-      } catch (e) {
-        setRecipients([]);
-        setUserConnectedInfo(null);
-      }
-    }
-    fetchRecipientsAndUser();
-  }, [project]);
-  console.log(recipients);
+  ]);
 
   const [selectedRecipients, setSelectedRecipients] = useState<string[]>(
-    recipients.filter((r) => r.required).map((r) => r.id)
+    recipients.filter(r => r.required).map(r => r.id)
   );
 
   const getStatusStyle = (status: ProjectPayment["status"]) => {
@@ -225,237 +173,69 @@ export default function PaymentRequests() {
       setIsValidationDrawerOpen(false);
       setSelectedRequest(null);
       setSelectedFile(null);
-      setMessage("");
+      setMessage('');
     }, 2000);
   };
 
   const [openAddModal, setOpenAddModal] = useState(false);
   const [form, setForm] = useState({
-    title: "",
-    description: "",
-    amount: "",
+    title: '',
+    description: '',
+    amount: '',
     files: [] as File[],
   });
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  const handleFormChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, files } = e.target as any;
-    if (name === "file" || name === "files") {
-      setForm((f) => ({ ...f, files: files ? Array.from(files) : [] }));
+    if (name === 'file' || name === 'files') {
+      setForm(f => ({ ...f, files: files ? Array.from(files) : [] }));
     } else {
-      setForm((f) => ({ ...f, [name]: value }));
+      setForm(f => ({ ...f, [name]: value }));
     }
   };
 
   const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setForm((f) => ({ ...f, [name]: value }));
+    setForm(f => ({ ...f, [name]: value }));
   };
 
-  // Fonction d'envoi de relance par mail
-  const handleRelance = async (request: ProjectPayment) => {
-    // On tente de récupérer l'email du client depuis recipients ou userConnectedInfo
-    const clientData = recipients.find(
-      (r) => r.role.toLowerCase() === "client"
-    );
-    setRelanceLoadingId(request.id);
-    setRelanceSuccess(null);
-    setRelanceErrorId(null);
-
-    try {
-      const res = await fetch("/api/send-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          to: clientData?.email || "",
-          subject: request.title,
-          html: `
-<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />
-<table width=\"100%\" bgcolor=\"#f8f9fb\" cellpadding=\"0\" cellspacing=\"0\" style=\"padding:24px 0;\">
-  <tr>
-    <td align=\"center\">
-      <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:600px; background:#fff; border-radius:12px; box-shadow:0 2px 8px #0001;\">
-        <tr>
-          <td align=\"center\" bgcolor=\"#f26755\" style=\"padding:24px 0; border-radius:12px 12px 0 0;\">
-            <h2 style=\"color:#fff; margin:0; font-size:22px; font-family:Segoe UI, Arial, sans-serif; letter-spacing:1px;\">Relance pour règlement d’acompte</h2>
-          </td>
-        </tr>
-        <tr>
-          <td style=\"padding:32px 24px 24px 24px; font-family:Segoe UI, Arial, sans-serif;\">
-            <p style="font-size:16px; color:#222; margin-bottom:22px;">Madame, Monsieur,</p>
-            <p style="font-size:15px; color:#222; margin-bottom:22px;">
-              Je me permets de revenir vers vous concernant le règlement de l’acompte relatif à votre projet <span style="color:#f26755; font-weight:bold;">"${
-                project?.name || ""
-              }"</span>.
-            </p>
-            <div style="background:#f8f9fb; border-radius:10px; padding:18px 20px 14px 20px; margin-bottom:26px; border:1px solid #ececec;">
-              <div style="font-size:15px; color:#f26755; font-weight:600; margin-bottom:10px;">🔍 Détails du projet</div>
-              <ul style="padding-left:18px; margin:0; color:#333; font-size:15px;">
-                ${
-                  project?.name
-                    ? `<li><b>Nom du projet :</b> ${project.name}</li>`
-                    : ""
-                }
-                ${project?.type ? `<li><b>Type :</b> ${project.type}</li>` : ""}
-                ${
-                  project?.description
-                    ? `<li><b>Description :</b> <i>${project.description}</i></li>`
-                    : ""
-                }
-                ${
-                  project?.startDate
-                    ? `<li><b>Date de début prévue :</b> ${new Date(
-                        project.startDate
-                      ).toLocaleDateString("fr-FR")}</li>`
-                    : ""
-                }
-                ${
-                  project?.estimatedEndDate
-                    ? `<li><b>Date de fin estimée :</b> ${new Date(
-                        project.estimatedEndDate
-                      ).toLocaleDateString("fr-FR")}</li>`
-                    : ""
-                }
-              </ul>
-            </div>
-            <div style="background:#f4f4f4; border-radius:8px; padding:14px 18px; margin-bottom:24px; border:1px solid #eee;">
-              <div style="font-size:15px; color:#222; margin-bottom:6px;">
-                <b>Demande d’acompte :</b> ${
-                  request.title
-                    ? `<span style='color:#f26755'>${request.title}</span>`
-                    : "Votre acompte"
-                }
-              </div>
-              <div style="font-size:15px; color:#333; margin-bottom:5px;">
-                <b>Montant :</b> <span style="color:#009966; font-weight:bold;">${
-                  request.amount
-                } €</span>
-              </div>
-              <div style="font-size:15px; color:#333; margin-bottom:5px;">
-                <b>Échéance :</b> <span style="color:#f26755; font-weight:bold;">${new Date(
-                  request.date
-                ).toLocaleDateString("fr-FR", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}</span>
-              </div>
-              ${
-                request.description
-                  ? `<div style="font-size:15px; color:#333;"><b>Motif :</b> <i>${request.description}</i></div>`
-                  : ""
-              }
-            </div>
-            <p style="font-size:15px; color:#444; margin-bottom:18px;">
-              Nous vous serions reconnaissants de bien vouloir effectuer ce règlement dans les meilleurs délais afin d’assurer la bonne continuité du projet.
-            </p>
-            <div style="text-align:center; margin-bottom:32px;">
-              <a href="#" style="background:#f26755; color:#fff; text-decoration:none; padding:12px 28px; border-radius:6px; font-weight:600; font-size:15px; display:inline-block;">Accéder à mon espace</a>
-            </div>
-            <p style="font-size:15px; color:#444; margin-bottom:18px;">
-              Je reste bien entendu à votre entière disposition pour toute question ou pour vous transmettre à nouveau les documents nécessaires.
-            </p>
-            <p style="font-size:15px; color:#444; margin-bottom:0;">
-              Dans l’attente de votre retour, je vous prie d’agréer, Madame, Monsieur, l’expression de mes salutations distinguées.
-            </p>
-            <div style="margin-top:32px; font-size:15px; color:#222;">
-              <b>${userConnectedInfo?.lastName || ''}</b><b>${userConnectedInfo?.firstName || ''}</b><br>
-              <span style="color:#f26755;">${userConnectedInfo?.email || ''}</span><br>
-              <span>${userConnectedInfo?.phoneNumber || ''}</span>
-            </div>
-          </td>
-        </tr>
-      </table>
-    </td>
-  </tr>
-</table>
-`,
-        }),
-      });
-      if (!res.ok) throw new Error("Erreur lors de l’envoi");
-      setRelanceSuccess(request.id);
-      setToast({ type: "success", message: "Relance envoyée avec succès !" });
-      setTimeout(() => {
-        setRelanceSuccess(null);
-      }, 5000);
-    } catch (e: any) {
-      setRelanceErrorId(request.id);
-      setToast({
-        type: "error",
-        message: "Erreur lors de l’envoi de la relance.",
-      });
-      setTimeout(() => {
-        setRelanceErrorId(null);
-      }, 5000);
-    } finally {
-      setRelanceLoadingId(null);
-    }
-  };
-
-  // Ajout paiement
   const handleAddPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
     setFormLoading(true);
-
-    try {
-      const { title, description, amount, files } = form;
-      if (!projectId || !title || !amount) {
-        setFormError("Titre, montant et projet requis");
-        setFormLoading(false);
-        return;
-      }
-      const accompteData = {
-        projectId,
-        title,
-        description,
-        amount: Number(amount),
-        date: new Date().toISOString(),
-        status:
-          "en_attente" as import("@/hooks/useProjectPayments").PaymentStatus,
-        images: [],
-        documents: [],
-        dateValidation: "",
-      };
-      await addPayment(accompteData);
-      setForm({ title: "", description: "", amount: "", files: [] });
+    
+    // Simulate API call
+    setTimeout(() => {
+      setForm({ title: '', description: '', amount: '', files: [] });
       setDocumentFiles([]);
       setOpenAddModal(false);
-    } catch (err: any) {
-      setFormError("Erreur lors de l'ajout de la demande d'acompte");
-    } finally {
       setFormLoading(false);
-    }
+    }, 1000);
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("fr-FR", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
+    return new Date(dateString).toLocaleDateString('fr-FR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
     });
   };
 
   const formatAmount = (amount: number) => {
-    return new Intl.NumberFormat("fr-FR", {
-      style: "currency",
-      currency: "EUR",
+    return new Intl.NumberFormat('fr-FR', {
+      style: 'currency',
+      currency: 'EUR'
     }).format(amount);
   };
 
   // Calculate totals
-  const totalAmount = payments.reduce((sum, req) => sum + (req.amount || 0), 0);
-  const approvedAmount = payments
-    .filter((req) => req.status === "validé")
-    .reduce((sum, req) => sum + (req.amount || 0), 0);
-  const pendingAmount = payments
-    .filter((req) => req.status === "en_attente")
-    .reduce((sum, req) => sum + (req.amount || 0), 0);
+  const totalAmount = requests.reduce((sum, req) => sum + req.amount, 0);
+  const approvedAmount = requests.filter(req => req.status === 'validé').reduce((sum, req) => sum + req.amount, 0);
+  const pendingAmount = requests.filter(req => req.status === 'en_attente').reduce((sum, req) => sum + req.amount, 0);
 
-  if (paymentsLoading) {
+  if (loading) {
     return (
       <div className="py-8 text-center text-gray-500">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#f26755] mx-auto mb-4"></div>
@@ -464,47 +244,33 @@ export default function PaymentRequests() {
     );
   }
 
-  if (paymentsError) {
+  if (error) {
     return (
       <div className="py-8 text-center text-red-500">
         <div className="bg-red-50 border border-red-200 rounded-xl p-6 max-w-md mx-auto">
           <X className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <p>{paymentsError}</p>
+          <p>{error}</p>
         </div>
       </div>
     );
   }
 
-  if (!payments || payments.length === 0) {
+  if (!requests || requests.length === 0) {
     return (
       <div className="space-y-6">
         <div className="w-full mb-6">
           <div className="flex flex-col items-center w-full">
-            <h2 className="text-xl font-semibold text-gray-800 w-full text-center mb-2">
-              Demandes d&apos;acompte
-            </h2>
+            <h2 className="text-xl font-semibold text-gray-800 w-full text-center mb-2">Demandes d&apos;acompte</h2>
             <div className="flex flex-col sm:flex-row w-full gap-2 sm:gap-4 justify-between">
               <button
                 className="w-full sm:w-auto flex items-center justify-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg font-semibold shadow hover:bg-gray-200 transition"
                 onClick={() => window.history.back()}
                 type="button"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.2"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M15 19l-7-7 7-7"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" /></svg>
                 Retour
               </button>
-              {userRole !== "admin" && (
+              {userRole !== 'admin' && (
                 <button
                   className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-[#f26755] text-white rounded-lg font-semibold shadow hover:bg-[#f26755]/90 transition"
                   onClick={() => setOpenAddModal(true)}
@@ -516,7 +282,7 @@ export default function PaymentRequests() {
             </div>
           </div>
         </div>
-
+        
         <div className="flex items-center justify-center min-h-96">
           <Card className="text-center py-16 max-w-md mx-auto shadow-lg">
             <CardContent>
@@ -529,12 +295,8 @@ export default function PaymentRequests() {
               <p className="text-gray-600 mb-6">
                 Aucune demande d'acompte n'a été effectuée pour ce projet.
               </p>
-              {userRole !== "admin" && (
-                <Button
-                  onClick={() => setOpenAddModal(true)}
-                  type="button"
-                  className="bg-[#f26755] hover:bg-[#e55a4a]"
-                >
+              {userRole !== 'admin' && (
+                <Button onClick={() => setOpenAddModal(true)} className="bg-[#f26755] hover:bg-[#e55a4a]">
                   <Upload className="h-4 w-4" />
                   Faire une demande
                 </Button>
@@ -551,31 +313,17 @@ export default function PaymentRequests() {
       {/* Header */}
       <div className="w-full mb-6">
         <div className="flex flex-col items-center w-full">
-          <h2 className="text-xl font-semibold text-gray-800 w-full text-center mb-2">
-            Demandes d&apos;acompte
-          </h2>
+          <h2 className="text-xl font-semibold text-gray-800 w-full text-center mb-2">Demandes d&apos;acompte</h2>
           <div className="flex flex-col sm:flex-row w-full gap-2 sm:gap-4 justify-between">
             <button
               className="w-full sm:w-auto flex items-center justify-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg font-semibold shadow hover:bg-gray-200 transition"
               onClick={() => window.history.back()}
               type="button"
             >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.2"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M15 19l-7-7 7-7"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" /></svg>
               Retour au projet
             </button>
-            {userRole !== "admin" && (
+            {userRole !== 'admin' && (
               <button
                 className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-[#f26755] text-white rounded-lg font-semibold shadow hover:bg-[#f26755]/90 transition"
                 onClick={() => setOpenAddModal(true)}
@@ -594,13 +342,9 @@ export default function PaymentRequests() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 text-sm font-medium mb-1">
-                  Total demandé
-                </p>
+                <p className="text-gray-600 text-sm font-medium mb-1">Total demandé</p>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-2xl font-bold text-gray-900">
-                    {totalAmount.toLocaleString("fr-FR")}
-                  </span>
+                  <span className="text-2xl font-bold text-gray-900">{totalAmount.toLocaleString('fr-FR')}</span>
                   <span className="text-lg font-medium text-gray-600">€</span>
                 </div>
               </div>
@@ -615,13 +359,9 @@ export default function PaymentRequests() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 text-sm font-medium mb-1">
-                  Approuvé
-                </p>
+                <p className="text-gray-600 text-sm font-medium mb-1">Approuvé</p>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-2xl font-bold text-gray-900">
-                    {approvedAmount.toLocaleString("fr-FR")}
-                  </span>
+                  <span className="text-2xl font-bold text-gray-900">{approvedAmount.toLocaleString('fr-FR')}</span>
                   <span className="text-lg font-medium text-gray-600">€</span>
                 </div>
               </div>
@@ -636,13 +376,9 @@ export default function PaymentRequests() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 text-sm font-medium mb-1">
-                  En attente
-                </p>
+                <p className="text-gray-600 text-sm font-medium mb-1">En attente</p>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-2xl font-bold text-gray-900">
-                    {pendingAmount.toLocaleString("fr-FR")}
-                  </span>
+                  <span className="text-2xl font-bold text-gray-900">{pendingAmount.toLocaleString('fr-FR')}</span>
                   <span className="text-lg font-medium text-gray-600">€</span>
                 </div>
               </div>
@@ -656,110 +392,40 @@ export default function PaymentRequests() {
 
       {/* Payment Requests - Modern Two Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {payments.map((payment: any) => (
+        {requests.map((request) => (
           <div
-            key={payment.id}
+            key={request.id}
             className="group relative bg-white rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 overflow-hidden"
           >
-            {/* Toast Notification */}
-            {toast && (
-              <div
-                style={{
-                  position: "fixed",
-                  top: 24,
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  zIndex: 9999,
-                  minWidth: 260,
-                  maxWidth: "90vw",
-                  padding: "14px 28px",
-                  borderRadius: 8,
-                  background: toast.type === "success" ? "#d1fae5" : "#fee2e2",
-                  color: toast.type === "success" ? "#065f46" : "#b91c1c",
-                  fontWeight: 600,
-                  fontSize: 16,
-                  boxShadow: "0 2px 16px #0002",
-                  border:
-                    toast.type === "success"
-                      ? "1px solid #34d399"
-                      : "1px solid #f87171",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                }}
-                role="alert"
-              >
-                {toast.type === "success" ? (
-                  <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
-                    <circle
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      fill="#34d399"
-                      opacity=".2"
-                    />
-                    <path
-                      d="M8 12.5l2.5 2.5 5-5"
-                      stroke="#10b981"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                ) : (
-                  <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
-                    <circle
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      fill="#f87171"
-                      opacity=".2"
-                    />
-                    <path
-                      d="M15 9l-6 6M9 9l6 6"
-                      stroke="#ef4444"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                )}
-                {toast.message}
-              </div>
-            )}
+
             <div className="relative p-6">
               {/* Header */}
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
                   <h3 className="text-xl font-bold text-gray-900 mb-2">
-                    {payment.title}
+                    {request.title}
                   </h3>
                   <div className="flex items-center gap-3">
-                    <span
-                      className={`inline-flex items-center gap-1.5 text-xs font-medium rounded-full px-3 py-1.5 border ${getStatusStyle(
-                        payment.status
-                      )}`}
-                    >
-                      {getStatusIcon(payment.status)}
-                      {getStatusText(payment.status)}
+                    <span className={`inline-flex items-center gap-1.5 text-xs font-medium rounded-full px-3 py-1.5 border ${getStatusStyle(request.status)}`}>
+                      {getStatusIcon(request.status)}
+                      {getStatusText(request.status)}
                     </span>
                     <div className="flex items-center gap-1 text-sm text-gray-500">
                       <Calendar className="h-4 w-4 text-[#f26755]" />
-                      {formatDate(payment.date)}
+                      {formatDate(request.date)}
                     </div>
                   </div>
                 </div>
-
+                
                 {/* Price Display */}
                 <div className="text-right">
                   <div className="bg-gradient-to-r from-[#f26755] to-[#e55a4a] bg-clip-text text-transparent">
                     <div className="flex items-baseline gap-1">
-                      <span className="text-2xl font-bold">
-                        {(payment.amount ?? 0).toLocaleString("fr-FR")}
-                      </span>
+                      <span className="text-2xl font-bold">{request.amount.toLocaleString('fr-FR')}</span>
                       <span className="text-lg font-medium">€</span>
                     </div>
                   </div>
-                  {payment.status === "validé" && (
+                  {request.status === 'validé' && (
                     <div className="flex items-center justify-end gap-1 text-emerald-600 text-sm font-medium mt-1">
                       <Check className="h-3 w-3" />
                       Versé
@@ -770,50 +436,62 @@ export default function PaymentRequests() {
 
               {/* Description */}
               <p className="text-gray-600 text-sm leading-relaxed mb-4 line-clamp-2">
-                {payment.description}
+                {request.description}
               </p>
 
               {/* Media Section */}
               <div className="space-y-3 mb-6">
                 {/* Images */}
-                {payment.images && payment.images.length > 0 && (
+                {request.images && request.images.length > 0 && (
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-1 text-[#f26755]">
                       <ImageIcon className="h-4 w-4" />
-                      <span className="text-sm font-medium">
-                        {payment.images.length}
-                      </span>
+                      <span className="text-sm font-medium">{request.images.length}</span>
                     </div>
                     <div className="flex gap-2">
-                      {payment.images
-                        .slice(0, 3)
-                        .map((img: string, idx: number) => (
-                          <img
-                            key={idx}
-                            src={img}
-                            alt={`Justificatif ${idx + 1}`}
-                            className="w-12 h-12 object-cover rounded-lg border-2 border-gray-200 cursor-pointer hover:border-[#f26755] transition-colors"
-                            onClick={() => setSelectedImage(img)}
-                          />
-                        ))}
+                      {request.images.slice(0, 3).map((img, idx) => (
+                        <img
+                          key={idx}
+                          src={img}
+                          alt={`Justificatif ${idx + 1}`}
+                          className="w-12 h-12 object-cover rounded-lg border-2 border-gray-200 cursor-pointer hover:border-[#f26755] transition-colors"
+                          onClick={() => setSelectedImage(img)}
+                        />
+                      ))}
+                      {request.images.length > 3 && (
+                        <div className="w-12 h-12 bg-gray-100 rounded-lg border-2 border-gray-200 flex items-center justify-center text-xs font-medium text-gray-600">
+                          +{request.images.length - 3}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
+
                 {/* Documents */}
-                {payment.documents && payment.documents.length > 0 && (
-                  <div className="flex flex-col gap-2 mt-2">
-                    {payment.documents.map((docUrl: string, idx: number) => (
-                      <a
-                        key={idx}
-                        href={docUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-[#f26755] hover:underline"
-                      >
-                        <FileText className="h-4 w-4" />
-                        <span>Document {idx + 1}</span>
-                      </a>
-                    ))}
+                {request.documents && request.documents.length > 0 && (
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1 text-[#f26755]">
+                      <FileText className="h-4 w-4" />
+                      <span className="text-sm font-medium">{request.documents.length}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {request.documents.map((docUrl, idx) => {
+                        const fileName = decodeURIComponent(docUrl.split('/').pop()?.split('?')[0] || `Doc ${idx+1}`);
+                        return (
+                          <a
+                            key={idx}
+                            href={docUrl}
+                            download
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 hover:bg-[#f26755]/10 rounded-lg text-xs text-gray-700 hover:text-[#f26755] transition-colors"
+                          >
+                            <Download className="h-3 w-3" />
+                            <span className="truncate max-w-20">{fileName.split('.')[0]}</span>
+                          </a>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </div>
@@ -822,66 +500,17 @@ export default function PaymentRequests() {
               <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                 <button
                   className="text-sm font-medium text-[#f26755] hover:text-[#f26755]/80 flex items-center gap-1 transition-colors"
-                  onClick={() => handleViewDetails(payment)}
+                  onClick={() => handleViewDetails(request)}
                 >
                   <Eye className="h-4 w-4" />
                   Voir les détails
                   <ChevronRight className="h-4 w-4" />
                 </button>
-
-                {payment.status === "en_attente" && (
-                  <button
-                    onClick={() => handleRelance(payment)}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-lg flex items-center gap-1 transition-colors 
-    ${
-      relanceLoadingId === payment.id
-        ? "bg-orange-100 text-orange-600 cursor-not-allowed border border-orange-300 shadow"
-        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-    }`}
-                    disabled={relanceLoadingId === payment.id}
-                  >
-                    {relanceLoadingId === payment.id ? (
-                      <span className="animate-spin mr-2">
-                        <svg
-                          className="h-5 w-5"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                          ></circle>
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8v8z"
-                          ></path>
-                        </svg>
-                      </span>
-                    ) : relanceSuccess === payment.id ? (
-                      <Check className="h-4 w-4 text-green-500" />
-                    ) : relanceErrorId === payment.id ? (
-                      <X className="h-4 w-4 text-red-500" />
-                    ) : (
-                      <Send className="h-3 w-3" />
-                    )}
-                    {relanceLoadingId === payment.id ? (
-                      <span className="font-semibold text-orange-600">
-                        Envoi en cours…
-                      </span>
-                    ) : relanceSuccess === payment.id ? (
-                      <span className="font-semibold text-green-600">
-                        Envoyé
-                      </span>
-                    ) : relanceErrorId === payment.id ? (
-                      <span className="font-semibold text-red-600">Erreur</span>
-                    ) : (
-                      "Relancer"
-                    )}
+                
+                {request.status === 'en_attente' && (
+                  <button className="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 flex items-center gap-1 transition-colors">
+                    <Send className="h-3 w-3" />
+                    Relancer
                   </button>
                 )}
               </div>
@@ -903,7 +532,7 @@ export default function PaymentRequests() {
               {formError}
             </div>
           )}
-
+          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -916,18 +545,10 @@ export default function PaymentRequests() {
                 onChange={handleSelectChange}
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#f26755] focus:border-[#f26755]"
               >
-                <option value="" disabled>
-                  Sélectionnez un type
-                </option>
-                <option value="Versement au démarrage">
-                  Versement au démarrage
-                </option>
-                <option value="Versement mi chantier">
-                  Versement mi chantier
-                </option>
-                <option value="A la fin des travaux">
-                  A la fin des travaux
-                </option>
+                <option value="" disabled>Sélectionnez un type</option>
+                <option value="Versement au démarrage">Versement au démarrage</option>
+                <option value="Versement mi chantier">Versement mi chantier</option>
+                <option value="A la fin des travaux">A la fin des travaux</option>
               </select>
             </div>
 
@@ -988,11 +609,7 @@ export default function PaymentRequests() {
                 type="file"
                 accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                 multiple
-                onChange={(e) =>
-                  setDocumentFiles(
-                    e.target.files ? Array.from(e.target.files) : []
-                  )
-                }
+                onChange={e => setDocumentFiles(e.target.files ? Array.from(e.target.files) : [])}
                 className="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#f26755]/10 file:text-[#f26755] hover:file:bg-[#f26755]/20"
               />
             </div>
@@ -1006,11 +623,7 @@ export default function PaymentRequests() {
             >
               Annuler
             </Button>
-            <Button
-              type="submit"
-              disabled={formLoading}
-              className="bg-[#f26755] hover:bg-[#e55a4a]"
-            >
+            <Button type="submit" disabled={formLoading} className="bg-[#f26755] hover:bg-[#e55a4a]">
               {formLoading ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
@@ -1031,65 +644,49 @@ export default function PaymentRequests() {
       <Modal
         isOpen={isDetailModalOpen}
         onClose={() => setIsDetailModalOpen(false)}
-        title={selectedRequest?.title || ""}
+        title={selectedRequest?.title || ''}
         maxWidth="max-w-6xl"
       >
         {selectedRequest && (
           <div className="space-y-6 max-h-[80vh] overflow-y-auto">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="space-y-4">
-                <h4 className="font-semibold text-gray-900 text-lg">
-                  Informations générales
-                </h4>
+                <h4 className="font-semibold text-gray-900 text-lg">Informations générales</h4>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                     <span className="text-gray-600 font-medium">Montant:</span>
                     <div className="bg-gradient-to-r from-[#f26755] to-[#e55a4a] bg-clip-text text-transparent">
                       <div className="flex items-baseline gap-1">
-                        <span className="text-lg font-bold">
-                          {selectedRequest.amount.toLocaleString("fr-FR")}
-                        </span>
+                        <span className="text-lg font-bold">{selectedRequest.amount.toLocaleString('fr-FR')}</span>
                         <span className="text-sm font-medium">€</span>
                       </div>
                     </div>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                     <span className="text-gray-600 font-medium">Date:</span>
-                    <span className="font-semibold">
-                      {formatDate(selectedRequest.date)}
-                    </span>
+                    <span className="font-semibold">{formatDate(selectedRequest.date)}</span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                     <span className="text-gray-600 font-medium">Statut:</span>
-                    <span
-                      className={`inline-flex items-center gap-1 text-xs font-medium rounded-full px-2.5 py-0.5 border ${getStatusStyle(
-                        selectedRequest.status
-                      )}`}
-                    >
+                    <span className={`inline-flex items-center gap-1 text-xs font-medium rounded-full px-2.5 py-0.5 border ${getStatusStyle(selectedRequest.status)}`}>
                       {getStatusIcon(selectedRequest.status)}
                       {getStatusText(selectedRequest.status)}
                     </span>
                   </div>
                 </div>
               </div>
-
+              
               <div className="space-y-4">
-                <h4 className="font-semibold text-gray-900 text-lg">
-                  Description
-                </h4>
+                <h4 className="font-semibold text-gray-900 text-lg">Description</h4>
                 <div className="p-4 bg-gray-50 rounded-lg">
-                  <p className="text-gray-700 leading-relaxed">
-                    {selectedRequest.description}
-                  </p>
+                  <p className="text-gray-700 leading-relaxed">{selectedRequest.description}</p>
                 </div>
               </div>
             </div>
 
             {selectedRequest.images && selectedRequest.images.length > 0 && (
               <div>
-                <h4 className="font-semibold text-gray-900 mb-4 text-lg">
-                  Justificatifs
-                </h4>
+                <h4 className="font-semibold text-gray-900 mb-4 text-lg">Justificatifs</h4>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                   {selectedRequest.images.map((img, idx) => (
                     <div key={idx} className="relative group">
@@ -1108,44 +705,34 @@ export default function PaymentRequests() {
               </div>
             )}
 
-            {selectedRequest.documents &&
-              selectedRequest.documents.length > 0 && (
-                <div>
-                  <h4 className="font-semibold text-gray-900 mb-4 text-lg">
-                    Documents
-                  </h4>
-                  <div className="grid grid-cols-1 gap-3">
-                    {selectedRequest.documents.map((docUrl, idx) => {
-                      const fileName = decodeURIComponent(
-                        docUrl.split("/").pop()?.split("?")[0] ||
-                          `Document_${idx + 1}`
-                      );
-                      return (
-                        <a
-                          key={idx}
-                          href={docUrl}
-                          download
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-3 p-4 bg-gray-50 hover:bg-[#f26755]/10 rounded-xl border border-gray-200 hover:border-[#f26755] transition-all group"
-                        >
-                          <div className="w-10 h-10 bg-[#f26755]/10 rounded-lg flex items-center justify-center group-hover:bg-[#f26755]/20 transition-colors">
-                            <Download className="h-5 w-5 text-[#f26755]" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-gray-900 truncate">
-                              {fileName}
-                            </p>
-                            <p className="text-sm text-gray-500">
-                              Cliquez pour télécharger
-                            </p>
-                          </div>
-                        </a>
-                      );
-                    })}
-                  </div>
+            {selectedRequest.documents && selectedRequest.documents.length > 0 && (
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-4 text-lg">Documents</h4>
+                <div className="grid grid-cols-1 gap-3">
+                  {selectedRequest.documents.map((docUrl, idx) => {
+                    const fileName = decodeURIComponent(docUrl.split('/').pop()?.split('?')[0] || `Document_${idx+1}`);
+                    return (
+                      <a
+                        key={idx}
+                        href={docUrl}
+                        download
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 p-4 bg-gray-50 hover:bg-[#f26755]/10 rounded-xl border border-gray-200 hover:border-[#f26755] transition-all group"
+                      >
+                        <div className="w-10 h-10 bg-[#f26755]/10 rounded-lg flex items-center justify-center group-hover:bg-[#f26755]/20 transition-colors">
+                          <Download className="h-5 w-5 text-[#f26755]" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-gray-900 truncate">{fileName}</p>
+                          <p className="text-sm text-gray-500">Cliquez pour télécharger</p>
+                        </div>
+                      </a>
+                    );
+                  })}
                 </div>
-              )}
+              </div>
+            )}
           </div>
         )}
       </Modal>
@@ -1197,11 +784,7 @@ export default function PaymentRequests() {
             >
               Annuler
             </Button>
-            <Button
-              type="submit"
-              disabled={isNotificationSent}
-              className="bg-[#f26755] hover:bg-[#e55a4a]"
-            >
+            <Button type="submit" disabled={isNotificationSent} className="bg-[#f26755] hover:bg-[#e55a4a]">
               {isNotificationSent ? (
                 <>
                   <Check className="h-4 w-4" />
@@ -1220,3 +803,5 @@ export default function PaymentRequests() {
     </div>
   );
 }
+
+ 
