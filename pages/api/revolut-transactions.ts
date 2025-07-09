@@ -10,7 +10,7 @@ let cachedToken: string | null = null;
 let cachedTokenExpiresAt: number | null = null;
 
 // Génère dynamiquement un JWT (client assertion) signé pour Revolut
-function generateClientAssertion({ clientId, iss, privateKeyPath }: { clientId: string, iss: string, privateKeyPath: string }) {
+function generateClientAssertion({ clientId, iss, privateKey }: { clientId: string, iss: string, privateKey: string }) {
   const now = Math.floor(Date.now() / 1000);
   const payload = {
     iss,
@@ -18,7 +18,6 @@ function generateClientAssertion({ clientId, iss, privateKeyPath }: { clientId: 
     aud: 'https://revolut.com',
     exp: now + 10 * 60, // 10 min
   };
-  const privateKey = fs.readFileSync(privateKeyPath, 'utf8');
   return jwt.sign(payload, privateKey, { algorithm: 'RS256', header: { alg: 'RS256', typ: 'JWT' } });
 }
 
@@ -38,7 +37,8 @@ async function getRevolutAccessToken({ code }: { code: string }) {
   const key = Buffer.from(process.env.REVOLUT_PRIVATE_KEY || '', 'utf8');
   console.log("Key : ", key);
   const agent = new https.Agent({ cert, key });
-  const clientAssertion = generateClientAssertion({ clientId, iss, privateKeyPath: keyPath });
+  const privateKey = process.env.REVOLUT_PRIVATE_KEY || '';
+  const clientAssertion = generateClientAssertion({ clientId, iss, privateKey });
   const params = new URLSearchParams();
   params.append('grant_type', 'authorization_code');
   params.append('code', code);
