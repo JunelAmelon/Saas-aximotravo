@@ -34,7 +34,9 @@ async function getRevolutAccessToken({ code }: { code: string }) {
   const certPath = path.resolve(process.cwd(), 'public/publiccert.cer');
   const keyPath = path.resolve(process.cwd(), 'public/privatecert.pem');
   const cert = Buffer.from(process.env.REVOLUT_CERT || '', 'utf8');
+  console.log("Cert : ", cert);
   const key = Buffer.from(process.env.REVOLUT_PRIVATE_KEY || '', 'utf8');
+  console.log("Key : ", key);
   const agent = new https.Agent({ cert, key });
   const clientAssertion = generateClientAssertion({ clientId, iss, privateKeyPath: keyPath });
   const params = new URLSearchParams();

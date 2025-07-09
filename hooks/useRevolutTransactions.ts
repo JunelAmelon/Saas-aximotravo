@@ -38,7 +38,6 @@ export function useRevolutTransactions(): UseRevolutTransactionsResult {
       const response = await axios.get(`/api/revolut-transactions${codeParam}`);
       setTransactions(response.data);
     } catch (err: any) {
-      console.log(err);
       setError(err?.response.data.error || "Erreur lors du chargement des transactions");
     } finally {
       setLoading(false);
