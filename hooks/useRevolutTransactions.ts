@@ -25,10 +25,21 @@ export function useRevolutTransactions(): UseRevolutTransactionsResult {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get("/api/revolut-transactions");
+      // Cherche le code d'autorisation dans localStorage (si côté client)
+      let codeParam = '';
+      if (typeof window !== 'undefined') {
+        const code = localStorage.getItem('revolut_auth_code');
+        if (code) {
+          codeParam = `?code=${encodeURIComponent(code)}`;
+          // Supprime le code après usage pour éviter les requêtes multiples avec un code expiré
+          localStorage.removeItem('revolut_auth_code');
+        }
+      }
+      const response = await axios.get(`/api/revolut-transactions${codeParam}`);
       setTransactions(response.data);
     } catch (err: any) {
-      setError(err?.message || "Erreur lors du chargement des transactions");
+      console.log(err);
+      setError(err?.response.data.error || "Erreur lors du chargement des transactions");
     } finally {
       setLoading(false);
     }

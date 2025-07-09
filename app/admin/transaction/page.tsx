@@ -21,6 +21,14 @@ export default function TransactionsAdminPage() {
     // Liste des transactions Revolut
     const { transactions, loading: loadingTx, error: errorTx, refetch } = useRevolutTransactions();
 
+    // Prépare l'URL d'autorisation Revolut
+    const clientId = process.env.NEXT_PUBLIC_REVOLUT_CLIENT_ID;
+    console.log("Client ID : ", clientId);
+    const redirectUri = typeof window !== "undefined" ? "https://aximotravosass.netlify.app/revolut/callback" : "";
+    console.log("Redirect URI : ", redirectUri);
+    const revolutAuthUrl = clientId && redirectUri ? `https://sandbox-business.revolut.com/app-confirm?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code` : "";
+    console.log("Revolut Auth URL : ", revolutAuthUrl);
+
     // Liste des paiements Firestore
     const [payments, setPayments] = useState<ProjectPayment[]>([]);
     const [loadingPayments, setLoadingPayments] = useState(false);
@@ -82,18 +90,32 @@ export default function TransactionsAdminPage() {
 
             {/* Tableau Transactions Revolut */}
             {activeTab === 0 && (
-                <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
-                    <table className="min-w-full text-sm">
+                <>
+                  {errorTx && errorTx.includes("Code d'autorisation OAuth manquant") ? (
+                    <div className="p-8 text-center">
+                      <p className="mb-4 text-gray-600">Connexion Revolut requise pour afficher les transactions.</p>
+                      {revolutAuthUrl && (
+                        <a
+                          href={revolutAuthUrl}
+                          className="inline-block bg-[#f26755] hover:bg-[#e55a4a] text-white font-semibold px-6 py-3 rounded transition"
+                        >
+                          Connecter Revolut
+                        </a>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
+                      <table className="min-w-full text-sm">
                         <thead className="bg-gray-50 sticky top-0 z-10">
-                            <tr>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Type</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">État</th>
+                          <tr>
+                            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Type</th>
+                            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">État</th>
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Date</th>
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Montant</th>
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Devise</th>
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Description</th>
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Référence</th>
-                            </tr>
+                          </tr>
                         </thead>
                         <tbody>
                             {transactions && transactions.length > 0 ? (
@@ -117,8 +139,10 @@ export default function TransactionsAdminPage() {
                                 </tr>
                             )}
                         </tbody>
-                    </table>
-                </div>
+                      </table>
+                    </div>
+                  )}
+                </>
             )}
 
             {/* Tableau Paiements */}
@@ -196,3 +220,4 @@ export default function TransactionsAdminPage() {
         </div>
     );
 }
+
