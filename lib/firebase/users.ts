@@ -1,7 +1,6 @@
 import { db } from './config';
 import { collection, doc, getDoc, getDocs, setDoc, query, where, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { createUser as firebaseCreateUser } from './auth';
-import { getCurrentUser } from './auth';
+import { createUser as firebaseCreateUser, getCurrentUser } from './auth';
 
 export type UserRole = 'admin' | 'courtier' | 'artisan';
 
@@ -103,21 +102,6 @@ export async function getUserById(uid: string): Promise<User | null> {
   }
 }
 
-// Récupérer le client (utilisateur) à partir du client_id du projet
-export async function getClientUserFromProject(project: { client_id?: string; clientId?: string }): Promise<User | null> {
-  const clientId = project.client_id || project.clientId;
-  if (!clientId) return null;
-  return getUserById(clientId);
-}
-
-// Récupérer les infos Firestore de l'utilisateur connecté
-export async function getCurrentUserInfo(): Promise<User | null> {
-  const user = getCurrentUser();
-  if (!user) return null;
-  return getUserById(user.uid);
-}
-
-
 // Récupérer tous les artisans rattachés à un courtier
 export async function getArtisansByCourtierId(courtierId: string): Promise<ArtisanUser[]> {
   try {
@@ -207,3 +191,18 @@ export async function getAllArtisans(): Promise<ArtisanUser[]> {
     throw error;
   }
 }
+
+// Récupérer le client (utilisateur) à partir du client_id du projet
+export async function getClientUserFromProject(project: { client_id?: string; clientId?: string }): Promise<User | null> {
+  const clientId = project.client_id || project.clientId;
+  if (!clientId) return null;
+  return getUserById(clientId);
+}
+
+// Récupérer les infos Firestore de l'utilisateur connecté
+export async function getCurrentUserInfo(): Promise<User | null> {
+  const user = getCurrentUser();
+  if (!user) return null;
+  return getUserById(user.uid);
+}
+

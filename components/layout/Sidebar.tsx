@@ -79,6 +79,12 @@ export default function Sidebar({ userRole }: SidebarProps) {
         href: `${roleBasePath}/profiles`,
         icon: Users,
         current: pathname === `${roleBasePath}/profiles`,
+      },
+      {
+        name: "Gérer les transactions",
+        href: `${roleBasePath}/transaction`,
+        icon: Users,
+        current: pathname === `${roleBasePath}/transaction`,
       }
     ],
   };

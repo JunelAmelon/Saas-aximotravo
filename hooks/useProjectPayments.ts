@@ -6,7 +6,9 @@ import {
   where,
   orderBy,
   getDocs,
-  addDoc
+  addDoc,
+  doc,
+  updateDoc
 } from "firebase/firestore";
 
 export type PaymentStatus = "validé" | "en_attente";
@@ -38,6 +40,14 @@ export interface ProjectPayment {
     company?: string;
     [key: string]: any;
   };
+  validation?: {
+    montant: number;
+    devise: string;
+    dateVirement: string;
+    reference: string;
+    banque: string | null;
+    updatedAt: string;
+  };
 }
 
 /**
@@ -49,6 +59,16 @@ export async function addPayment(payment: Omit<ProjectPayment, 'id'>): Promise<s
   const paymentsRef = collection(db, "payments");
   const docRef = await addDoc(paymentsRef, payment);
   return docRef.id;
+}
+
+/**
+ * Met à jour le statut d'un paiement dans Firestore.
+ * @param paymentId L'id du paiement à mettre à jour
+ * @param status Le nouveau statut ("validé" ou "en_attente")
+ */
+export async function updatePaymentStatus(paymentId: string, status: PaymentStatus): Promise<void> {
+  const paymentRef = doc(db, "payments", paymentId);
+  await updateDoc(paymentRef, { status });
 }
 
 export function useProjectPayments(projectId: string) {
