@@ -31,8 +31,8 @@ async function getRevolutAccessToken({ code }: { code: string }) {
   const iss = process.env.REVOLUT_JWT_ISS || 'localhost:3000';
   if (!clientId) throw new Error('Client ID manquant');
   if (!code) throw new Error('Code d\'autorisation OAuth manquant');
-  const certPath = path.resolve(process.cwd(), 'publiccert.cer');
-  const keyPath = path.resolve(process.cwd(), 'privatecert.pem');
+  const certPath = path.resolve(process.cwd(), 'public/publiccert.cer');
+  const keyPath = path.resolve(process.cwd(), 'public/privatecert.pem');
   const cert = fs.readFileSync(certPath);
   const key = fs.readFileSync(keyPath);
   const agent = new https.Agent({ cert, key });
