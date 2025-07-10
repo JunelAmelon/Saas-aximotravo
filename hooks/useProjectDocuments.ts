@@ -20,6 +20,7 @@ export interface ProjectDocument {
   url: string;
   montant?: number;
   devisConfigId?: string;
+  documentId?: string;
 }
 
 export async function addProjectDocument({ projectId, name, category, date, size, status, url, montant, devisConfigId }: {
@@ -32,7 +33,7 @@ export async function addProjectDocument({ projectId, name, category, date, size
   url: string;
   montant?: number;
   devisConfigId?: string;
-}) {
+  }) {
   const docRef = await addDoc(collection(db, "documents"), {
     projectId,
     name,
@@ -52,6 +53,7 @@ export async function addProjectDocument({ projectId, name, category, date, size
       pdfUrl: url,
       projectId,
       devisConfigId,
+      documentId: docRef.id,
     });
   }
   return docRef.id;

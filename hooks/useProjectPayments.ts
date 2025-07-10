@@ -8,7 +8,8 @@ import {
   getDocs,
   addDoc,
   doc,
-  updateDoc
+  updateDoc,
+  getDoc
 } from "firebase/firestore";
 
 export type PaymentStatus = "validé" | "en_attente";
@@ -69,6 +70,25 @@ export async function addPayment(payment: Omit<ProjectPayment, 'id'>): Promise<s
 export async function updatePaymentStatus(paymentId: string, status: PaymentStatus): Promise<void> {
   const paymentRef = doc(db, "payments", paymentId);
   await updateDoc(paymentRef, { status });
+
+  // Récupère le paiement pour obtenir le projectId et le montant
+  const paymentSnap = await getDoc(paymentRef);
+  const payment = paymentSnap.data();
+  console.log("payment", payment);
+  if (!payment || !payment.projectId) return;
+
+  // Récupère le paidAmount actuel du projet
+  const projectRef = doc(db, "projects", payment.projectId);
+  const projectSnap = await getDoc(projectRef);
+  const project = projectSnap.data();
+  const currentPaidAmount = project?.paidAmount || 0;
+  const paymentAmount = payment.amount || 0;
+  console.log("currentPaidAmount", currentPaidAmount);
+  console.log("paymentAmount", paymentAmount);
+  console.log("idprojet", payment.projectId)
+
+  // Incrémente paidAmount du projet
+  await updateDoc(projectRef, { paidAmount: currentPaidAmount + paymentAmount });
 }
 
 export function useProjectPayments(projectId: string) {
