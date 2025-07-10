@@ -87,8 +87,14 @@ export async function updatePaymentStatus(paymentId: string, status: PaymentStat
   console.log("paymentAmount", paymentAmount);
   console.log("idprojet", payment.projectId)
 
-  // Incrémente paidAmount du projet
-  await updateDoc(projectRef, { paidAmount: currentPaidAmount + paymentAmount });
+  // Prépare la mise à jour du projet : paidAmount, et éventuellement status
+  const updateData: any = { paidAmount: currentPaidAmount + paymentAmount };
+  if (project?.status === "En attente") {
+    updateData.status = "En cours";
+  }
+
+  // Mets à jour le projet
+  await updateDoc(projectRef, updateData);
 }
 
 export function useProjectPayments(projectId: string) {
