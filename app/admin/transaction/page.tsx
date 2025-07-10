@@ -14,6 +14,8 @@ interface Validation {
     updatedAt: string;
 }
 
+import StatCardsBlock from "./StatCardsBlock";
+
 export default function TransactionsAdminPage() {
     // ...
     const [loadingValidatingId, setLoadingValidatingId] = useState<string | null>(null);
@@ -66,9 +68,21 @@ export default function TransactionsAdminPage() {
         );
     };
 
+    // Statistiques calculées à partir des paiements
+    const now = new Date();
+    const last30Days = new Date(now);
+    last30Days.setDate(now.getDate() - 30);
+    const stats = {
+      totalBalance: payments.reduce((sum, p) => sum + (p.amount || 0), 0),
+      last30Days: payments.filter(p => p.status === "validé" && p.date && new Date(p.date) >= last30Days).reduce((sum, p) => sum + (p.amount || 0), 0),
+      pendingTransactions: payments.filter(p => p.status === "en_attente").length,
+      completedProjects: payments.filter(p => p.status === "validé").length,
+    };
+
     return (
         <div className="max-w-7xl mx-auto px-4 py-8">
             <h1 className="text-2xl font-bold mb-8">Transactions & Paiements</h1>
+            <StatCardsBlock stats={stats} />
             {/* Onglets */}
             <div className="flex gap-2 mb-8 border-b border-gray-200">
                 <button

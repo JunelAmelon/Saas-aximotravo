@@ -70,22 +70,22 @@ export default function Sidebar({ userRole }: SidebarProps) {
       },
       {
         name: "Gestion des acomptes",
-        href: `${roleBasePath}/payments`,
+        href: `${roleBasePath}/transaction`,
         icon: Scale,
-        current: pathname === `${roleBasePath}/payments`,
+        current: pathname === `${roleBasePath}/transaction`,
       },
       {
         name: "Gérer les profils",
         href: `${roleBasePath}/profiles`,
         icon: Users,
         current: pathname === `${roleBasePath}/profiles`,
-      },
-      {
-        name: "Gérer les transactions",
-        href: `${roleBasePath}/transaction`,
-        icon: Users,
-        current: pathname === `${roleBasePath}/transaction`,
       }
+      // {
+      //   name: "Gérer les transactions",
+      //   href: `${roleBasePath}/transaction`,
+      //   icon: Users,
+      //   current: pathname === `${roleBasePath}/transaction`,
+      // }
     ],
   };
 
