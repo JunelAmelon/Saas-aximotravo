@@ -17,14 +17,9 @@ import { BadgeAmo } from "@/components/BadgeAmo";
 import { useArtisanProjects } from "@/hooks/useArtisanProjects";
 
 type ProjectStatus =
-  | "en_attente"
-  | "en_cours"
-  | "termine"
-  | "equipe_assignee"
-  | "chantier_planifie"
-  | "chantier_en_cours"
-  | "sav"
-  | "cloture";
+  | "En attente"
+  | "En cours"
+  | "Terminé"
 
 interface Project {
   id?: string;
@@ -40,7 +35,7 @@ interface Project {
 }
 
 const statusConfig: Record<ProjectStatus, StatusConfig> = {
-  en_attente: {
+  "En attente": {
     label: "En attente",
     count: 0,
     color: "#f59e42",
@@ -48,14 +43,14 @@ const statusConfig: Record<ProjectStatus, StatusConfig> = {
     className:
       "bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-200",
   },
-  en_cours: {
+  "En cours": {
     label: "En cours",
     count: 0,
     color: "#3b82f6",
     icon: "🚧",
     className: "bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200",
   },
-  termine: {
+  "Terminé": {
     label: "Terminé",
     count: 0,
     color: "#10b981",
@@ -63,77 +58,8 @@ const statusConfig: Record<ProjectStatus, StatusConfig> = {
     className:
       "bg-green-100 text-green-800 border-green-200 hover:bg-green-200",
   },
-  equipe_assignee: {
-    label: "Équipe assignée",
-    count: 0,
-    color: "#6366f1",
-    icon: "👷",
-    className:
-      "bg-indigo-100 text-indigo-800 border-indigo-200 hover:bg-indigo-200",
-  },
-  chantier_planifie: {
-    label: "Chantier planifié",
-    count: 0,
-    color: "#a78bfa",
-    icon: "📅",
-    className:
-      "bg-purple-100 text-purple-800 border-purple-200 hover:bg-purple-200",
-  },
-  chantier_en_cours: {
-    label: "Chantier en cours",
-    count: 0,
-    color: "#fb923c",
-    icon: "🏗️",
-    className:
-      "bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200",
-  },
-  sav: {
-    label: "SAV",
-    count: 0,
-    color: "#ec4899",
-    icon: "🔧",
-    className: "bg-pink-100 text-pink-800 border-pink-200 hover:bg-pink-200",
-  },
-  cloture: {
-    label: "Clôturé",
-    count: 0,
-    color: "#6b7280",
-    icon: "🔒",
-    className: "bg-gray-100 text-gray-800 border-gray-200 hover:bg-gray-200",
-  },
 };
 
-// Fonction de normalisation des statuts
-const normalizeStatus = (rawStatus: string): ProjectStatus => {
-  const s = (rawStatus || "").toLowerCase();
-  switch (s) {
-    case "terminé":
-    case "termine":
-      return "termine";
-    case "en attente":
-    case "en_attente":
-      return "en_attente";
-    case "en cours":
-    case "en_cours":
-      return "en_cours";
-    case "équipe assignée":
-    case "equipe_assignee":
-      return "equipe_assignee";
-    case "chantier planifié":
-    case "chantier_planifie":
-      return "chantier_planifie";
-    case "chantier en cours":
-    case "chantier_en_cours":
-      return "chantier_en_cours";
-    case "sav":
-      return "sav";
-    case "clôturé":
-    case "cloture":
-      return "cloture";
-    default:
-      return "en_attente";
-  }
-};
 
 interface StatusConfig {
   label: string;
@@ -158,7 +84,7 @@ export default function ArtisanProjects() {
     if (artisanProjects) {
       setProjects(
         artisanProjects.map((p: any) => {
-          const status = normalizeStatus(p.status);
+          const status = p.status;
           return {
             id: p.id,
             name: p.name || "Projet sans nom",

@@ -11,15 +11,10 @@ import { getProjectsByCourtier, Project as FirebaseProject } from "@/lib/firebas
 import { getUserById } from "@/lib/firebase/users";
 
 type ProjectStatus =
-  | "en_attente"
-  | "en_cours"
-  | "terminé"
-  | "equipe_assignee"
-  | "chantier_planifie"
-  | "chantier_en_cours"
-  | "sav"
-  | "termine"
-  | "cloture";
+  | "En attente"
+  | "En cours"
+  | "Terminé"
+ 
 
 interface Project {
   id: string;
@@ -35,58 +30,33 @@ interface Project {
 }
 
 const statusConfig = {
-  en_attente: {
+  "En attente": {
     label: "En attente",
     className: "bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-200",
     icon: "⏳"
   },
-  en_cours: {
+  "En cours": {
     label: "En cours",
     className: "bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200",
     icon: "🚧"
   },
-  terminé: {
+  "Terminé": {
     label: "Terminé",
     className: "bg-green-100 text-green-800 border-green-200 hover:bg-green-200",
     icon: "✅"
   },
-  equipe_assignee: {
-    label: "Équipe assignée",
-    className: "bg-indigo-100 text-indigo-800 border-indigo-200 hover:bg-indigo-200",
-    icon: "👷"
-  },
-  chantier_planifie: {
-    label: "Chantier planifié",
-    className: "bg-purple-100 text-purple-800 border-purple-200 hover:bg-purple-200",
-    icon: "📅"
-  },
-  chantier_en_cours: {
-    label: "Chantier en cours",
-    className: "bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200",
-    icon: "🏗️"
-  },
-  sav: {
-    label: "SAV",
-    className: "bg-pink-100 text-pink-800 border-pink-200 hover:bg-pink-200",
-    icon: "🔧"
-  },
-  cloture: {
-    label: "Clôturé",
-    className: "bg-gray-100 text-gray-800 border-gray-200 hover:bg-gray-200",
-    icon: "🔒"
-  }
+
 };
 
 function convertFirebaseProject(project: FirebaseProject): Project {
   const validStatuses: ProjectStatus[] = [
-    "en_attente", "en_cours", "terminé",
-    "equipe_assignee", "chantier_planifie",
-    "chantier_en_cours", "sav", "termine", "cloture"
+    "En attente", "En cours", "Terminé",
+   
   ];
 
   const status: ProjectStatus = validStatuses.includes(project.status as ProjectStatus)
     ? project.status as ProjectStatus
-    : "en_attente";
+    : "En attente";
 
   return {
     id: project.id,
@@ -341,10 +311,15 @@ export default function CourtierProjects() {
                       <path d="M12 5l7 7-7 7" /> {/* Flèche pointant vers le haut */}
                     </svg>
                   </Link>
-                  <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${statusInfo.className}`}>
-                    {statusInfo.icon && <span className="mr-1">{statusInfo.icon}</span>}
-                    {statusInfo.label}
-                  </span>
+                  {(() => {
+  const statusInfo = statusConfig[project.status as keyof typeof statusConfig] || { label: project.status, className: '', icon: '' };
+  return (
+    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${statusInfo.className}`}>
+      {statusInfo.icon && <span className="mr-1">{statusInfo.icon}</span>}
+      {statusInfo.label}
+    </span>
+  );
+})()}
                 </div>
               </div>
             );

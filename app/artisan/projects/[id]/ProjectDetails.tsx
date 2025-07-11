@@ -642,6 +642,10 @@ export default function ProjectDetails() {
       <div className="fixed inset-0 z-50 bg-white overflow-y-auto">
         <DevisConfigProvider devisId={selectedDevisId}>
           <DevisGenerationPage
+            open={step === "generation"}
+            onOpenChange={(open) => {
+              if (!open) setStep(null); // ou "pieces" ou autre selon ton workflow
+            }}
             onBack={() => {
               handleBackToHome(); // Revenir à l'étape précédente
             }}
@@ -1080,9 +1084,13 @@ export default function ProjectDetails() {
             onNext={handleGenerationStep}
             onBack={handleSelectPieces}
           />
-          {step === "generation" && (
-            <DevisGenerationPage onBack={handleBackToHome} />
-          )}
+          <DevisGenerationPage
+            open={step === "generation"}
+            onOpenChange={(open) => {
+              if (!open) setStep(null); // ou "pieces" ou autre selon ton workflow
+            }}
+            onBack={handleBackToHome}
+          />
         </DevisConfigProvider>
       )}
     </div>
