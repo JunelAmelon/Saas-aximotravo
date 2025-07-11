@@ -153,14 +153,34 @@ export default function ProjectDocuments() {
             body: JSON.stringify({
               to: recipients,
               subject: `Nouveau document ajouté au projet`,
-              html: `<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
-                <h2 style='color: #f26755; margin-bottom: 0.5em;'>Nouveau document ajouté au projet</h2>
-                <div style='font-size: 1em; color: #333; margin-bottom: 1em;'>
-                  Un nouveau document intitulé <strong>"${selectedFile.name}"</strong> vient d'être ajouté.<br/>
-                  <strong>Type :</strong> ${documentType === 'autre' ? customDocumentType : documentType}<br/>
-                  <strong>Date :</strong> ${new Date().toLocaleString()}
+              html: `
+                <div style="font-family: Arial, sans-serif; color: #222; max-width: 480px; margin: 0 auto; border: 1px solid #f26755; border-radius: 8px; overflow: hidden;">
+                  <div style="background: linear-gradient(90deg, #f26755 0%, #f28c55 100%); padding: 16px 24px;">
+                    <h2 style="color: #fff; margin: 0; font-size: 1.3rem; font-weight: bold;">
+                      Nouveau document ajouté au projet
+                    </h2>
+                  </div>
+                  <div style="padding: 24px;">
+                    <table style="background: #f9f9f9; border-radius: 6px; padding: 12px 16px; margin-bottom: 20px; width: 100%; font-size: 1em;">
+                      <tr>
+                        <td style="padding: 6px 0;"><b>Nom&nbsp;:</b></td>
+                        <td style="padding: 6px 0;">${selectedFile.name}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 6px 0;"><b>Type&nbsp;:</b></td>
+                        <td style="padding: 6px 0;">${documentType === 'autre' ? customDocumentType : documentType}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 6px 0;"><b>Date&nbsp;:</b></td>
+                        <td style="padding: 6px 0;">${new Date().toLocaleString()}</td>
+                      </tr>
+                    </table>
+                    <p style="color: #f26755; font-size: 0.97em; margin-bottom: 0; margin-top: 18px;">
+                      Merci de consulter la plateforme pour accéder au document.
+                    </p>
+                  </div>
                 </div>
-              </div>`
+              `,
             })
           });
         }

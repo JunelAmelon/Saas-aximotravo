@@ -1,34 +1,48 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef } from 'react';
-import { Send, Upload } from 'lucide-react';
+import { useState, useEffect, useRef } from "react";
+import { Send, Upload } from "lucide-react";
 
 import { ProjectNote } from "@/hooks/useProjectNotes";
 import { useAuth } from "@/lib/contexts/AuthContext";
-import { CLOUDINARY_UPLOAD_PRESET } from '@/lib/cloudinary';
+import { CLOUDINARY_UPLOAD_PRESET } from "@/lib/cloudinary";
 const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/auto/upload`;
-import { fetchProjectEmails } from '@/lib/projectEmails';
+import { fetchProjectEmails } from "@/lib/projectEmails";
 
 interface ProjectNoteFormProps {
   onClose?: () => void;
-  onAddNote?: (note: Omit<ProjectNote, 'id' | 'date' | 'timestamp'>) => Promise<void>;
+  onAddNote?: (
+    note: Omit<ProjectNote, "id" | "date" | "timestamp">
+  ) => Promise<void>;
   projectId?: string;
 }
 
-// Fonction d'envoi d'email 
-async function sendNoteEmail({ to, subject, html }: { to: string[]; subject: string; html: string }) {
+// Fonction d'envoi d'email
+async function sendNoteEmail({
+  to,
+  subject,
+  html,
+}: {
+  to: string[];
+  subject: string;
+  html: string;
+}) {
   // Appel l'API d'envoi d'email
-  await fetch('/api/send-email', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ to, subject, html })
+  await fetch("/api/send-email", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ to, subject, html }),
   });
 }
 
-export default function ProjectNoteForm({ onClose, onAddNote, projectId }: ProjectNoteFormProps) {
+export default function ProjectNoteForm({
+  onClose,
+  onAddNote,
+  projectId,
+}: ProjectNoteFormProps) {
   const [note, setNote] = useState({
-    title: '',
-    content: '',
+    title: "",
+    content: "",
     notifyClient: false,
     notifyArtisan: false,
     notifyPilot: false,
@@ -37,11 +51,16 @@ export default function ProjectNoteForm({ onClose, onAddNote, projectId }: Proje
     attachments: [] as string[],
   });
   // State pour l'input email additionnel
-  const [additionalEmail, setAdditionalEmail] = useState('');
+  const [additionalEmail, setAdditionalEmail] = useState("");
 
   // Gestion des emails associés au projet
-  const [projectEmails, setProjectEmails] = useState<{client?: string, artisans?: string[], courtier?: string, vendor?: string}>({});
-  const [projectName, setProjectName] = useState<string>('Projet');
+  const [projectEmails, setProjectEmails] = useState<{
+    client?: string;
+    artisans?: string[];
+    courtier?: string;
+    vendor?: string;
+  }>({});
+  const [projectName, setProjectName] = useState<string>("Projet");
   const [emailsLoading, setEmailsLoading] = useState(false);
   const [emailsError, setEmailsError] = useState<string | null>(null);
 
@@ -53,7 +72,11 @@ export default function ProjectNoteForm({ onClose, onAddNote, projectId }: Proje
       .then((emails) => {
         setProjectEmails(emails);
       })
-      .catch((err: any) => setEmailsError(err.message || 'Erreur lors de la récupération des emails'))
+      .catch((err: any) =>
+        setEmailsError(
+          err.message || "Erreur lors de la récupération des emails"
+        )
+      )
       .finally(() => setEmailsLoading(false));
   }, [projectId]);
 
@@ -66,13 +89,20 @@ export default function ProjectNoteForm({ onClose, onAddNote, projectId }: Proje
   // Log dynamique des emails sélectionnés à chaque changement de case
   useEffect(() => {
     const checkedEmails: string[] = [];
-    if (note.notifyClient) checkedEmails.push(projectEmails.client || '');
-    if (note.notifyArtisan && projectEmails.artisans) checkedEmails.push(...projectEmails.artisans);
-    if (note.notifyPilot) checkedEmails.push(projectEmails.courtier || '');
-    if (note.notifyVendor) checkedEmails.push(projectEmails.vendor || '');
-    const filteredCheckedEmails = checkedEmails.filter(email => !!email);
-    console.log('Emails sélectionnés (cases cochées):', filteredCheckedEmails);
-  }, [note.notifyClient, note.notifyArtisan, note.notifyPilot, note.notifyVendor, projectEmails]);
+    if (note.notifyClient) checkedEmails.push(projectEmails.client || "");
+    if (note.notifyArtisan && projectEmails.artisans)
+      checkedEmails.push(...projectEmails.artisans);
+    if (note.notifyPilot) checkedEmails.push(projectEmails.courtier || "");
+    if (note.notifyVendor) checkedEmails.push(projectEmails.vendor || "");
+    const filteredCheckedEmails = checkedEmails.filter((email) => !!email);
+    console.log("Emails sélectionnés (cases cochées):", filteredCheckedEmails);
+  }, [
+    note.notifyClient,
+    note.notifyArtisan,
+    note.notifyPilot,
+    note.notifyVendor,
+    projectEmails,
+  ]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -81,99 +111,135 @@ export default function ProjectNoteForm({ onClose, onAddNote, projectId }: Proje
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setError(null);
-  setLoading(true);
-  try {
-    let uploadedUrls: string[] = [];
-    if (files.length > 0) {
-      for (const file of files) {
-        const data = new FormData();
-        data.append("file", file);
-        data.append("upload_preset", CLOUDINARY_UPLOAD_PRESET as string);
-        const res = await fetch(CLOUDINARY_UPLOAD_URL, {
-          method: "POST",
-          body: data
-        });
-        if (!res.ok) {
-          throw new Error("Erreur lors de l'upload du fichier.");
-        }
-        const result = await res.json();
-        if (result.secure_url) {
-          uploadedUrls.push(result.secure_url);
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    try {
+      let uploadedUrls: string[] = [];
+      if (files.length > 0) {
+        for (const file of files) {
+          const data = new FormData();
+          data.append("file", file);
+          data.append("upload_preset", CLOUDINARY_UPLOAD_PRESET as string);
+          const res = await fetch(CLOUDINARY_UPLOAD_URL, {
+            method: "POST",
+            body: data,
+          });
+          if (!res.ok) {
+            throw new Error("Erreur lors de l'upload du fichier.");
+          }
+          const result = await res.json();
+          if (result.secure_url) {
+            uploadedUrls.push(result.secure_url);
+          }
         }
       }
-    }
-    if (!projectId) {
-      setError("Impossible d'ajouter la note : projectId manquant.");
-      setLoading(false);
-      return;
-    }
-    // Récupère les emails cochés
-    const checkedEmails: string[] = [];
-    if (note.notifyClient) checkedEmails.push(projectEmails.client || '');
-    if (note.notifyArtisan && projectEmails.artisans) checkedEmails.push(...projectEmails.artisans);
-    if (note.notifyPilot) checkedEmails.push(projectEmails.courtier || '');
-    if (note.notifyVendor) checkedEmails.push(projectEmails.vendor || '');
-    // Filtre les emails vides ou non définis
-    const filteredCheckedEmails = checkedEmails.filter(email => !!email);
-    // Ajoute les emails saisis manuellement
-    const recipients: string[] = [...filteredCheckedEmails, ...(note.emails || []).filter(Boolean)];
-    console.log('Emails récupérés pour envoi :', recipients);
-    // Prépare l'auteur
-    const author = currentUser?.displayName || currentUser?.email || 'Utilisateur inconnu';
-    // Envoi du mail si des destinataires sont présents
-    if (recipients.length > 0) {
-      const now = new Date().toLocaleString();
-      const htmlContent = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #f26755; margin-bottom: 0.5em;">Nouvelle note ajoutée au projet</h2>
-          <div style="font-size: 1em; color: #333; margin-bottom: 1em;">
-            Une note intitulée <strong>"${note.title || 'Note de projet'}"</strong> vient d'être ajoutée.<br/>
-            <strong>Projet :</strong> ${projectName}<br/>
-            <strong>Auteur :</strong> ${author}<br/>
-            <strong>Date :</strong> ${now}
-          </div>
-          <div style="margin-top: 1em;">${note.content}</div>
-        </div>
+      if (!projectId) {
+        setError("Impossible d'ajouter la note : projectId manquant.");
+        setLoading(false);
+        return;
+      }
+      // Récupère les emails cochés
+      const checkedEmails: string[] = [];
+      if (note.notifyClient) checkedEmails.push(projectEmails.client || "");
+      if (note.notifyArtisan && projectEmails.artisans)
+        checkedEmails.push(...projectEmails.artisans);
+      if (note.notifyPilot) checkedEmails.push(projectEmails.courtier || "");
+      if (note.notifyVendor) checkedEmails.push(projectEmails.vendor || "");
+      // Filtre les emails vides ou non définis
+      const filteredCheckedEmails = checkedEmails.filter((email) => !!email);
+      // Ajoute les emails saisis manuellement
+      const recipients: string[] = [
+        ...filteredCheckedEmails,
+        ...(note.emails || []).filter(Boolean),
+      ];
+      console.log("Emails récupérés pour envoi :", recipients);
+      // Prépare l'auteur
+      const author =
+        currentUser?.displayName || currentUser?.email || "Utilisateur inconnu";
+      // Envoi du mail si des destinataires sont présents
+      if (recipients.length > 0) {
+        const now = new Date().toLocaleString();
+        const htmlContent = `
+        <div style="font-family: Arial, sans-serif; color: #222; max-width: 480px; margin: 0 auto; border: 1px solid #f26755; border-radius: 8px; overflow: hidden;">
+  <div style="background: linear-gradient(90deg, #f26755 0%, #f28c55 100%); padding: 16px 24px;">
+    <h2 style="color: #fff; margin: 0; font-size: 1.3rem; font-weight: bold;">
+      Nouvelle note ajoutée au projet
+    </h2>
+  </div>
+  <div style="padding: 24px;">
+    <p style="margin-bottom: 16px;">
+      Une note intitulée <b>"${
+        note.title || "Note de projet"
+      }"</b> vient d'être ajoutée au projet <b>${projectName}</b>.
+    </p>
+    <table style="background: #f9f9f9; border-radius: 6px; padding: 12px 16px; margin-bottom: 20px; width: 100%; font-size: 1em;">
+      <tr>
+        <td style="padding: 6px 0;"><b>Auteur&nbsp;:</b></td>
+        <td style="padding: 6px 0;">${author}</td>
+      </tr>
+      <tr>
+        <td style="padding: 6px 0;"><b>Date&nbsp;:</b></td>
+        <td style="padding: 6px 0;">${now}</td>
+      </tr>
+    </table>
+    <div style="margin-top: 1em;">${note.content}</div>
+    <p style="color: #f26755; font-size: 0.97em; margin-bottom: 0; margin-top: 18px;">
+      Merci de consulter la plateforme pour plus de détails.
+    </p>
+  </div>
+</div>
       `;
-      await sendNoteEmail({
-        to: recipients,
-        subject: note.title || 'Nouvelle note de projet',
-        html: htmlContent
-      });
+        await sendNoteEmail({
+          to: recipients,
+          subject: note.title || "Nouvelle note de projet",
+          html: htmlContent,
+        });
+      }
+      const noteToAdd = {
+        projectId,
+        title: note.title,
+        content: note.content,
+        author,
+        recipients,
+        attachments: uploadedUrls,
+      };
+      await onAddNote?.(noteToAdd);
+      onClose?.();
+    } catch (err: any) {
+      console.error("Erreur détaillée:", err);
+      setError("Erreur lors de l'ajout de la note: " + (err.message || ""));
+    } finally {
+      setLoading(false);
     }
-    const noteToAdd = {
-      projectId,
-      title: note.title,
-      content: note.content,
-      author,
-      recipients,
-      attachments: uploadedUrls,
-    };
-    await onAddNote?.(noteToAdd);
-    onClose?.();
-  } catch (err: any) {
-    console.error('Erreur détaillée:', err);
-    setError("Erreur lors de l'ajout de la note: " + (err.message || ''));
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   if (emailsLoading) {
-    return <div className="py-8 text-center text-gray-500">Chargement des emails associés au projet...</div>;
+    return (
+      <div className="py-8 text-center text-gray-500">
+        Chargement des emails associés au projet...
+      </div>
+    );
   }
   if (emailsError) {
     return <div className="py-8 text-center text-red-500">{emailsError}</div>;
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6 max-h-[80vh] overflow-y-auto px-1 w-full">
-      {error && <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">{error}</div>}
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-4 md:space-y-6 max-h-[80vh] overflow-y-auto px-1 w-full"
+    >
+      {error && (
+        <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">
+          {error}
+        </div>
+      )}
       <div>
-        <label htmlFor="note-title" className="block text-sm text-gray-700 mb-1">
+        <label
+          htmlFor="note-title"
+          className="block text-sm text-gray-700 mb-1"
+        >
           Titre de la note <span className="text-gray-400">(facultatif)</span>
         </label>
         <input
@@ -188,13 +254,39 @@ export default function ProjectNoteForm({ onClose, onAddNote, projectId }: Proje
       </div>
 
       <div>
-        <label htmlFor="note-content" className="block text-sm text-gray-700 mb-1">Description</label>
+        <label
+          htmlFor="note-content"
+          className="block text-sm text-gray-700 mb-1"
+        >
+          Description
+        </label>
         <div className="border border-gray-300 rounded-md">
           <div className="border-b border-gray-300 px-2 py-2 flex flex-wrap items-center gap-2">
-            <button type="button" className="p-1 hover:bg-gray-100 rounded" title="Gras" aria-label="Mettre en gras">B</button>
-            <button type="button" className="p-1 hover:bg-gray-100 rounded italic" title="Italique" aria-label="Mettre en italique">I</button>
-            <button type="button" className="p-1 hover:bg-gray-100 rounded underline" title="Souligner" aria-label="Souligner">S</button>
-            <select 
+            <button
+              type="button"
+              className="p-1 hover:bg-gray-100 rounded"
+              title="Gras"
+              aria-label="Mettre en gras"
+            >
+              B
+            </button>
+            <button
+              type="button"
+              className="p-1 hover:bg-gray-100 rounded italic"
+              title="Italique"
+              aria-label="Mettre en italique"
+            >
+              I
+            </button>
+            <button
+              type="button"
+              className="p-1 hover:bg-gray-100 rounded underline"
+              title="Souligner"
+              aria-label="Souligner"
+            >
+              S
+            </button>
+            <select
               className="text-sm border-0 bg-transparent"
               title="Style de texte"
               aria-label="Choisir le style de texte"
@@ -217,7 +309,9 @@ export default function ProjectNoteForm({ onClose, onAddNote, projectId }: Proje
       </div>
 
       <div>
-        <label className="block text-sm text-gray-700 mb-2">Ajouter des pièces jointes</label>
+        <label className="block text-sm text-gray-700 mb-2">
+          Ajouter des pièces jointes
+        </label>
         <input
           type="file"
           multiple
@@ -233,10 +327,12 @@ export default function ProjectNoteForm({ onClose, onAddNote, projectId }: Proje
             ))}
           </ul>
         )}
-      </div> 
+      </div>
 
       <div>
-        <label className="block text-sm text-gray-700 mb-2">Envoyer cette note par mail</label>
+        <label className="block text-sm text-gray-700 mb-2">
+          Envoyer cette note par mail
+        </label>
         <div className="space-y-2">
           <div className="grid grid-cols-2 sm:grid-cols-2 md:flex md:flex-wrap md:items-center gap-3 md:gap-4">
             <label className="flex items-center gap-2">
@@ -244,7 +340,9 @@ export default function ProjectNoteForm({ onClose, onAddNote, projectId }: Proje
                 id="notify-client"
                 type="checkbox"
                 checked={note.notifyClient}
-                onChange={(e) => setNote({ ...note, notifyClient: e.target.checked })}
+                onChange={(e) =>
+                  setNote({ ...note, notifyClient: e.target.checked })
+                }
                 className="rounded border-gray-300 text-[#f26755] focus:ring-[#f26755]"
                 aria-label="Notifier le client"
               />
@@ -255,7 +353,9 @@ export default function ProjectNoteForm({ onClose, onAddNote, projectId }: Proje
                 id="notify-artisan"
                 type="checkbox"
                 checked={note.notifyArtisan}
-                onChange={(e) => setNote({ ...note, notifyArtisan: e.target.checked })}
+                onChange={(e) =>
+                  setNote({ ...note, notifyArtisan: e.target.checked })
+                }
                 className="rounded border-gray-300 text-[#f26755] focus:ring-[#f26755]"
                 aria-label="Notifier l'artisan"
               />
@@ -266,7 +366,9 @@ export default function ProjectNoteForm({ onClose, onAddNote, projectId }: Proje
                 id="notify-pilot"
                 type="checkbox"
                 checked={note.notifyPilot}
-                onChange={(e) => setNote({ ...note, notifyPilot: e.target.checked })}
+                onChange={(e) =>
+                  setNote({ ...note, notifyPilot: e.target.checked })
+                }
                 className="rounded border-gray-300 text-[#f26755] focus:ring-[#f26755]"
                 aria-label="Notifier le pilote"
               />
@@ -277,7 +379,9 @@ export default function ProjectNoteForm({ onClose, onAddNote, projectId }: Proje
                 id="notify-vendor"
                 type="checkbox"
                 checked={note.notifyVendor}
-                onChange={(e) => setNote({ ...note, notifyVendor: e.target.checked })}
+                onChange={(e) =>
+                  setNote({ ...note, notifyVendor: e.target.checked })
+                }
                 className="rounded border-gray-300 text-[#f26755] focus:ring-[#f26755]"
                 aria-label="Notifier le vendeur"
               />
@@ -290,16 +394,22 @@ export default function ProjectNoteForm({ onClose, onAddNote, projectId }: Proje
               id="additional-email"
               type="email"
               value={additionalEmail}
-              onChange={e => setAdditionalEmail(e.target.value)}
+              onChange={(e) => setAdditionalEmail(e.target.value)}
               placeholder="Ajouter un email"
               className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-[#f26755] focus:border-[#f26755]"
               aria-label="Adresse email additionnelle"
-              onKeyDown={e => {
-                if (e.key === 'Enter') {
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
                   e.preventDefault();
-                  if (additionalEmail && !note.emails.includes(additionalEmail)) {
-                    setNote(n => ({ ...n, emails: [...n.emails, additionalEmail] }));
-                    setAdditionalEmail('');
+                  if (
+                    additionalEmail &&
+                    !note.emails.includes(additionalEmail)
+                  ) {
+                    setNote((n) => ({
+                      ...n,
+                      emails: [...n.emails, additionalEmail],
+                    }));
+                    setAdditionalEmail("");
                   }
                 }
               }}
@@ -311,8 +421,11 @@ export default function ProjectNoteForm({ onClose, onAddNote, projectId }: Proje
               title="Ajouter cette adresse email"
               onClick={() => {
                 if (additionalEmail && !note.emails.includes(additionalEmail)) {
-                  setNote(n => ({ ...n, emails: [...n.emails, additionalEmail] }));
-                  setAdditionalEmail('');
+                  setNote((n) => ({
+                    ...n,
+                    emails: [...n.emails, additionalEmail],
+                  }));
+                  setAdditionalEmail("");
                 }
               }}
             >
@@ -322,14 +435,22 @@ export default function ProjectNoteForm({ onClose, onAddNote, projectId }: Proje
           {note.emails.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-2">
               {note.emails.map((email, idx) => (
-                <span key={email} className="bg-gray-100 px-2 py-1 rounded text-sm flex items-center">
+                <span
+                  key={email}
+                  className="bg-gray-100 px-2 py-1 rounded text-sm flex items-center"
+                >
                   {email}
                   <button
                     type="button"
                     className="ml-1 text-red-500 hover:text-red-700"
                     aria-label={`Supprimer ${email}`}
                     title={`Supprimer ${email}`}
-                    onClick={() => setNote(n => ({ ...n, emails: n.emails.filter(e => e !== email) }))}
+                    onClick={() =>
+                      setNote((n) => ({
+                        ...n,
+                        emails: n.emails.filter((e) => e !== email),
+                      }))
+                    }
                   >
                     ×
                   </button>
@@ -337,8 +458,12 @@ export default function ProjectNoteForm({ onClose, onAddNote, projectId }: Proje
               ))}
             </div>
           )}
-          {emailsLoading && <div className="text-sm text-gray-500 mt-2">Chargement des emails du projet...</div>}
-          {emailsError && typeof emailsError === 'string' && (
+          {emailsLoading && (
+            <div className="text-sm text-gray-500 mt-2">
+              Chargement des emails du projet...
+            </div>
+          )}
+          {emailsError && typeof emailsError === "string" && (
             <div className="text-sm text-red-500 mt-2">{emailsError}</div>
           )}
         </div>

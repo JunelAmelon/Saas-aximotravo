@@ -1,9 +1,15 @@
-import React, { useState } from 'react';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Plus, Calendar, Mail } from 'lucide-react';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
-import { fetchProjectEmails } from '@/lib/projectEmails';
+import React, { useState } from "react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Plus, Calendar, Mail } from "lucide-react";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
+import { fetchProjectEmails } from "@/lib/projectEmails";
 
 interface AddEventDrawerProps {
   isOpen: boolean;
@@ -14,35 +20,49 @@ interface AddEventDrawerProps {
 }
 
 // Copie de la fonction d'envoi d'email depuis ProjectNoteForm
-async function sendEventEmail({ to, subject, html }: { to: string[]; subject: string; html: string }) {
-  await fetch('/api/send-email', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ to, subject, html })
+async function sendEventEmail({
+  to,
+  subject,
+  html,
+}: {
+  to: string[];
+  subject: string;
+  html: string;
+}) {
+  await fetch("/api/send-email", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ to, subject, html }),
   });
 }
 
-export default function AddEventDrawer({ isOpen, onOpenChange, onAddEvent, loading, projectId }: AddEventDrawerProps) {
+export default function AddEventDrawer({
+  isOpen,
+  onOpenChange,
+  onAddEvent,
+  loading,
+  projectId,
+}: AddEventDrawerProps) {
   const [eventForm, setEventForm] = useState({
-    type: '',
-    title: '',
-    startDate: '',
-    endDate: '',
-    address: '',
-    description: '',
+    type: "",
+    title: "",
+    startDate: "",
+    endDate: "",
+    address: "",
+    description: "",
     addToCalendar: false,
     notifications: {
-      client: { email: '', selected: false },
-      artisans: { email: '', selected: false },
-      courtier: { email: '', selected: false },
-      vendor: { email: '', selected: false }
+      client: { email: "", selected: false },
+      artisans: { email: "", selected: false },
+      courtier: { email: "", selected: false },
+      vendor: { email: "", selected: false },
     },
     emails: [] as string[],
   });
-  const [additionalEmail, setAdditionalEmail] = useState('');
+  const [additionalEmail, setAdditionalEmail] = useState("");
   const [projectEmails, setProjectEmails] = useState<any>(null);
   const [emailsLoading, setEmailsLoading] = useState(false);
-  const [emailsError, setEmailsError] = useState<string|null>(null);
+  const [emailsError, setEmailsError] = useState<string | null>(null);
 
   // Charge dynamiquement les emails du projet à l'ouverture
   React.useEffect(() => {
@@ -54,11 +74,17 @@ export default function AddEventDrawer({ isOpen, onOpenChange, onAddEvent, loadi
         setEventForm((prev) => ({
           ...prev,
           notifications: {
-            client: { email: emails.client || '', selected: false },
-            artisans: { email: (emails.artisans && emails.artisans.length > 0) ? emails.artisans.join(', ') : '', selected: false },
-            courtier: { email: emails.courtier || '', selected: false },
-            vendor: { email: emails.vendor || '', selected: false },
-          }
+            client: { email: emails.client || "", selected: false },
+            artisans: {
+              email:
+                emails.artisans && emails.artisans.length > 0
+                  ? emails.artisans.join(", ")
+                  : "",
+              selected: false,
+            },
+            courtier: { email: emails.courtier || "", selected: false },
+            vendor: { email: emails.vendor || "", selected: false },
+          },
         }));
         setEmailsLoading(false);
       })
@@ -67,7 +93,7 @@ export default function AddEventDrawer({ isOpen, onOpenChange, onAddEvent, loadi
         setEmailsLoading(false);
       });
   }, [isOpen, projectId]);
-  const [error, setError] = useState<string|null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -75,7 +101,13 @@ export default function AddEventDrawer({ isOpen, onOpenChange, onAddEvent, loadi
     setError(null);
     setSubmitting(true);
     try {
-      if (!eventForm.type || !eventForm.title || !eventForm.startDate || !eventForm.endDate || !eventForm.address) {
+      if (
+        !eventForm.type ||
+        !eventForm.title ||
+        !eventForm.startDate ||
+        !eventForm.endDate ||
+        !eventForm.address
+      ) {
         setError("Tous les champs obligatoires doivent être remplis.");
         setSubmitting(false);
         return;
@@ -100,36 +132,73 @@ export default function AddEventDrawer({ isOpen, onOpenChange, onAddEvent, loadi
       // Récupère les emails cochés
       const checkedEmails: string[] = Object.values(eventForm.notifications)
         .filter((notif) => notif.selected && notif.email)
-        .flatMap((notif) => notif.email.split(',').map(e => e.trim()).filter(Boolean));
+        .flatMap((notif) =>
+          notif.email
+            .split(",")
+            .map((e) => e.trim())
+            .filter(Boolean)
+        );
       // Ajoute les emails additionnels saisis manuellement
-      const additionalEmails: string[] = (eventForm.emails || []).filter(Boolean);
+      const additionalEmails: string[] = (eventForm.emails || []).filter(
+        Boolean
+      );
       const recipients = [...checkedEmails, ...additionalEmails];
 
       if (recipients.length > 0) {
         const now = new Date().toLocaleString();
         const htmlContent = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #f26755; margin-bottom: 0.5em;">Nouvel événement ajouté au projet</h2>
-            <div style="font-size: 1em; color: #333; margin-bottom: 1em;">
-              <strong>Type :</strong> ${eventForm.type}<br/>
-              <strong>Titre :</strong> ${eventForm.title}<br/>
-              <strong>Date de début :</strong> ${eventForm.startDate}<br/>
-              <strong>Date de fin :</strong> ${eventForm.endDate}<br/>
-              <strong>Adresse :</strong> ${eventForm.address}<br/>
-              <strong>Date de création :</strong> ${now}
-            </div>
-            <div style="margin-top: 1em;">${eventForm.description}</div>
-          </div>
+          <div style="font-family: Arial, sans-serif; color: #222; max-width: 480px; margin: 0 auto; border: 1px solid #f26755; border-radius: 8px; overflow: hidden;">
+  <div style="background: linear-gradient(90deg, #f26755 0%, #f28c55 100%); padding: 16px 24px;">
+    <h2 style="color: #fff; margin: 0; font-size: 1.3rem; font-weight: bold;">
+      Nouvel événement ajouté au projet
+    </h2>
+  </div>
+  <div style="padding: 24px;">
+    <table style="background: #f9f9f9; border-radius: 6px; padding: 12px 16px; margin-bottom: 20px; width: 100%; font-size: 1em;">
+      <tr>
+        <td style="padding: 6px 0;"><b>Type&nbsp;:</b></td>
+        <td style="padding: 6px 0;">${eventForm.type}</td>
+      </tr>
+      <tr>
+        <td style="padding: 6px 0;"><b>Titre&nbsp;:</b></td>
+        <td style="padding: 6px 0;">${eventForm.title}</td>
+      </tr>
+      <tr>
+        <td style="padding: 6px 0;"><b>Date de début&nbsp;:</b></td>
+        <td style="padding: 6px 0;">${eventForm.startDate}</td>
+      </tr>
+      <tr>
+        <td style="padding: 6px 0;"><b>Date de fin&nbsp;:</b></td>
+        <td style="padding: 6px 0;">${eventForm.endDate}</td>
+      </tr>
+      <tr>
+        <td style="padding: 6px 0;"><b>Adresse&nbsp;:</b></td>
+        <td style="padding: 6px 0;">${eventForm.address}</td>
+      </tr>
+      <tr>
+        <td style="padding: 6px 0;"><b>Date de création&nbsp;:</b></td>
+        <td style="padding: 6px 0;">${now}</td>
+      </tr>
+    </table>
+    <div style="margin-top: 1em;">${eventForm.description}</div>
+    <p style="color: #f26755; font-size: 0.97em; margin-bottom: 0; margin-top: 18px;">
+      Merci de consulter la plateforme pour plus de détails.
+    </p>
+  </div>
+</div>
         `;
         try {
           await sendEventEmail({
             to: recipients,
-            subject: eventForm.title || 'Nouvel événement de projet',
-            html: htmlContent
+            subject: eventForm.title || "Nouvel événement de projet",
+            html: htmlContent,
           });
         } catch (emailErr) {
           // L'événement est créé même si l'email échoue
-          console.error('Erreur lors de l\'envoi de l\'email de notification :', emailErr);
+          console.error(
+            "Erreur lors de l'envoi de l'email de notification :",
+            emailErr
+          );
         }
       }
       onOpenChange(false);
@@ -143,14 +212,22 @@ export default function AddEventDrawer({ isOpen, onOpenChange, onAddEvent, loadi
   // Utilitaire pour la couleur du type
   function getTypeColor(type: string) {
     switch (type) {
-      case 'sav': return 'bg-red-50 text-red-800 border-red-200';
-      case 'visite': return 'bg-green-50 text-green-800 border-green-200';
-      case 'demarrage': return 'bg-yellow-50 text-yellow-800 border-yellow-200';
-      case 'construction': return 'bg-blue-50 text-blue-800 border-blue-200';
-      case 'livraison': return 'bg-orange-50 text-orange-800 border-orange-200';
-      case 'autre': return 'bg-gray-50 text-gray-800 border-gray-200';
-      case 'releve_technique': return 'bg-purple-50 text-purple-800 border-purple-200';
-      default: return '';
+      case "sav":
+        return "bg-red-50 text-red-800 border-red-200";
+      case "visite":
+        return "bg-green-50 text-green-800 border-green-200";
+      case "demarrage":
+        return "bg-yellow-50 text-yellow-800 border-yellow-200";
+      case "construction":
+        return "bg-blue-50 text-blue-800 border-blue-200";
+      case "livraison":
+        return "bg-orange-50 text-orange-800 border-orange-200";
+      case "autre":
+        return "bg-gray-50 text-gray-800 border-gray-200";
+      case "releve_technique":
+        return "bg-purple-50 text-purple-800 border-purple-200";
+      default:
+        return "";
     }
   }
 
@@ -160,17 +237,25 @@ export default function AddEventDrawer({ isOpen, onOpenChange, onAddEvent, loadi
         <SheetHeader>
           <SheetTitle>Nouvel événement</SheetTitle>
         </SheetHeader>
-        
-        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6 mt-4 sm:mt-6 max-h-[80vh] overflow-y-auto pr-1">
+
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-4 sm:space-y-6 mt-4 sm:mt-6 max-h-[80vh] overflow-y-auto pr-1"
+        >
           <div className="space-y-4">
             <div>
-              <label htmlFor="event-type" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="event-type"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Type d&apos;événement
               </label>
               <select
                 id="event-type"
                 value={eventForm.type}
-                onChange={(e) => setEventForm({ ...eventForm, type: e.target.value })}
+                onChange={(e) =>
+                  setEventForm({ ...eventForm, type: e.target.value })
+                }
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-[#f26755] focus:border-[#f26755]"
                 title="Type d'événement"
                 aria-label="Sélectionner le type d'événement"
@@ -186,73 +271,98 @@ export default function AddEventDrawer({ isOpen, onOpenChange, onAddEvent, loadi
             </div>
 
             <div>
-              <label htmlFor="event-title" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="event-title"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Titre
               </label>
               <input
                 id="event-title"
                 type="text"
                 value={eventForm.title}
-                onChange={(e) => setEventForm({ ...eventForm, title: e.target.value })}
+                onChange={(e) =>
+                  setEventForm({ ...eventForm, title: e.target.value })
+                }
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-[#f26755] focus:border-[#f26755]"
                 aria-label="Titre de l'événement"
               />
             </div>
 
             <div>
-              <label htmlFor="start-date" className="block text-sm font-medium text-emerald-700 mb-1">
+              <label
+                htmlFor="start-date"
+                className="block text-sm font-medium text-emerald-700 mb-1"
+              >
                 Date de début
               </label>
               <input
                 id="start-date"
                 type="datetime-local"
                 value={eventForm.startDate}
-                onChange={(e) => setEventForm({ ...eventForm, startDate: e.target.value })}
+                onChange={(e) =>
+                  setEventForm({ ...eventForm, startDate: e.target.value })
+                }
                 className="w-full border border-emerald-200 rounded-md px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500 bg-emerald-50/30"
                 aria-label="Date et heure de début de l'événement"
               />
             </div>
 
             <div>
-              <label htmlFor="end-date" className="block text-sm font-medium text-rose-700 mb-1">
+              <label
+                htmlFor="end-date"
+                className="block text-sm font-medium text-rose-700 mb-1"
+              >
                 Date de fin
               </label>
               <input
                 id="end-date"
                 type="datetime-local"
                 value={eventForm.endDate}
-                onChange={(e) => setEventForm({ ...eventForm, endDate: e.target.value })}
+                onChange={(e) =>
+                  setEventForm({ ...eventForm, endDate: e.target.value })
+                }
                 className="w-full border border-rose-200 rounded-md px-3 py-2 focus:ring-rose-500 focus:border-rose-500 bg-rose-50/30"
                 aria-label="Date et heure de fin de l'événement"
               />
             </div>
 
             <div>
-              <label htmlFor="event-address" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="event-address"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Adresse
               </label>
               <input
                 id="event-address"
                 type="text"
                 value={eventForm.address}
-                onChange={(e) => setEventForm({ ...eventForm, address: e.target.value })}
+                onChange={(e) =>
+                  setEventForm({ ...eventForm, address: e.target.value })
+                }
                 placeholder="Adresse du client"
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-[#f26755] focus:border-[#f26755]"
-                aria-label="Adresse de l&apos;événement"
+                aria-label="Adresse de l'événement"
               />
             </div>
 
             <div>
-              <label htmlFor="event-description" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="event-description"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Description
               </label>
               <textarea
                 id="event-description"
                 value={eventForm.description}
-                onChange={(e) => setEventForm({ ...eventForm, description: e.target.value })}
+                onChange={(e) =>
+                  setEventForm({ ...eventForm, description: e.target.value })
+                }
                 rows={4}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-[#f26755] focus:border-[#f26755]"
-                aria-label="Description de l&apos;événement"
+                aria-label="Description de l'événement"
               />
             </div>
 
@@ -261,10 +371,18 @@ export default function AddEventDrawer({ isOpen, onOpenChange, onAddEvent, loadi
                 type="checkbox"
                 id="addToCalendar"
                 checked={eventForm.addToCalendar}
-                onChange={(e) => setEventForm({ ...eventForm, addToCalendar: e.target.checked })}
+                onChange={(e) =>
+                  setEventForm({
+                    ...eventForm,
+                    addToCalendar: e.target.checked,
+                  })
+                }
                 className="rounded border-gray-300 text-[#f26755] focus:ring-[#f26755]"
               />
-              <label htmlFor="addToCalendar" className="text-sm text-gray-700 flex items-center gap-2">
+              <label
+                htmlFor="addToCalendar"
+                className="text-sm text-gray-700 flex items-center gap-2"
+              >
                 <Calendar className="h-4 w-4" aria-hidden="true" />
                 Ajouter cet événement à mon google calendar
               </label>
@@ -277,43 +395,66 @@ export default function AddEventDrawer({ isOpen, onOpenChange, onAddEvent, loadi
                   Envoyer cet événement par mail
                 </span>
               </div>
-              
+
               <div className="space-y-3">
                 {emailsLoading && (
-                  <div className="text-sm text-gray-500">Chargement des emails du projet...</div>
+                  <div className="text-sm text-gray-500">
+                    Chargement des emails du projet...
+                  </div>
                 )}
                 {emailsError && (
                   <div className="text-sm text-red-500">{emailsError}</div>
                 )}
-                {!emailsLoading && !emailsError && Object.entries(eventForm.notifications).map(([key, value]) => (
-                  <div key={key} className="flex items-center gap-2">
-                    <input
-                      id={`notification-${key}`}
-                      type="checkbox"
-                      checked={value.selected}
-                      onChange={(e) => setEventForm({
-                        ...eventForm,
-                        notifications: {
-                          ...eventForm.notifications,
-                          [key]: { ...value, selected: e.target.checked }
-                        }
-                      })}
-                      className="rounded border-gray-300 text-[#f26755] focus:ring-[#f26755]"
-                      title={`Notifier ${key.replace(/([A-Z])/g, ' $1').trim()}`}
-                      aria-label={`Notifier ${key.replace(/([A-Z])/g, ' $1').trim()} par email`}
-                    />
-                    <label htmlFor={`notification-${key}`} className="flex-1">
-                      <span className="text-sm text-gray-700 capitalize">
-                        {key.replace(/([A-Z])/g, ' $1').trim()}
-                      </span>
-                      <span className="text-sm text-gray-500 ml-2">
-                        - {key === 'artisans' && value.email ? value.email.split(',').map((mail, i) => (
-                          <span key={i}>{mail.trim()}{i < value.email.split(',').length - 1 ? ', ' : ''}</span>
-                        )) : value.email}
-                      </span>
-                    </label>
-                  </div>
-                ))}
+                {!emailsLoading &&
+                  !emailsError &&
+                  Object.entries(eventForm.notifications).map(
+                    ([key, value]) => (
+                      <div key={key} className="flex items-center gap-2">
+                        <input
+                          id={`notification-${key}`}
+                          type="checkbox"
+                          checked={value.selected}
+                          onChange={(e) =>
+                            setEventForm({
+                              ...eventForm,
+                              notifications: {
+                                ...eventForm.notifications,
+                                [key]: { ...value, selected: e.target.checked },
+                              },
+                            })
+                          }
+                          className="rounded border-gray-300 text-[#f26755] focus:ring-[#f26755]"
+                          title={`Notifier ${key
+                            .replace(/([A-Z])/g, " $1")
+                            .trim()}`}
+                          aria-label={`Notifier ${key
+                            .replace(/([A-Z])/g, " $1")
+                            .trim()} par email`}
+                        />
+                        <label
+                          htmlFor={`notification-${key}`}
+                          className="flex-1"
+                        >
+                          <span className="text-sm text-gray-700 capitalize">
+                            {key.replace(/([A-Z])/g, " $1").trim()}
+                          </span>
+                          <span className="text-sm text-gray-500 ml-2">
+                            -{" "}
+                            {key === "artisans" && value.email
+                              ? value.email.split(",").map((mail, i) => (
+                                  <span key={i}>
+                                    {mail.trim()}
+                                    {i < value.email.split(",").length - 1
+                                      ? ", "
+                                      : ""}
+                                  </span>
+                                ))
+                              : value.email}
+                          </span>
+                        </label>
+                      </div>
+                    )
+                  )}
 
                 <div className="flex flex-col sm:flex-row gap-2 pt-2">
                   <input
@@ -323,13 +464,19 @@ export default function AddEventDrawer({ isOpen, onOpenChange, onAddEvent, loadi
                     className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-[#f26755] focus:border-[#f26755]"
                     aria-label="Adresse email additionnelle"
                     value={additionalEmail}
-                    onChange={e => setAdditionalEmail(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') {
+                    onChange={(e) => setAdditionalEmail(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
                         e.preventDefault();
-                        if (additionalEmail && !eventForm.emails.includes(additionalEmail)) {
-                          setEventForm(prev => ({ ...prev, emails: [...prev.emails, additionalEmail] }));
-                          setAdditionalEmail('');
+                        if (
+                          additionalEmail &&
+                          !eventForm.emails.includes(additionalEmail)
+                        ) {
+                          setEventForm((prev) => ({
+                            ...prev,
+                            emails: [...prev.emails, additionalEmail],
+                          }));
+                          setAdditionalEmail("");
                         }
                       }
                     }}
@@ -340,9 +487,15 @@ export default function AddEventDrawer({ isOpen, onOpenChange, onAddEvent, loadi
                     aria-label="Ajouter cette adresse email"
                     title="Ajouter cette adresse email"
                     onClick={() => {
-                      if (additionalEmail && !eventForm.emails.includes(additionalEmail)) {
-                        setEventForm(prev => ({ ...prev, emails: [...prev.emails, additionalEmail] }));
-                        setAdditionalEmail('');
+                      if (
+                        additionalEmail &&
+                        !eventForm.emails.includes(additionalEmail)
+                      ) {
+                        setEventForm((prev) => ({
+                          ...prev,
+                          emails: [...prev.emails, additionalEmail],
+                        }));
+                        setAdditionalEmail("");
                       }
                     }}
                   >
@@ -352,14 +505,24 @@ export default function AddEventDrawer({ isOpen, onOpenChange, onAddEvent, loadi
                 {eventForm.emails && eventForm.emails.length > 0 && (
                   <div className="flex flex-wrap gap-2 mt-2">
                     {eventForm.emails.map((email, idx) => (
-                      <span key={email} className="bg-gray-100 px-2 py-1 rounded text-sm flex items-center">
+                      <span
+                        key={email}
+                        className="bg-gray-100 px-2 py-1 rounded text-sm flex items-center"
+                      >
                         {email}
                         <button
                           type="button"
                           className="ml-1 text-red-500 hover:text-red-700"
                           aria-label={`Supprimer ${email}`}
                           title={`Supprimer ${email}`}
-                          onClick={() => setEventForm(prev => ({ ...prev, emails: prev.emails.filter((e: string) => e !== email) }))}
+                          onClick={() =>
+                            setEventForm((prev) => ({
+                              ...prev,
+                              emails: prev.emails.filter(
+                                (e: string) => e !== email
+                              ),
+                            }))
+                          }
                         >
                           ×
                         </button>
@@ -371,19 +534,17 @@ export default function AddEventDrawer({ isOpen, onOpenChange, onAddEvent, loadi
             </div>
           </div>
 
-          {error && (
-            <div className="text-red-600 text-sm pb-2">{error}</div>
-          )}
+          {error && <div className="text-red-600 text-sm pb-2">{error}</div>}
           <div className="flex justify-end pt-4">
-              <button
-                type="submit"
-                className="px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors disabled:opacity-60"
-                aria-label="Enregistrer l'événement"
-                title="Enregistrer l'événement"
-                disabled={loading || submitting}
-              >
-                {loading || submitting ? 'Enregistrement...' : 'Enregistrer'}
-              </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors disabled:opacity-60"
+              aria-label="Enregistrer l'événement"
+              title="Enregistrer l'événement"
+              disabled={loading || submitting}
+            >
+              {loading || submitting ? "Enregistrement..." : "Enregistrer"}
+            </button>
           </div>
         </form>
       </SheetContent>
