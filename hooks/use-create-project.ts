@@ -111,6 +111,7 @@ export function useCreateProject() {
           projectsCount: (brokerUser as any).projectsCount || null,
           specialties: (brokerUser as any).specialties || [],
           image: brokerUser.image || '',
+          phone: brokerUser.phone || '',
         } : null;
       }
       // 5. Créer le projet
