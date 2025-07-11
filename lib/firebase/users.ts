@@ -16,6 +16,7 @@ export interface BaseUser {
   updatedAt: Date | null;
   photoURL?: string;
   image?: string;
+  phone?: string;
 }
 
 export interface ArtisanUser extends BaseUser {
