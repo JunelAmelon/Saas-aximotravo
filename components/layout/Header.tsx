@@ -81,7 +81,7 @@ export default function Header({ userRole }: HeaderProps) {
     <header className="bg-white border-b border-gray-100 py-3 px-0 flex items-center justify-between sticky top-0 z-50 shadow-sm">
       {/* Logo et nom avec style moderne */}
       <div className="flex items-center">
-  <Link href="/" className="flex items-center group">
+  <Link href= {`/${userRole}/dashboard`} className="flex items-center group">
     {/* Logo avec animation au survol */}
     <Image
       src="/logo1.svg"
