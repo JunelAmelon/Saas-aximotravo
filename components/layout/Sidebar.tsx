@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Calendar, FolderOpen, Scale } from "lucide-react";
+import { LayoutDashboard, Calendar, FolderOpen, Scale, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface SidebarProps {
@@ -29,7 +29,7 @@ export default function Sidebar({ userRole }: SidebarProps) {
         current: pathname === `${roleBasePath}/projects`,
       },
       {
-        name: "Planning",
+        name: "Événements",
         href: `${roleBasePath}/calendar`,
         icon: Calendar,
         current: pathname === `${roleBasePath}/calendar`,
@@ -49,6 +49,12 @@ export default function Sidebar({ userRole }: SidebarProps) {
         current: pathname === `${roleBasePath}/projects`,
       },
       {
+        name: "Artisans",
+        href: `${roleBasePath}/artisans`,
+        icon: Users, // ou Hammer pour une icône plus métier
+        current: pathname === `${roleBasePath}/artisans`,
+      },
+      {
         name: "Événements",
         href: `${roleBasePath}/events`,
         icon: Calendar,
@@ -64,10 +70,22 @@ export default function Sidebar({ userRole }: SidebarProps) {
       },
       {
         name: "Gestion des acomptes",
-        href: `${roleBasePath}/payments`,
+        href: `${roleBasePath}/transaction`,
         icon: Scale,
-        current: pathname === `${roleBasePath}/payments`,
+        current: pathname === `${roleBasePath}/transaction`,
+      },
+      {
+        name: "Gérer les profils",
+        href: `${roleBasePath}/profiles`,
+        icon: Users,
+        current: pathname === `${roleBasePath}/profiles`,
       }
+      // {
+      //   name: "Gérer les transactions",
+      //   href: `${roleBasePath}/transaction`,
+      //   icon: Users,
+      //   current: pathname === `${roleBasePath}/transaction`,
+      // }
     ],
   };
 

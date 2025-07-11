@@ -27,7 +27,7 @@ interface HeaderProps {
 const roleLabels = {
   artisan: "Espace Artisan",
   courtier: "Espace Courtier",
-  admin: "Espace Administration"
+  admin: "Espace Administration",
 };
 
 export default function Header({ userRole }: HeaderProps) {
@@ -36,100 +36,133 @@ export default function Header({ userRole }: HeaderProps) {
   const [userData, setUserData] = useState({
     displayName: "",
     email: "",
-    avatar: "https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
+    avatar:
+      "https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
   });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function getUserData() {
       if (!currentUser) return;
-      
+
       try {
         const userDoc = await getDoc(doc(db, "users", currentUser.uid));
         if (userDoc.exists()) {
           const data = userDoc.data();
           setUserData({
-            displayName: data.displayName || data.email.split('@')[0],
+            displayName: data.displayName || data.email.split("@")[0],
             email: data.email,
-            avatar: data.photoURL || userData.avatar
+            avatar: data.photoURL || userData.avatar,
           });
         }
       } catch (error) {
-        console.error("Erreur lors de la récupération des données utilisateur:", error);
+        console.error(
+          "Erreur lors de la récupération des données utilisateur:",
+          error
+        );
       } finally {
         setLoading(false);
       }
     }
-    
+
     getUserData();
   }, [currentUser]);
 
   const handleLogout = async () => {
     try {
       await logout();
-      window.location.href = "/";
+      window.location.href = "/auth/login";
     } catch (error) {
       console.error("Erreur lors de la déconnexion:", error);
     }
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 py-4 px-4 sm:px-6 flex items-center justify-between">
+    <header className="bg-white border-b border-gray-100 py-3 px-0 flex items-center justify-between sticky top-0 z-50 shadow-sm">
+      {/* Logo et nom avec style moderne */}
       <div className="flex items-center">
-        <Link href="/" className="text-2xl sm:text-3xl font-bold text-[#f26755] mr-2 sm:mr-8">
-          Aximotravo
-        </Link>
-      </div>
-      
-      <div className="flex items-center space-x-2 sm:space-x-4">
-        {/* Notifications - Visible uniquement sur les écrans plus grands */}
-        <div className="hidden sm:block">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button 
-                className="relative p-2 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100 transition-colors"
-                title="Notifications"
-                aria-label="Voir les notifications"
-              >
-                <Bell className="h-5 w-5" />
-                <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full" aria-hidden="true"></span>
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-[300px]">
-              <div className="p-4 text-center text-sm text-gray-500">
-                Aucune notification
-              </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-        
-        {/* Profil utilisateur */}
+  <Link href="/" className="flex items-center group">
+    {/* Logo avec animation au survol */}
+    <Image
+      src="/logo1.svg"
+      alt="Logo Aximotravo"
+      width={200}
+      height={32}
+      className="w-[200px] h-[32px] group-hover:scale-110 transition-transform mr-1"
+    />
+  </Link>
+</div>
+
+      {/* Actions utilisateur */}
+      <div className="flex items-center space-x-3 sm:space-x-5">
+        {/* Bouton notifications - style moderne */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <div className="flex items-center cursor-pointer">
-              {/* Nom et rôle - visible uniquement sur les écrans plus grands */}
-              <div className="hidden sm:block mr-4 text-right">
-                <p className="text-sm font-bold text-gray-900">{loading ? "Chargement..." : userData.displayName}</p>
-                <p className="text-xs font-medium text-gray-500">{roleLabels[userRole]}</p>
+            <button
+              className="relative p-2 rounded-full hover:bg-gray-50 transition-colors group"
+              title="Notifications"
+              aria-label="Notifications"
+            >
+              <div className="relative">
+                <Bell className="h-5 w-5 text-gray-500 group-hover:text-[#f26755] transition-colors" />
+                <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border border-white"></span>
               </div>
-              {/* Avatar - toujours visible */}
-              <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-gray-200">
-                <Image 
-                  src={userData.avatar} 
-                  alt="User avatar" 
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="end"
+            className="w-72 p-0 shadow-xl rounded-xl border border-gray-100"
+          >
+            <div className="p-4 border-b border-gray-100">
+              <h3 className="font-semibold text-gray-900">Notifications</h3>
+            </div>
+            <div className="p-4 text-center text-sm text-gray-500">
+              Aucune nouvelle notification
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Menu profil - style carte moderne */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <div className="flex items-center space-x-2 cursor-pointer group">
+              <div className="hidden sm:block text-right">
+                <p className="text-sm font-semibold text-gray-900 group-hover:text-[#f26755] transition-colors">
+                  {loading ? "Chargement..." : userData.displayName}
+                </p>
+                <p className="text-xs font-medium text-gray-500">
+                  {roleLabels[userRole]}
+                </p>
+              </div>
+              <div className="relative w-9 h-9 rounded-full overflow-hidden border-2 border-white shadow-md group-hover:border-[#f26755] transition-colors">
+                <Image
+                  src={userData.avatar}
+                  alt="Photo de profil"
                   fill
                   className="object-cover"
+                  sizes="40px"
                 />
+                {/* Badge en ligne */}
+                <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></span>
               </div>
             </div>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {/* Nom et rôle - visible uniquement dans le dropdown sur mobile */}
-            <div className="sm:hidden p-3 border-b">
-              <p className="text-sm font-bold text-gray-900">{loading ? "Chargement..." : userData.displayName}</p>
-              <p className="text-xs font-medium text-gray-500">{roleLabels[userRole]}</p>
+          <DropdownMenuContent
+            align="end"
+            className="w-56 p-2 shadow-xl rounded-xl border border-gray-100"
+          >
+            <div className="sm:hidden p-3 border-b border-gray-100">
+              <p className="text-sm font-semibold text-gray-900">
+                {loading ? "Chargement..." : userData.displayName}
+              </p>
+              <p className="text-xs font-medium text-gray-500">
+                {roleLabels[userRole]}
+              </p>
             </div>
-            <DropdownMenuItem onClick={handleLogout} className="text-red-600">
+            <DropdownMenuItem
+              onClick={handleLogout}
+              className="text-red-500 hover:bg-red-50 px-3 py-2 rounded-lg transition-colors"
+            >
               <LogOut className="h-4 w-4 mr-2" />
               Déconnexion
             </DropdownMenuItem>

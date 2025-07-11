@@ -18,17 +18,19 @@ export type ProjectStatus = 'En attente' | 'En cours' | 'Terminé';
 
 export interface Project {
   id: string;
+  client_id: string;
   name: string;
   description: string;
+  image?: string;
   paidAmount: number;
   clientName: string;
   clientPhone?: string;
   clientEmail?: string;
   status: ProjectStatus;
   progress: number;
-  deadline?: string;
+  estimatedEndDate: string;
   budget?: number;
-  address?: string;
+  location?: string;
   city?: string;
   postalCode?: string;
   courtierId: string;
@@ -36,10 +38,14 @@ export interface Project {
   notes?: string;
   createdAt: any;
   updatedAt: any;
+  firstDepositPercent: number;
+  broker: any;
+  amoIncluded?: boolean;
+  addressDetails?: string;
 }
 
 // Créer un nouveau projet
-export async function createProject(projectData: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>) {
+export async function createProject(projectData: Omit<Project, 'id' | 'createdAt' | 'updatedAt' | 'artisanIds' | 'courtierId' | 'clientName'>) {
   try {
     const projectRef = collection(db, 'projects');
     const projectWithTimestamp = {
@@ -131,21 +137,35 @@ export async function getRecentProjectsByCourtier(courtierId: string, limitCount
   }
 }
 
-// Récupérer tous les projets auxquels un artisan est assigné
+// Récupérer tous les projets liés à un artisan via la table des invitations artisan_projet
 export async function getProjectsByArtisan(artisanId: string): Promise<Project[]> {
   try {
-    const projectsQuery = query(
-      collection(db, 'projects'),
-      where('artisanIds', 'array-contains', artisanId),
-      orderBy('createdAt', 'desc')
+    // 1. Chercher les invitations acceptées ou en attente dans artisan_projet
+    const invitationsQuery = query(
+      collection(db, 'artisan_projet'),
+      where('artisanId', '==', artisanId),
+      where('status', 'in', ['accepté', 'pending'])
     );
-    const snapshot = await getDocs(projectsQuery);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Project));
+    const invitationsSnap = await getDocs(invitationsQuery);
+    const projetIds = invitationsSnap.docs.map(doc => doc.data().projetId);
+    if (!projetIds.length) return [];
+
+    // 2. Récupérer tous les projets correspondants
+    const projects: Project[] = [];
+    for (const projetId of projetIds) {
+      const projectDoc = await getDoc(doc(db, 'projects', projetId));
+      if (projectDoc.exists()) {
+        projects.push({ id: projectDoc.id, ...projectDoc.data() } as Project);
+      }
+    }
+    // Trier par createdAt desc si possible
+    return projects.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
   } catch (error) {
-    console.error('Erreur lors de la récupération des projets de l\'artisan:', error);
+    console.error("Erreur lors de la récupération des projets liés à l'artisan:", error);
     throw error;
   }
 }
+
 
 // Mettre à jour un projet
 export async function updateProject(projectId: string, projectData: Partial<Omit<Project, 'id' | 'createdAt' | 'updatedAt'>>) {

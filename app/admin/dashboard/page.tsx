@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Users, FileText, Search, MapPin } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
 import Link from "next/link";
 import Image from "next/image";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { db } from "@/lib/firebase/config";
 
 interface Broker {
   id: string;
@@ -23,56 +25,52 @@ interface Broker {
 }
 
 export default function AdminDashboard() {
+  const [currentPage, setCurrentPage] = useState(1);
+  const brokersPerPage = 5;
   const [searchTerm, setSearchTerm] = useState("");
   const [regionFilter, setRegionFilter] = useState("");
-  
-  const [brokers] = useState<Broker[]>([
-    {
-      id: "1",
-      name: "Jean Dupont",
-      company: "Courtage Pro",
-      email: "jean.dupont@courtagepro.fr",
-      region: "Île-de-France",
-      avatar: "https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg",
-      stats: {
-        activeProjects: 12,
-        totalArtisans: 8,
-        totalAmount: 150000,
-        pendingAmount: 45000,
-        validatedAmount: 105000
+  const [brokers, setBrokers] = useState<Broker[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchBrokers = async () => {
+      try {
+        // Créer une query pour récupérer uniquement les utilisateurs avec rôle "courtier"
+        const q = query(collection(db, "users"), where("role", "==", "courtier"));
+        const querySnapshot = await getDocs(q);
+        const brokersData: Broker[] = [];
+        
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          brokersData.push({
+            id: doc.id,
+            name: data.displayName || `${data.firstName} ${data.lastName}` || "Nom inconnu",
+            company: data.companyName || "Société non spécifiée",
+            email: data.email || "Email non spécifié",
+            region: data.region || "Région non spécifiée",
+            avatar: data.image || "/default-avatar.png",
+            stats: {
+              activeProjects: data.activeProjects || 0,
+              totalArtisans: data.totalArtisans || 0,
+              totalAmount: data.totalAmount || 0,
+              pendingAmount: data.pendingAmount || 0,
+              validatedAmount: data.validatedAmount || 0,
+            },
+          });
+        });
+
+        setBrokers(brokersData);
+        setLoading(false);
+      } catch (err) {
+        console.error("Error fetching brokers: ", err);
+        setError("Failed to load brokers data");
+        setLoading(false);
       }
-    },
-    {
-      id: "2",
-      name: "Marie Martin",
-      company: "Habitat Solutions",
-      email: "m.martin@habitat-solutions.fr",
-      region: "Nouvelle-Aquitaine",
-      avatar: "https://images.pexels.com/photos/1587009/pexels-photo-1587009.jpeg",
-      stats: {
-        activeProjects: 15,
-        totalArtisans: 10,
-        totalAmount: 180000,
-        pendingAmount: 60000,
-        validatedAmount: 120000
-      }
-    },
-    {
-      id: "3",
-      name: "Pierre Dubois",
-      company: "Dubois Immobilier",
-      email: "p.dubois@dubois-immo.fr",
-      region: "Auvergne-Rhône-Alpes",
-      avatar: "https://images.pexels.com/photos/1516680/pexels-photo-1516680.jpeg",
-      stats: {
-        activeProjects: 8,
-        totalArtisans: 6,
-        totalAmount: 120000,
-        pendingAmount: 35000,
-        validatedAmount: 85000
-      }
-    }
-  ]);
+    };
+
+    fetchBrokers();
+  }, []);
 
   const regions = Array.from(new Set(brokers.map(broker => broker.region))).sort();
 
@@ -87,6 +85,13 @@ export default function AdminDashboard() {
     return matchesSearch && matchesRegion;
   });
 
+  // Pagination
+  const totalPages = Math.ceil(filteredBrokers.length / brokersPerPage);
+  const paginatedBrokers = filteredBrokers.slice(
+    (currentPage - 1) * brokersPerPage,
+    currentPage * brokersPerPage
+  );
+
   const globalStats = {
     totalBrokers: brokers.length,
     totalProjects: brokers.reduce((acc, broker) => acc + broker.stats.activeProjects, 0),
@@ -95,6 +100,43 @@ export default function AdminDashboard() {
     pendingAmount: brokers.reduce((acc, broker) => acc + broker.stats.pendingAmount, 0),
     validatedAmount: brokers.reduce((acc, broker) => acc + broker.stats.validatedAmount, 0)
   };
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, regionFilter]);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#f21515]"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border-l-4 border-red-400 p-4">
+        <div className="flex">
+          <div className="flex-shrink-0">
+            <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <div className="ml-3">
+            <p className="text-sm text-red-700">{error}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (brokers.length === 0) {
+    return (
+      <div className="bg-white rounded-lg shadow-sm p-6 text-center">
+        <p className="text-gray-500">Aucun courtier trouvé</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -105,19 +147,19 @@ export default function AdminDashboard() {
           title="Courtiers actifs"
           value={globalStats.totalBrokers.toString()}
           icon={<Users size={24} />}
-          trend={{ value: 10, isPositive: true }}
+          trend={{ value: 0, isPositive: true }}
         />
         <StatCard
           title="Projets en cours"
           value={globalStats.totalProjects.toString()}
           icon={<FileText size={24} />}
-          trend={{ value: 15, isPositive: true }}
+          trend={{ value: 0, isPositive: true }}
         />
         <StatCard
           title="Artisans actifs"
           value={globalStats.totalArtisans.toString()}
           icon={<Users size={24} />}
-          trend={{ value: 8, isPositive: true }}
+          trend={{ value: 0, isPositive: true }}
         />
       </div>
 
@@ -182,7 +224,7 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredBrokers.map((broker) => (
+                {paginatedBrokers.map((broker) => (
                   <tr key={broker.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -190,7 +232,8 @@ export default function AdminDashboard() {
                           <Image
                             src={broker.avatar}
                             alt={broker.name}
-                            fill
+                            width={40}
+                            height={40}
                             className="rounded-full object-cover"
                           />
                         </div>
@@ -234,6 +277,28 @@ export default function AdminDashboard() {
                 ))}
               </tbody>
             </table>
+            {/* Pagination Controls */}
+            <div className="flex gap-2 justify-center items-center mt-6">
+              <button
+                onClick={() => setCurrentPage((p) => p - 1)}
+                disabled={currentPage === 1}
+                className="w-9 h-9 flex items-center justify-center rounded-full border border-gray-200 bg-white text-[#f21515] hover:bg-[#f21515] hover:text-white transition-colors disabled:bg-gray-100 disabled:text-gray-400 disabled:border-gray-100 disabled:cursor-not-allowed"
+                aria-label="Page précédente"
+              >
+                &lt;
+              </button>
+              <span className="mx-2 text-sm text-gray-700 select-none">
+                Page <span className="font-semibold text-[#f21515]">{currentPage}</span> / {totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage((p) => p + 1)}
+                disabled={currentPage === totalPages || totalPages === 0}
+                className="w-9 h-9 flex items-center justify-center rounded-full border border-gray-200 bg-white text-[#f21515] hover:bg-[#f21515] hover:text-white transition-colors disabled:bg-gray-100 disabled:text-gray-400 disabled:border-gray-100 disabled:cursor-not-allowed"
+                aria-label="Page suivante"
+              >
+                &gt;
+              </button>
+            </div>
           </div>
         </div>
       </div>

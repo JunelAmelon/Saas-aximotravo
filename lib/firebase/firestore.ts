@@ -89,6 +89,22 @@ export const getDocument = async (collectionName: string, docId: string) => {
   }
 };
 
+export const getDocumentGenerate = async (collectionName: string, docId: string) => {
+  try {
+    const docRef = doc(db, collectionName, docId);
+    const docSnap = await getDoc(docRef);
+    
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      return data;
+    } else {
+      return null;
+    }
+  } catch (error: any) {
+    throw new Error(`Erreur lors de la récupération du document: ${error.message}`);
+  }
+};
+
 // Supprimer un document
 export const deleteDocument = async (collectionName: string, docId: string) => {
   try {

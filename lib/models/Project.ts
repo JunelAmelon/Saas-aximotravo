@@ -12,8 +12,12 @@ export interface Project {
   startDate?: Date | Timestamp;
   endDate?: Date | Timestamp;
   budget?: number;
+  paidAmount?: number; // Pour cohérence avec le front
+  location?: string; // Pour cohérence avec le front
+  addressDetails?: string; // Nouveau champ pour infos complémentaires sur l'adresse
   created_at?: Timestamp;
   updated_at?: Timestamp;
+  amoIncluded?: boolean;
 }
 
 const COLLECTION_NAME = "projects";

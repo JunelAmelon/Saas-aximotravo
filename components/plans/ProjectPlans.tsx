@@ -1,15 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
+import { useProjectPlans } from '@/hooks/useProjectPlans';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Card } from "@/components/ui/card";
 import { Upload, Info, Mail, Plus } from 'lucide-react';
 import Image from 'next/image';
+import { useAuth } from '@/lib/contexts/AuthContext';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase/config';
+import { getUserById } from '@/lib/firebase/users';
+import { fetchProjectEmails } from '@/lib/projectEmails';
 
 interface Plan {
   id: string;
   title: string;
-  type: 'existant' | 'execution';
   date: string;
   author: string;
   image: string;
@@ -18,34 +24,51 @@ interface Plan {
 
 export default function ProjectPlans() {
   const [isAddPlanOpen, setIsAddPlanOpen] = useState(false);
+  const { currentUser } = useAuth();
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchRole = async () => {
+      if (currentUser) {
+        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+        if (userDoc.exists()) {
+          setUserRole(userDoc.data().role?.toLowerCase() || null);
+        }
+      }
+    };
+    fetchRole();
+  }, [currentUser]);
+
   const [currentPage, setCurrentPage] = useState(1);
   const plansPerPage = 2;
-  
-  const [plans] = useState<Plan[]>([
-    {
-      id: '1',
-      title: 'Plan SDB',
-      type: 'existant',
-      date: '28/02/2025',
-      author: 'Sam',
-      status: 'validé',
-      image: 'https://images.pexels.com/photos/271667/pexels-photo-271667.jpeg'
-    },
-    {
-      id: '2',
-      title: 'Plan d\'exécution SDB',
-      type: 'execution',
-      date: '28/02/2025',
-      author: 'Sam',
-      status: 'validé',
-      image: 'https://images.pexels.com/photos/271795/pexels-photo-271795.jpeg'
-    }
-  ]);
+
+  // Récupération du projectId depuis l'URL
+  const params = useParams() ?? {};
+  const projectId = Array.isArray(params.id) ? params.id[0] : params.id as string;
+  const [plans, setPlans] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!projectId) return;
+    setLoading(true);
+    setError(null);
+    (async () => {
+      try {
+        const { fetchProjectPlans } = await import('@/hooks/useProjectPlans');
+        const freshPlans = await fetchProjectPlans(projectId);
+        setPlans(freshPlans);
+      } catch (e) {
+        setError('Erreur lors du chargement des plans');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [projectId, isAddPlanOpen]);
 
   const [planForm, setPlanForm] = useState({
     title: '',
-    type: '',
-    image: '',
+    files: [null, null] as (File | null)[], // [plan existant, plan exécution]
     notifications: {
       client: { email: 'client@test.fr', selected: false },
       artisan: { email: 'artisan@test.fr', selected: false },
@@ -53,6 +76,8 @@ export default function ProjectPlans() {
       vendeur: { email: 'vendeur@test.fr', selected: false }
     }
   });
+  const [uploading, setUploading] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const totalPages = Math.ceil(plans.length / plansPerPage);
   const currentPlans = plans.slice(
@@ -62,17 +87,27 @@ export default function ProjectPlans() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-medium text-gray-900">Plans du projet</h2>
-        <button
-          onClick={() => setIsAddPlanOpen(true)}
-          className="inline-flex items-center px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors"
-          aria-label="Ajouter un nouveau plan"
-          title="Ajouter un plan"
-        >
-          <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
-          Ajouter un plan
-        </button>
+      <div className="flex flex-col w-full mb-6 gap-2">
+        <h2 className="text-xl font-bold text-center text-gray-900 w-full mb-2">Plans du projet</h2>
+        <div className="flex flex-col sm:flex-row sm:justify-between gap-2 sm:gap-4 w-full">
+          <button
+            onClick={() => window.history.back()}
+            type="button"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg font-semibold shadow hover:bg-gray-200 transition text-base"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            Retour
+          </button>
+          {userRole !== 'admin' && (
+            <button
+              onClick={() => setIsAddPlanOpen(true)}
+              className="w-full sm:w-auto flex items-center justify-center px-4 py-3 bg-[#f26755] text-white rounded-md text-base font-semibold hover:bg-[#f26755]/90 transition-colors mb-1 sm:mb-0"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Ajouter un plan
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6">
@@ -91,7 +126,7 @@ export default function ProjectPlans() {
                     Plan validé pour exécution
                   </span>
                 )}
-                <button 
+                <button
                   className="text-gray-400 hover:text-gray-600"
                   aria-label="Options du plan"
                   title="Options"
@@ -102,23 +137,27 @@ export default function ProjectPlans() {
             <div className="grid grid-cols-2 gap-6">
               <div className="relative aspect-[4/3] rounded-lg overflow-hidden">
                 <Image
-                  src={plan.image}
+                  src={plan.images[0]}
                   alt={plan.title}
                   fill
                   className="object-cover"
                 />
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="absolute inset-0 bg-black/40"></div>
-                  <span className="relative text-white font-medium">Plan {plan.type}</span>
+                  <span className="relative text-white font-medium">Plan existant</span>
                 </div>
               </div>
               <div className="relative aspect-[4/3] rounded-lg overflow-hidden">
                 <Image
-                  src={plan.image}
+                  src={plan.images[1]}
                   alt={plan.title}
                   fill
                   className="object-cover"
                 />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="absolute inset-0 bg-black/40"></div>
+                  <span className="relative text-white font-medium">Plan d&apos;exécution</span>
+                </div>
               </div>
             </div>
           </Card>
@@ -132,8 +171,8 @@ export default function ProjectPlans() {
               key={i}
               onClick={() => setCurrentPage(i + 1)}
               className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors
-                ${currentPage === i + 1 
-                  ? 'bg-[#f26755] text-white' 
+                ${currentPage === i + 1
+                  ? 'bg-[#f26755] text-white'
                   : 'text-gray-600 hover:bg-gray-100'
                 }`}
               aria-label={`Page ${i + 1}`}
@@ -150,8 +189,93 @@ export default function ProjectPlans() {
           <SheetHeader>
             <SheetTitle>Ajouter un plan</SheetTitle>
           </SheetHeader>
-          
-          <form className="mt-6 space-y-6">
+
+          <form className="mt-6 space-y-6" onSubmit={async (e) => {
+            e.preventDefault();
+            setFormError(null);
+            setUploading(true);
+            try {
+              if (!planForm.title || !planForm.files[0] || !planForm.files[1]) {
+                setFormError('Tous les champs et les deux images sont obligatoires.');
+                setUploading(false);
+                return;
+              }
+              // Upload des deux images sur Cloudinary
+              const uploadImage = async (file: File) => {
+                const data = new FormData();
+                data.append('file', file);
+                data.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET as string);
+                const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+                const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`;
+                const res = await fetch(uploadUrl, { method: 'POST', body: data });
+                const result = await res.json();
+                if (!result.secure_url) throw new Error('Erreur upload Cloudinary');
+                return result.secure_url as string;
+              };
+              const [urlExistant, urlExecution] = await Promise.all([
+                uploadImage(planForm.files[0]),
+                uploadImage(planForm.files[1])
+              ]);
+              // Ajout du plan en base
+              const { addPlan } = await import('@/hooks/useProjectPlans');
+              const author = await getUserById(currentUser?.uid as string);
+              await addPlan({
+                projectId,
+                title: planForm.title,
+                author: author?.displayName || "",
+                date: new Date().toLocaleDateString(),
+                status: "en attente",
+                images: [urlExistant, urlExecution],
+              });
+
+              // --- Notification automatique ---
+              try {
+                const emails = await fetchProjectEmails(projectId);
+                const recipients: string[] = [];
+                if (emails.client) recipients.push(emails.client);
+                if (emails.courtier) recipients.push(emails.courtier);
+                if (emails.artisans && emails.artisans.length > 0) recipients.push(...emails.artisans);
+                if (recipients.length > 0) {
+                  await fetch('/api/send-email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      to: recipients,
+                      subject: `Nouveau plan ajouté au projet`,
+                      html: `<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
+                        <h2 style='color: #f26755; margin-bottom: 0.5em;'>Nouveau plan ajouté au projet</h2>
+                        <div style='font-size: 1em; color: #333; margin-bottom: 1em;'>
+                          Un nouveau plan intitulé <strong>"${planForm.title}"</strong> vient d'être ajouté.<br/>
+                          <strong>Auteur :</strong> ${author?.displayName || ""}<br/>
+                          <strong>Date :</strong> ${new Date().toLocaleString()}
+                        </div>
+                      </div>`
+                    })
+                  });
+                }
+              } catch (err) {
+                // Optionnel : afficher une notification ou log
+                console.error('Erreur notification email plan :', err);
+              }
+
+              setIsAddPlanOpen(false);
+              setPlanForm({
+                title: '',
+                files: [null, null],
+                notifications: {
+                  client: { email: 'client@test.fr', selected: false },
+                  artisan: { email: 'artisan@test.fr', selected: false },
+                  pilote: { email: 'pilote@test.fr', selected: false },
+                  vendeur: { email: 'vendeur@test.fr', selected: false }
+                }
+              });
+            } catch (err: any) {
+              setFormError('Erreur lors de l\'ajout du plan.');
+            } finally {
+              setUploading(false);
+            }
+          }}>
+            {formError && <div className="text-red-600 text-sm">{formError}</div>}
             <div>
               <label htmlFor="plan-title" className="block text-sm font-medium text-gray-700 mb-1">
                 Titre du plan
@@ -167,42 +291,125 @@ export default function ProjectPlans() {
               />
             </div>
 
-            <div>
-              <label htmlFor="plan-type" className="block text-sm font-medium text-gray-700 mb-1">
-                Type de plan
-              </label>
-              <select
-                id="plan-type"
-                value={planForm.type}
-                onChange={(e) => setPlanForm({ ...planForm, type: e.target.value })}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-[#f26755] focus:border-[#f26755]"
-                title="Type de plan"
-                aria-label="Sélectionner le type de plan"
-              >
-                <option value="">Sélectionner...</option>
-                <option value="existant">Plan existant</option>
-                <option value="execution">Plan d&apos;exécution</option>
-              </select>
-            </div>
-
-            <div>
-              <label htmlFor="plan-image" className="block text-sm font-medium text-gray-700 mb-2">
-                Image du plan
-              </label>
-              <button
-                type="button"
-                className="w-full border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#f26755]"
-                aria-label="Télécharger une image de plan"
-                title="Télécharger une image"
-              >
-                <Upload className="mx-auto h-12 w-12 text-gray-400" aria-hidden="true" />
-                <span className="mt-2 block text-sm font-medium text-gray-900">
-                  Cliquez pour télécharger
-                </span>
-                <span className="mt-1 block text-sm text-gray-500">
-                  PNG, JPG jusqu&apos;à 10MB
-                </span>
-              </button>
+            <div className="grid grid-cols-1 gap-4">
+              {/* Plan existant */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Image du plan existant</label>
+                <div
+                  className={`border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center transition-colors cursor-pointer hover:border-[#f26755] bg-gray-50 relative ${planForm.files[0] ? 'border-[#f26755]' : 'border-gray-300'}`}
+                  onClick={() => document.getElementById('plan-existant-input')?.click()}
+                  onDrop={e => {
+                    e.preventDefault();
+                    const file = e.dataTransfer.files?.[0] || null;
+                    if (file && file.type.startsWith('image/')) {
+                      setPlanForm(f => ({ ...f, files: [file, f.files[1]] }));
+                    }
+                  }}
+                  onDragOver={e => e.preventDefault()}
+                  style={{ minHeight: 120 }}
+                >
+                  {!planForm.files[0] ? (
+                    <>
+                      <Upload className="h-8 w-8 text-[#f26755] mb-2" />
+                      <span className="text-sm text-gray-500 text-center">Cliquez ou glissez une image ici<br />(plan existant)</span>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center w-full">
+                      <Image
+                        src={URL.createObjectURL(planForm.files[0])}
+                        alt="Aperçu plan existant"
+                        width={100}
+                        height={100}
+                        className="rounded shadow max-h-32 object-contain mb-2"
+                      />
+                      <div className="flex items-center justify-between w-full">
+                        <span className="text-xs text-gray-700 truncate">{planForm.files[0].name}</span>
+                        <button
+                          type="button"
+                          className="ml-2 px-2 py-1 text-xs bg-red-100 text-red-600 rounded hover:bg-red-200"
+                          onClick={e => {
+                            e.stopPropagation();
+                            setPlanForm(f => ({ ...f, files: [null, f.files[1]] }));
+                          }}
+                          title="Supprimer la sélection"
+                        >
+                          Supprimer
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  <input
+                    id="plan-existant-input"
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={e => {
+                      const file = e.target.files?.[0] || null;
+                      setPlanForm(f => ({ ...f, files: [file, f.files[1]] }));
+                    }}
+                    className="hidden"
+                  />
+                </div>
+              </div>
+              {/* Plan d'exécution */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Image du plan d&apos;exécution</label>
+                <div
+                  className={`border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center transition-colors cursor-pointer hover:border-[#f26755] bg-gray-50 relative ${planForm.files[1] ? 'border-[#f26755]' : 'border-gray-300'}`}
+                  onClick={() => document.getElementById('plan-execution-input')?.click()}
+                  onDrop={e => {
+                    e.preventDefault();
+                    const file = e.dataTransfer.files?.[0] || null;
+                    if (file && file.type.startsWith('image/')) {
+                      setPlanForm(f => ({ ...f, files: [f.files[0], file] }));
+                    }
+                  }}
+                  onDragOver={e => e.preventDefault()}
+                  style={{ minHeight: 120 }}
+                >
+                  {!planForm.files[1] ? (
+                    <>
+                      <Upload className="h-8 w-8 text-[#f26755] mb-2" />
+                      <span className="text-sm text-gray-500 text-center">Cliquez ou glissez une image ici<br />(plan d&apos;exécution)</span>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center w-full">
+                      <Image
+                        src={URL.createObjectURL(planForm.files[1])}
+                        alt="Aperçu plan d'exécution"
+                        width={100}
+                        height={100}
+                        className="rounded shadow max-h-32 object-contain mb-2"
+                      />
+                      <div className="flex items-center justify-between w-full">
+                        <span className="text-xs text-gray-700 truncate">{planForm.files[1].name}</span>
+                        <button
+                          type="button"
+                          className="ml-2 px-2 py-1 text-xs bg-red-100 text-red-600 rounded hover:bg-red-200"
+                          onClick={e => {
+                            e.stopPropagation();
+                            setPlanForm(f => ({ ...f, files: [f.files[0], null] }));
+                          }}
+                          title="Supprimer la sélection"
+                        >
+                          Supprimer
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  <input
+                    id="plan-execution-input"
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={e => {
+                      const file = e.target.files?.[0] || null;
+                      setPlanForm(f => ({ ...f, files: [f.files[0], file] }));
+                    }}
+                    className="hidden"
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="border-t border-gray-200 pt-6">
@@ -212,8 +419,8 @@ export default function ProjectPlans() {
                   Envoyer ce plan par mail
                 </span>
               </div>
-              
-              <div className="space-y-3">
+
+              {/* <div className="space-y-3">
                 {Object.entries(planForm.notifications).map(([key, value]) => (
                   <div key={key} className="flex items-center gap-2">
                     <input
@@ -241,17 +448,25 @@ export default function ProjectPlans() {
                     </label>
                   </div>
                 ))}
-              </div>
+              </div> */}
             </div>
 
             <div className="flex justify-end pt-4">
               <button
                 type="submit"
-                className="px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90 transition-colors"
+                className={`px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 ${uploading ? 'bg-gray-200 text-gray-400 cursor-wait' : 'bg-[#f26755] text-white hover:bg-[#f26755]/90'}`}
                 aria-label="Enregistrer le plan"
                 title="Enregistrer le plan"
+                disabled={uploading}
               >
-                Enregistrer
+                {uploading ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4 mr-2 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>
+                    Envoi en cours...
+                  </>
+                ) : (
+                  'Enregistrer'
+                )}
               </button>
             </div>
           </form>

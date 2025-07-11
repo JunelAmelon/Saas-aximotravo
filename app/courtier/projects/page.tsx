@@ -1,360 +1,353 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Search, Filter, X, ChevronLeft, ChevronRight, PlusCircle } from "lucide-react";
-import {
-  Dialog,
-  DialogTrigger,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogClose,
-} from "@/components/ui/dialog";
-import { useCreateProject } from "@/hooks/use-create-project";
+import { useState, useEffect, useCallback } from "react";
+import { Search, ChevronLeft, ChevronRight, PlusCircle, User, Calendar, MapPin } from "lucide-react";
 import Image from "next/image";
+import { BadgeAmo } from "@/components/BadgeAmo";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { getProjectsByCourtier, Project as FirebaseProject } from "@/lib/firebase/projects";
+import { getUserById } from "@/lib/firebase/users";
+
+type ProjectStatus =
+  | "En attente"
+  | "En cours"
+  | "Terminé"
+ 
 
 interface Project {
   id: string;
   name: string;
-  client: string;
-  status: "en_attente" | "en_cours" | "terminé" | "equipe_assignee" | "chantier_planifie" | "chantier_en_cours" | "sav" | "termine" | "cloture";
+  client_id: string;
+  clientName?: string; // Rendons clientName optionnel
+  status: ProjectStatus;
   amount: number;
   image?: string;
   date?: string;
+  location?: string;
+  amoIncluded?: boolean;
 }
 
-interface StatusConfig {
-  label: string;
-  count: number;
-  color: string;
+const statusConfig = {
+  "En attente": {
+    label: "En attente",
+    className: "bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-200",
+    icon: "⏳"
+  },
+  "En cours": {
+    label: "En cours",
+    className: "bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200",
+    icon: "🚧"
+  },
+  "Terminé": {
+    label: "Terminé",
+    className: "bg-green-100 text-green-800 border-green-200 hover:bg-green-200",
+    icon: "✅"
+  },
+
+};
+
+function convertFirebaseProject(project: FirebaseProject): Project {
+  const validStatuses: ProjectStatus[] = [
+    "En attente", "En cours", "Terminé",
+   
+  ];
+
+  const status: ProjectStatus = validStatuses.includes(project.status as ProjectStatus)
+    ? project.status as ProjectStatus
+    : "En attente";
+
+  return {
+    id: project.id,
+    client_id: project.client_id,
+    name: project.name,
+    clientName: project.clientName,
+    status,
+    amount: project.budget || 0,
+    image: project.image || "/default-project.jpg",
+    date: project.createdAt?.toDate?.()?.toLocaleDateString('fr-FR') || "Non spécifiée",
+    location: project.location || "Non spécifié",
+    amoIncluded: project.amoIncluded || false
+  };
 }
 
 export default function CourtierProjects() {
-  const { addProject, loading: creating, error: createError, success } = useCreateProject();
-  const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({
-    name: '',
-    description: '',
-    budget: 0,
-    paidAmount: 0,
-    startDate: '',
-    estimatedEndDate: '',
-    status: 'En attente',
-    broker: '',
-    progress: 0,
-    type: '',
-    location: '',
-    firstDepositPercent: 0,
-    image: ''
-  });
-
-
-  // Gère le changement d'un champ du formulaire
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value, type } = e.target;
-    setForm(prev => ({
-      ...prev,
-      [name]: type === 'number' ? Number(value) : value
-    }));
-  };
-
-  const { currentUser } = useAuth();
   const router = useRouter();
+  const { currentUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<Project["status"] | "">("");
+  const [statusFilter, setStatusFilter] = useState<ProjectStatus | "">("");
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const projectsPerPage = 6;
-
-  // Configuration des statuts avec traduction et couleurs
-  const statusConfig: Record<string, StatusConfig> = {
-    en_attente: { label: "En attente", count: 0, color: "#f59e0b" },
-    en_cours: { label: "En cours", count: 0, color: "#6366f1" },
-    terminé: { label: "Terminé", count: 0, color: "#10b981" },
-    equipe_assignee: { label: "Équipe assignée", count: 0, color: "#6366f1" },
-    chantier_planifie: { label: "Chantier planifié", count: 0, color: "#8b5cf6" },
-    chantier_en_cours: { label: "Chantier en cours", count: 0, color: "#f59e0b" },
-    sav: { label: "SAV", count: 0, color: "#8b5cf6" },
-    termine: { label: "Terminé", count: 0, color: "#f97316" },
-    cloture: { label: "Clôturé", count: 0, color: "#10b981" }
-  };
-
+  const projectsPerPage = 3;
   const [projects, setProjects] = useState<Project[]>([]);
 
-  // Charger les projets du courtier
-  async function loadProjects() {
+  const loadProjects = useCallback(async () => {
     if (!currentUser) return;
 
     try {
       setLoading(true);
       setError(null);
 
-      // Récupérer tous les projets du courtier
       const courtierProjects = await getProjectsByCourtier(currentUser.uid);
+      const projectsWithClientNames = await Promise.all(
+        courtierProjects.map(async (project) => {
+          const converted = convertFirebaseProject(project);
 
-      // Formater les projets pour l'affichage
-      const formattedProjects: Project[] = courtierProjects.map((project: FirebaseProject) => {
-        // Mettre à jour le compteur de statut
-        if (statusConfig[project.status]) {
-          statusConfig[project.status].count += 1;
-        }
+          if (converted.client_id) {
+            const user = await getUserById(converted.client_id);
+            if (user?.lastName && user?.firstName) {
+              converted.clientName = `${user.lastName} ${user.firstName}`;
+            } else if (user?.email) {
+              converted.clientName = user.email;
+            } else {
+              converted.clientName = "Non spécifié";
+            }
+          }
 
-        return {
-          id: project.id,
-          name: project.name,
-          client: project.clientName,
-          status: project.status as any,
-          amount: project.budget || 0,
-          date: project.createdAt?.toDate?.()?.toLocaleDateString('fr-FR') || undefined,
-          image: project.image || "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg"
-        };
-      });
+          return converted;
+        })
+      );
 
-      setProjects(formattedProjects);
-    } catch (err: any) {
-      console.error('Erreur lors du chargement des projets:', err);
-      setError('Impossible de charger la liste des projets.');
+      setProjects(projectsWithClientNames);
+    } catch (err) {
+      console.error('Erreur:', err);
+      setError('Impossible de charger les projets');
     } finally {
       setLoading(false);
     }
-  }
+  }, [currentUser]);
 
   useEffect(() => {
     loadProjects();
-    // eslint-disable-next-line
-  }, [currentUser]);
-
-  const clearFilters = () => {
-    setSearchTerm("");
-    setStatusFilter("");
-    setIsStatusDropdownOpen(false);
-    setCurrentPage(1);
-  };
+  }, [loadProjects]);
 
   const filteredProjects = projects.filter(project => {
+    // Correction : vérification que clientName existe avant toLowerCase()
+    const clientName = project.clientName || "";
     const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      project.client.toLowerCase().includes(searchTerm.toLowerCase());
+      clientName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = !statusFilter || project.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
-  const totalPages = Math.ceil(filteredProjects.length / projectsPerPage);
   const paginatedProjects = filteredProjects.slice(
     (currentPage - 1) * projectsPerPage,
     currentPage * projectsPerPage
   );
 
-  const hasActiveFilters = searchTerm !== "" || statusFilter !== "";
+  const totalPages = Math.ceil(filteredProjects.length / projectsPerPage);
 
-  // Afficher un indicateur de chargement
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#f21515]"></div>
-      </div>
-    );
+    return <div className="flex justify-center items-center h-64">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#f21515]"></div>
+    </div>;
   }
 
-  // Afficher un message d'erreur
   if (error) {
-    return (
-      <div className="p-4 bg-red-50 text-red-600 rounded-lg">
-        <p>{error}</p>
-        <button
-          onClick={() => window.location.reload()}
-          className="mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
-        >
-          Réessayer
-        </button>
-      </div>
-    );
+    return <div className="p-4 bg-red-50 text-red-600 rounded-lg">
+      <p>{error}</p>
+      <button onClick={loadProjects} className="mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+        Réessayer
+      </button>
+    </div>;
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-medium text-gray-900">Liste des projets</h1>
+    <div className="space-y-6 p-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <h1 className="text-2xl font-bold text-gray-900">Liste des projets</h1>
         <button
-          className="flex items-center gap-2 px-4 py-2 bg-[#f26755] text-white rounded-md hover:bg-[#f26755]/90 transition-colors"
           onClick={() => router.push('/courtier/projects/new')}
+          className="flex items-center gap-2 px-4 py-2 bg-[#f26755] text-white rounded-md hover:bg-[#f26755]/90 transition-all"
         >
           <PlusCircle className="h-5 w-5" />
-          Créer un projet
+          <span>Créer un projet</span>
         </button>
       </div>
 
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-        <div className="w-full sm:w-[32rem] relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Rechercher un projet"
-            className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-full focus:outline-none focus:ring-1 focus:ring-[#f26755] focus:border-[#f26755]"
+            placeholder="Rechercher un projet..."
+            className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f26755] focus:border-transparent transition-all"
           />
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <div className="relative flex-1 sm:flex-none">
-            <button
-              onClick={() => setIsStatusDropdownOpen(!isStatusDropdownOpen)}
-              className="w-full sm:w-48 px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-600 focus:outline-none focus:ring-1 focus:ring-[#f26755] flex items-center justify-between"
-            >
-              <span>{statusFilter ? statusConfig[statusFilter].label : "Statut"}</span>
-              <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-
-            {isStatusDropdownOpen && (
-              <div className="absolute z-10 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-2">
-                {Object.entries(statusConfig).map(([value, config]) => (
-                  <div
-                    key={value}
-                    className="flex items-center justify-between px-4 py-2 hover:bg-gray-50 cursor-pointer"
-                    onClick={() => {
-                      setStatusFilter(value as Project["status"]);
-                      setIsStatusDropdownOpen(false);
-                      setCurrentPage(1);
-                    }}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-1 h-5 rounded" style={{ backgroundColor: config.color }}></div>
-                      <span className="text-sm text-gray-700">{config.label}</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium text-teal-700">{config.count}</span>
-                      <div className={`w-4 h-4 border rounded ${statusFilter === value ? 'bg-teal-600 border-teal-600' : 'border-gray-300'}`}>
-                        {statusFilter === value && (
-                          <svg className="w-4 h-4 text-white" viewBox="0 0 24 24">
-                            <path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
-                          </svg>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {hasActiveFilters && (
-            <button
-              onClick={clearFilters}
-              className="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-gray-200 transition-colors"
-            >
-              <X className="h-4 w-4" />
-              Effacer les filtres
-            </button>
+        {/* Filtre par statut avec style amélioré */}
+        <div className="relative">
+          <button
+            onClick={() => setIsStatusDropdownOpen(!isStatusDropdownOpen)}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all"
+          >
+            <span>Statut: {statusFilter ? (
+              <span className="flex items-center">
+                <span
+                  className={`w-3 h-3 rounded-full mr-2 ${statusConfig[statusFilter as keyof typeof statusConfig]?.className.split(' ')[0]}`}
+                ></span>
+                {statusConfig[statusFilter as keyof typeof statusConfig]?.label}
+              </span>
+            ) : "Tous"}</span>
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="m6 9 6 6 6-6" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </button>
+          {isStatusDropdownOpen && (
+            <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg">
+              <button
+                onClick={() => {
+                  setStatusFilter("");
+                  setIsStatusDropdownOpen(false);
+                }}
+                className={`w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center ${!statusFilter ? 'bg-gray-100' : ''}`}
+              >
+                <span className="w-3 h-3 rounded-full mr-2 bg-gray-300"></span>
+                Tous les statuts
+              </button>
+              {Object.entries(statusConfig).map(([statusKey, config]) => (
+                <button
+                  key={statusKey}
+                  onClick={() => {
+                    setStatusFilter(statusKey as ProjectStatus);
+                    setIsStatusDropdownOpen(false);
+                  }}
+                  className={`w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center ${statusFilter === statusKey ? 'bg-gray-100' : ''}`}
+                >
+                  <span
+                    className={`w-3 h-3 rounded-full mr-2 ${config.className.split(' ')[0]}`}
+                  ></span>
+                  {config.label}
+                </button>
+              ))}
+            </div>
           )}
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-6">
-        {paginatedProjects.length === 0 ? (
-          <div className="w-full bg-white p-10 rounded-lg shadow text-center">
-            <p className="text-gray-500 mb-4">Aucun projet trouvé</p>
-            <button
-              onClick={() => router.push('/courtier/projects/new')}
-              className="px-4 py-2 bg-[#f21515] text-white rounded-lg flex items-center gap-2 hover:bg-[#d41414] transition-colors mx-auto"
-            >
-              <PlusCircle size={16} />
-              Créer votre premier projet
-            </button>
-          </div>
-        ) : paginatedProjects.map((project) => (
-          <div key={project.id} className="bg-white rounded-lg shadow-sm overflow-hidden h-[210px] flex w-full max-w-[410px]">
-            <div className="flex flex-col w-full p-4">
-              <div className="flex items-start gap-4">
-                <div className="relative w-[60px] h-[60px] flex-shrink-0">
-                  {project.image ? (
+      {paginatedProjects.length === 0 ? (
+        <div className="bg-white p-8 rounded-lg shadow-sm text-center">
+          <p className="text-gray-500 mb-4">Aucun projet trouvé</p>
+          <button
+            onClick={() => router.push('/courtier/projects/new')}
+            className="px-4 py-2 bg-[#f26755] text-white rounded-lg hover:bg-[#f26755]/90 transition-all"
+          >
+            Créer un nouveau projet
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {paginatedProjects.map((project) => {
+            const statusInfo = statusConfig[project.status as keyof typeof statusConfig];
+            return (
+              <div key={project.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 hover:shadow-md transition-all">
+                <div className="flex items-start gap-4 mb-4">
+                  <div className="relative w-16 h-16 flex-shrink-0 rounded-full overflow-hidden border-2 border-[#f26755] group-hover:border-[#f26755]/80 transition-colors duration-200">
                     <Image
-                      src={project.image}
+                      src={project.image || "/default-project.jpg"}
                       alt={project.name}
                       fill
-                      className="object-cover rounded-lg"
+                      className="object-cover"
+                      sizes="64px"
                     />
-                  ) : (
-                    <div className="w-full h-full bg-gray-200 rounded-lg flex items-center justify-center text-gray-400">
-                      <span className="text-xs">Aucune image</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="text-lg font-medium text-gray-900 truncate">{project.name}</h3>
+                      {project.amoIncluded && <BadgeAmo />}
                     </div>
-                  )}
+
+
+
+
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
+                  <User className="h-4 w-4 text-[#f26755]" />
+                  <p className="text-sm text-gray-600 truncate">{project.clientName || "Non spécifié"}</p>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
+                  <Calendar className="h-4 w-4 text-[#f26755]" />
+                  <span>Créé le {project.date}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
+                  <MapPin className="h-4 w-4 text-[#f26755]" />
+                  <span>{project.location}</span>
                 </div>
 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="text-base font-medium text-gray-900 truncate">{project.name}</h3>
-                    <span
-                      className={`inline-flex flex-shrink-0 px-2 py-1 text-xs font-medium rounded-full whitespace-nowrap`}
-                      style={{
-                        backgroundColor: `${statusConfig[project.status]?.color}20`,
-                        color: statusConfig[project.status]?.color
-                      }}
-                    >
-                      {statusConfig[project.status]?.label || project.status}
+                <div className="mb-4 p-3 bg-gradient-to-r from-orange-50 to-white rounded-lg border border-gray-100">
+                  <p className="text-xs text-gray-500 mb-1">Budget total</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl font-extrabold text-[#f26755] drop-shadow-sm">
+                      {project.amount?.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-600 truncate mt-1">{project.client}</p>
+                </div>
+
+                <div className="flex items-center justify-between mt-4">
+                  <Link
+                    href={`projects/${project.id}`}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#f26755] text-white rounded-md hover:bg-[#f26755]/90 transition-all text-sm group"
+                  >
+                    Voir le projet
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="transition-transform group-hover:-translate-y-1 group-hover:translate-x-1 rotate-45 origin-center"
+                    >
+                      <path d="M5 12h14" /> {/* Ligne horizontale (corps de l'avion) */}
+                      <path d="M12 5l7 7-7 7" /> {/* Flèche pointant vers le haut */}
+                    </svg>
+                  </Link>
+                  {(() => {
+  const statusInfo = statusConfig[project.status as keyof typeof statusConfig] || { label: project.status, className: '', icon: '' };
+  return (
+    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${statusInfo.className}`}>
+      {statusInfo.icon && <span className="mr-1">{statusInfo.icon}</span>}
+      {statusInfo.label}
+    </span>
+  );
+})()}
                 </div>
               </div>
-
-              <div className="mt-4">
-                <p className="text-sm text-gray-500">Montant prospecté</p>
-                <p className="text-lg font-semibold">{project.amount.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €</p>
-              </div>
-
-              <div className="mt-auto pt-4">
-                <Link
-                  href={`/courtier/projects/${project.id}`}
-                  className="block w-full px-4 py-2 bg-[#f26755] text-white text-sm font-medium rounded-md hover:bg-[#f26755]/90 transition-colors text-center"
-                >
-                  Voir le projet
-                </Link>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
+            );
+          })}
+        </div>
+      )}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2">
+        <div className="flex justify-center gap-2 mt-8">
           <button
-            onClick={() => setCurrentPage(page => Math.max(1, page - 1))}
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
             disabled={currentPage === 1}
-            className="p-2 rounded-full border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-2 rounded-full border border-gray-200 hover:bg-gray-50 disabled:opacity-50 transition-all"
           >
             <ChevronLeft className="h-5 w-5 text-gray-600" />
           </button>
-
-          <div className="flex items-center gap-1">
-            {[...Array(totalPages)].map((_, i) => (
-              <button
-                key={i + 1}
-                onClick={() => setCurrentPage(i + 1)}
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors
-                  ${currentPage === i + 1
-                    ? 'bg-[#f26755] text-white'
-                    : 'text-gray-600 hover:bg-gray-100'
-                  }`}
-              >
-                {i + 1}
-              </button>
-            ))}
-          </div>
-
+          {Array.from({ length: totalPages }).map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrentPage(i + 1)}
+              className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${currentPage === i + 1 ? 'bg-[#f26755] text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+            >
+              {i + 1}
+            </button>
+          ))}
           <button
-            onClick={() => setCurrentPage(page => Math.min(totalPages, page + 1))}
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
-            className="p-2 rounded-full border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-2 rounded-full border border-gray-200 hover:bg-gray-50 disabled:opacity-50 transition-all"
           >
             <ChevronRight className="h-5 w-5 text-gray-600" />
           </button>
