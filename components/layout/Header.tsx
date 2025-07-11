@@ -88,7 +88,7 @@ export default function Header({ userRole }: HeaderProps) {
             alt="Logo Aximotravo"
             width={200}
             height={32}
-            className="group-hover:scale-110 transition-transform"
+            className="w-[154px] h-[25px] sm:w-[200px] sm:h-[32px] group-hover:scale-110 transition-transform"
           />
         </Link>
       </div>
