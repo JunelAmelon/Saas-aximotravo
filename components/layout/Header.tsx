@@ -78,20 +78,20 @@ export default function Header({ userRole }: HeaderProps) {
   };
 
   return (
-    <header className="bg-white border-b border-gray-100 py-3 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-50 shadow-sm">
+    <header className="bg-white border-b border-gray-100 py-3 px-0 flex items-center justify-between sticky top-0 z-50 shadow-sm">
       {/* Logo et nom avec style moderne */}
       <div className="flex items-center">
-        <Link href="/" className="flex items-center group">
-          {/* Logo avec animation au survol */}
-          <Image
-            src="/logo1.svg"
-            alt="Logo Aximotravo"
-            width={200}
-            height={32}
-            className="w-[154px] h-[25px] sm:w-[200px] sm:h-[32px] group-hover:scale-110 transition-transform"
-          />
-        </Link>
-      </div>
+  <Link href="/" className="flex items-center group">
+    {/* Logo avec animation au survol */}
+    <Image
+      src="/logo1.svg"
+      alt="Logo Aximotravo"
+      width={200}
+      height={32}
+      className="w-[200px] h-[32px] group-hover:scale-110 transition-transform mr-1"
+    />
+  </Link>
+</div>
 
       {/* Actions utilisateur */}
       <div className="flex items-center space-x-3 sm:space-x-5">
