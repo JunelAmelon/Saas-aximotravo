@@ -10,14 +10,9 @@ import MediaCard from './MediaCard';
 import MediaCommentsModal from './MediaCommentsModal';
 import AddCommentModal from './AddCommentModal';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-
-// On utilise ProjectMedia du hook
-
-// Mode lecture seule pour l'admin
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
-
 
 export default function ProjectPhotos() {
   const { currentUser } = useAuth();
@@ -35,7 +30,7 @@ export default function ProjectPhotos() {
     };
     fetchRole();
   }, [currentUser]);
-  // Ferme le menu filtre si on clique en dehors
+
   useEffect(() => {
     if (!showFilterMenu) return;
     const handler = (e: MouseEvent) => {
@@ -45,39 +40,38 @@ export default function ProjectPhotos() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [showFilterMenu]);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [selectedMedia, setSelectedMedia] = useState<any>(null);
-  // Pour les commentaires
+
+  const [selectedPhoto, setSelectedPhoto] = useState<ProjectMedia | null>(null);
   const [addCommentModalOpen, setAddCommentModalOpen] = useState(false);
-  const [addCommentMedia, setAddCommentMedia] = useState<any>(null);
+  const [addCommentMedia, setAddCommentMedia] = useState<ProjectMedia | null>(null);
   const [commentsModalOpen, setCommentsModalOpen] = useState(false);
-  const [commentsMedia, setCommentsMedia] = useState<any>(null);
+  const [commentsMedia, setCommentsMedia] = useState<ProjectMedia | null>(null);
   const [addOpen, setAddOpen] = useState(false);
-  const [mediaForm, setMediaForm] = useState<{ title: string; tag: string; customTag?: string; date: string; file: File | null }>({ title: '', tag: '', customTag: '', date: '', file: null });
+  const [mediaForm, setMediaForm] = useState<{ 
+    title: string; 
+    tag: string; 
+    customTag?: string; 
+    date: string; 
+    file: File | null 
+  }>({ 
+    title: '', 
+    tag: '', 
+    customTag: '', 
+    date: '', 
+    file: null 
+  });
   const [uploading, setUploading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  // Type for a photo (single media item)
-  type Photo = {
-    id: string;
-    url: string;
-    title: string;
-    date: string;
-    tag: string;
-  };
-
-  const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
-  // Récupération du projectId depuis l'URL
   const params = useParams() ?? {};
   const projectId = Array.isArray(params.id) ? params.id[0] : params.id as string;
   const [photos, setPhotos] = useState<ProjectMedia[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Chargement des médias avec useEffect
   useEffect(() => {
     if (!projectId) return;
     setLoading(true);
@@ -89,7 +83,7 @@ export default function ProjectPhotos() {
         const mediaList = await fetchProjectMedia(projectId);
         if (isMounted) setPhotos(mediaList);
       } catch (e) {
-        if (isMounted) setError('Erreur lors du chargement des médias: ' + e);
+        if (isMounted) setError(`Erreur lors du chargement des médias: ${e}`);
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -97,16 +91,28 @@ export default function ProjectPhotos() {
     return () => { isMounted = false; };
   }, [projectId, addOpen]);
 
-  if (loading) return <div>Chargement...</div>;
-  if (error) return <div>Erreur : {error}</div>;
-
-  const categories = Array.from(new Set(photos.map(photo => photo.tag)));
+  const categories = [
+    'Photos RT',
+    'Photos chantier',
+    'Plans',
+    'Documents',
+    'Autre',
+    ...Array.from(new Set(
+      photos
+        .map(photo => photo.tag)
+        .filter(tag => !['Photos RT', 'Photos chantier', 'Plans', 'Documents', 'Autre'].includes(tag))
+    ))
+  ];
+  
 
   const filteredPhotos = photos.filter(photo => {
     const matchesSearch = photo.title.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(photo.tag);
     return matchesSearch && matchesCategory;
   });
+
+  if (loading) return <div className="flex justify-center items-center h-64">Chargement...</div>;
+  if (error) return <div className="text-red-600 p-4">Erreur : {error}</div>;
 
   return (
     <div className="space-y-6">
@@ -132,6 +138,7 @@ export default function ProjectPhotos() {
           )}
         </div>
       </div>
+
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
         <div className="w-full sm:w-[32rem] relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
@@ -151,29 +158,38 @@ export default function ProjectPhotos() {
                 className="w-full sm:w-48 px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-600 focus:outline-none focus:ring-1 focus:ring-[#f21515] flex items-center justify-between"
                 type="button"
                 onClick={() => setShowFilterMenu((v) => !v)}
+                aria-label="Filtrer les médias"
               >
                 <Filter className="h-4 w-4 mr-2" />
                 <span>Filtrer</span>
               </button>
               {showFilterMenu && (
                 <div className="absolute left-0 mt-2 z-20 bg-white border border-gray-200 rounded-lg shadow-lg p-3 min-w-[180px] max-h-64 overflow-auto" onClick={e => e.stopPropagation()}>
-                  {Array.from(new Set(photos.map(photo => photo.tag))).map(tag => (
-                    <label key={tag} className="flex items-center gap-2 py-1 cursor-pointer">
+                  {categories.map(tag => (
+                    <label key={tag} className="flex items-center gap-2 py-1 cursor-pointer hover:bg-gray-50 px-2 rounded">
                       <input
                         type="checkbox"
                         checked={selectedCategories.includes(tag)}
                         onChange={e => {
-                          if (e.target.checked) setSelectedCategories([...selectedCategories, tag]);
-                          else setSelectedCategories(selectedCategories.filter(t => t !== tag));
+                          if (e.target.checked) {
+                            setSelectedCategories([...selectedCategories, tag]);
+                          } else {
+                            setSelectedCategories(selectedCategories.filter(t => t !== tag));
+                          }
                         }}
+                        className="h-4 w-4 text-[#f26755] focus:ring-[#f26755] border-gray-300 rounded"
+                        aria-label={`Filtrer par ${tag}`}
                       />
                       <span className="text-sm text-gray-700">{tag}</span>
                     </label>
                   ))}
                   <button
-                    className="mt-2 w-full px-3 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 text-xs"
+                    className="mt-2 w-full px-3 py-1.5 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 text-xs font-medium"
                     onClick={() => setShowFilterMenu(false)}
-                  >Fermer</button>
+                    aria-label="Fermer le menu de filtrage"
+                  >
+                    Fermer
+                  </button>
                 </div>
               )}
             </div>
@@ -183,6 +199,7 @@ export default function ProjectPhotos() {
             <button
               onClick={() => setSelectedCategories([])}
               className="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-gray-200 transition-colors"
+              aria-label="Effacer les filtres"
             >
               <X className="h-4 w-4" />
               Effacer les filtres
@@ -191,27 +208,46 @@ export default function ProjectPhotos() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {filteredPhotos.map((photo) => (
-          <MediaCard
-            key={photo.id}
-            media={photo}
-            onClick={(media) => setSelectedPhoto(media)}
-            onDoubleClick={(media) => {
-              setAddCommentMedia(media);
-              setAddCommentModalOpen(true);
-            }}
-            onShowComments={(media) => {
-              setCommentsMedia(media);
-              setCommentsModalOpen(true);
-            }}
-          />
-        ))}
-      </div>
+      {filteredPhotos.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 bg-white rounded-lg border border-gray-200">
+          <h3 className="text-lg font-medium text-gray-700 mb-2">Aucun média disponible</h3>
+          <p className="text-sm text-gray-500 mb-4 text-center max-w-md">
+            {selectedCategories.length > 0 || searchTerm 
+              ? "Aucun média ne correspond à vos critères de recherche." 
+              : "Ce projet ne contient aucun média pour le moment."}
+          </p>
+          {userRole !== 'admin' && (
+            <button
+              onClick={() => setAddOpen(true)}
+              className="flex items-center px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90"
+              aria-label="Ajouter un média"
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Ajouter un média
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {filteredPhotos.map((photo) => (
+            <MediaCard
+              key={photo.id}
+              media={photo}
+              onClick={(media) => setSelectedPhoto(media)}
+              onDoubleClick={(media) => {
+                setAddCommentMedia(media);
+                setAddCommentModalOpen(true);
+              }}
+              onShowComments={(media) => {
+                setCommentsMedia(media);
+                setCommentsModalOpen(true);
+              }}
+            />
+          ))}
+        </div>
+      )}
 
-      {/* Modal ajout de commentaire */}
       <AddCommentModal open={addCommentModalOpen} onClose={() => setAddCommentModalOpen(false)} media={addCommentMedia} user={null} />
-      {/* Modal affichage des commentaires */}
       <MediaCommentsModal open={commentsModalOpen} onClose={() => setCommentsModalOpen(false)} media={commentsMedia} />
 
       <Dialog open={!!selectedPhoto} onOpenChange={() => setSelectedPhoto(null)}>
@@ -229,7 +265,6 @@ export default function ProjectPhotos() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog d'ajout de média */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
         <DialogContent className="max-w-md">
           <form
@@ -243,7 +278,6 @@ export default function ProjectPhotos() {
                   setUploading(false);
                   return;
                 }
-                // Upload Cloudinary
                 const data = new FormData();
                 data.append('file', mediaForm.file);
                 data.append('upload_preset', CLOUDINARY_UPLOAD_PRESET as string);
@@ -266,7 +300,7 @@ export default function ProjectPhotos() {
                 setMediaForm({ title: '', tag: '', customTag: '', date: '', file: null });
                 if (fileInputRef.current) fileInputRef.current.value = '';
               } catch (err: any) {
-                setFormError('Erreur lors de l\'ajout du média.');
+                setFormError(`Erreur lors de l&apos;ajout du média.`);
               } finally {
                 setUploading(false);
               }
@@ -276,8 +310,9 @@ export default function ProjectPhotos() {
             <h2 className="text-lg font-semibold">Ajouter un média</h2>
             {formError && <div className="text-red-600 text-sm">{formError}</div>}
             <div>
-              <label className="block text-sm mb-1">Titre</label>
+              <label htmlFor="media-title" className="block text-sm mb-1">Titre</label>
               <input
+                id="media-title"
                 type="text"
                 className="w-full border rounded px-3 py-2"
                 value={mediaForm.title}
@@ -286,8 +321,9 @@ export default function ProjectPhotos() {
               />
             </div>
             <div>
-              <label className="block text-sm mb-1">Catégorie</label>
+              <label htmlFor="media-category" className="block text-sm mb-1">Catégorie</label>
               <select
+                id="media-category"
                 className="w-full border rounded px-3 py-2"
                 value={mediaForm.tag}
                 onChange={e => {
@@ -295,10 +331,13 @@ export default function ProjectPhotos() {
                   setMediaForm(f => ({ ...f, tag: val }));
                 }}
                 required
+                aria-label="Sélectionner une catégorie"
               >
                 <option value="">Sélectionner...</option>
                 <option value="Photos RT">Photos RT</option>
                 <option value="Photos chantier">Photos chantier</option>
+                <option value="Plans">Plans</option>
+                <option value="Documents">Documents</option>
                 <option value="autre">Autre</option>
               </select>
               {mediaForm.tag === 'autre' && (
@@ -309,12 +348,14 @@ export default function ProjectPhotos() {
                   onChange={e => setMediaForm(f => ({ ...f, customTag: e.target.value }))}
                   placeholder="Précisez la catégorie"
                   required
+                  aria-label="Nom de la catégorie personnalisée"
                 />
               )}
             </div>
             <div>
-              <label className="block text-sm mb-1">Date</label>
+              <label htmlFor="media-date" className="block text-sm mb-1">Date</label>
               <input
+                id="media-date"
                 type="date"
                 className="w-full border rounded px-3 py-2"
                 value={mediaForm.date}
@@ -336,10 +377,11 @@ export default function ProjectPhotos() {
                 }}
                 onDragOver={e => e.preventDefault()}
                 style={{ minHeight: 120 }}
+                aria-label="Zone de dépôt pour les fichiers"
               >
                 {!mediaForm.file ? (
                   <>
-                    <Upload className="h-8 w-8 text-[#f21515] mb-2" />
+                    <Upload className="h-8 w-8 text-[#f26755] mb-2" />
                     <span className="text-sm text-gray-500 text-center">Cliquez ou glissez une image ici</span>
                   </>
                 ) : (
@@ -361,7 +403,7 @@ export default function ProjectPhotos() {
                           setMediaForm(f => ({ ...f, file: null }));
                           if (fileInputRef.current) fileInputRef.current.value = '';
                         }}
-                        title="Supprimer la sélection"
+                        aria-label="Supprimer la sélection"
                       >
                         Supprimer
                       </button>
@@ -376,13 +418,15 @@ export default function ProjectPhotos() {
                   onChange={e => setMediaForm(f => ({ ...f, file: e.target.files?.[0] || null }))}
                   className="hidden"
                   required
+                  aria-label="Sélectionner un fichier"
                 />
               </div>
             </div>
             <button
               type="submit"
-              className="w-full bg-[#f21515] text-white py-2 rounded font-semibold hover:bg-[#f21515]/90 transition-colors disabled:opacity-60"
+              className="w-full bg-[#f26755] text-white py-2 rounded font-semibold hover:bg-[#f26755]/90 transition-colors disabled:opacity-60"
               disabled={uploading}
+              aria-label={uploading ? 'Ajout en cours' : 'Ajouter le média'}
             >
               {uploading ? 'Ajout en cours...' : 'Ajouter'}
             </button>
