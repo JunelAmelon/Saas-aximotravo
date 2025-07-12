@@ -42,10 +42,5 @@ export default function Home() {
     };
     checkAndRedirect();
   }, [currentUser, loading, router]);
-
-  // Optionnel : afficher un loader pendant la vérification
-  if (loading || checking) {
-    return <div>Chargement...</div>;
-  }
   return null;
 }
