@@ -304,6 +304,7 @@ export default function ProjectPhotos() {
             <div>
               <label className="block text-sm mb-1">Titre</label>
               <input
+               aria-label="text"
                 type="text"
                 className="w-full border rounded px-3 py-2"
                 value={mediaForm.title}
@@ -315,6 +316,7 @@ export default function ProjectPhotos() {
               <label className="block text-sm mb-1">Catégorie</label>
               <select
   className="w-full border rounded px-3 py-2"
+   aria-label="Sélectionner le type de média"
   value={mediaForm.tag}
   onChange={e => {
     const val = e.target.value;
@@ -342,6 +344,7 @@ export default function ProjectPhotos() {
             <div>
               <label className="block text-sm mb-1">Date</label>
               <input
+                aria-label="date"
                 type="date"
                 className="w-full border rounded px-3 py-2"
                 value={mediaForm.date}
@@ -396,6 +399,7 @@ export default function ProjectPhotos() {
                   </div>
                 )}
                 <input
+                 aria-label="file"
                   type="file"
                   accept="image/*"
                   capture="environment"
