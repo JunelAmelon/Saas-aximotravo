@@ -107,7 +107,18 @@ export default function ProjectPhotos() {
     const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(photo.tag);
     return matchesSearch && matchesCategory;
   });
-
+  const defaultCategories = [
+    "Photos RT",
+    "Photos chantier",
+    "Photos équipements",
+    "Photos matériaux",
+    "Photos sécurité",
+    "Photos main-d’œuvre",
+    "Photos fin de chantier",
+    "Photos défauts/anomalies",
+    "autre"
+  ];
+  
   return (
     <div className="space-y-6">
       <div className="flex flex-col w-full mb-6 gap-2">
@@ -140,7 +151,7 @@ export default function ProjectPhotos() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Rechercher des médias..."
-            className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#f21515] focus:border-[#f21515]"
+            className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#f26755] focus:border-[#f26755]"
           />
         </div>
 
@@ -148,7 +159,7 @@ export default function ProjectPhotos() {
           <div className="relative flex-1 sm:flex-none">
             <div className="relative">
               <button
-                className="w-full sm:w-48 px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-600 focus:outline-none focus:ring-1 focus:ring-[#f21515] flex items-center justify-between"
+                className="w-full sm:w-48 px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-600 focus:outline-none focus:ring-1 focus:ring-[#f26755] flex items-center justify-between"
                 type="button"
                 onClick={() => setShowFilterMenu((v) => !v)}
               >
@@ -157,8 +168,7 @@ export default function ProjectPhotos() {
               </button>
               {showFilterMenu && (
                 <div className="absolute left-0 mt-2 z-20 bg-white border border-gray-200 rounded-lg shadow-lg p-3 min-w-[180px] max-h-64 overflow-auto" onClick={e => e.stopPropagation()}>
-                  {Array.from(new Set(photos.map(photo => photo.tag))).map(tag => (
-                    <label key={tag} className="flex items-center gap-2 py-1 cursor-pointer">
+                  {defaultCategories.map(tag => (                    <label key={tag} className="flex items-center gap-2 py-1 cursor-pointer">
                       <input
                         type="checkbox"
                         checked={selectedCategories.includes(tag)}
@@ -190,6 +200,22 @@ export default function ProjectPhotos() {
           )}
         </div>
       </div>
+      {filteredPhotos.length === 0 && (
+  <div className="flex flex-col items-center justify-center w-full py-16 text-center bg-white border border-dashed border-gray-300 rounded-lg">
+    <Upload className="w-10 h-10 text-gray-400 mb-4" />
+    <p className="text-gray-600 text-base mb-3">Aucun média n’a été ajouté pour ce projet.</p>
+    {userRole !== 'admin' && (
+      <button
+        onClick={() => setAddOpen(true)}
+        className="inline-flex items-center px-4 py-2 bg-[#f26755] text-white text-sm font-semibold rounded hover:bg-[#f26755]/90 transition"
+      >
+        <Upload className="h-4 w-4 mr-2" />
+        Ajouter un média
+      </button>
+    )}
+  </div>
+)}
+
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {filteredPhotos.map((photo) => (
@@ -288,19 +314,20 @@ export default function ProjectPhotos() {
             <div>
               <label className="block text-sm mb-1">Catégorie</label>
               <select
-                className="w-full border rounded px-3 py-2"
-                value={mediaForm.tag}
-                onChange={e => {
-                  const val = e.target.value;
-                  setMediaForm(f => ({ ...f, tag: val }));
-                }}
-                required
-              >
-                <option value="">Sélectionner...</option>
-                <option value="Photos RT">Photos RT</option>
-                <option value="Photos chantier">Photos chantier</option>
-                <option value="autre">Autre</option>
-              </select>
+  className="w-full border rounded px-3 py-2"
+  value={mediaForm.tag}
+  onChange={e => {
+    const val = e.target.value;
+    setMediaForm(f => ({ ...f, tag: val }));
+  }}
+  required
+>
+  <option value="">Sélectionner...</option>
+  {defaultCategories.map((category) => (
+    <option key={category} value={category}>{category}</option>
+  ))}
+</select>
+
               {mediaForm.tag === 'autre' && (
                 <input
                   type="text"
@@ -325,7 +352,7 @@ export default function ProjectPhotos() {
             <div>
               <label className="block text-sm mb-1">Photo</label>
               <div
-                className={`border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center transition-colors cursor-pointer hover:border-[#f21515] bg-gray-50 relative ${mediaForm.file ? 'border-[#f21515]' : 'border-gray-300'}`}
+                className={`border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center transition-colors cursor-pointer hover:border-[#f26755] bg-gray-50 relative ${mediaForm.file ? 'border-[#f26755]' : 'border-gray-300'}`}
                 onClick={() => fileInputRef.current?.click()}
                 onDrop={e => {
                   e.preventDefault();
@@ -339,7 +366,7 @@ export default function ProjectPhotos() {
               >
                 {!mediaForm.file ? (
                   <>
-                    <Upload className="h-8 w-8 text-[#f21515] mb-2" />
+                    <Upload className="h-8 w-8 text-[#f26755] mb-2" />
                     <span className="text-sm text-gray-500 text-center">Cliquez ou glissez une image ici</span>
                   </>
                 ) : (
@@ -381,7 +408,7 @@ export default function ProjectPhotos() {
             </div>
             <button
               type="submit"
-              className="w-full bg-[#f21515] text-white py-2 rounded font-semibold hover:bg-[#f21515]/90 transition-colors disabled:opacity-60"
+              className="w-full bg-[#f26755] text-white py-2 rounded font-semibold hover:bg-[#f26755]/90 transition-colors disabled:opacity-60"
               disabled={uploading}
             >
               {uploading ? 'Ajout en cours...' : 'Ajouter'}

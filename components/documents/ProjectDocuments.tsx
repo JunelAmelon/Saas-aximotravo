@@ -3,17 +3,17 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { fetchProjectDocuments, addProjectDocument } from '@/hooks/useProjectDocuments';
-
-const CLOUDINARY_UPLOAD_URL = 'https://api.cloudinary.com/v1_1/' + process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME + '/upload';
-const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { FileText, Download, Upload, Mail, Check } from 'lucide-react';
+import { FileText, Download, Upload, Mail, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
+
+const CLOUDINARY_UPLOAD_URL = 'https://api.cloudinary.com/v1_1/' + process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME + '/upload';
+const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
 interface Document {
   id: string;
@@ -56,7 +56,6 @@ export default function ProjectDocuments() {
   const [isNotificationSent, setIsNotificationSent] = useState(false);
   const [uploading, setUploading] = useState(false);
 
-  // Récupération du projectId depuis l'URL
   const params = useParams() ?? {};
   const projectId = Array.isArray(params.id) ? params.id[0] : params.id as string;
   const [documents, setDocuments] = useState<any[]>([]);
@@ -105,6 +104,23 @@ export default function ProjectDocuments() {
     recipients.filter(r => r.required).map(r => r.id)
   );
 
+const [currentPage, setCurrentPage] = useState(1);
+const documentsPerPage = 5;
+const paginatedDocuments = documents.slice(
+  (currentPage - 1) * documentsPerPage,
+  currentPage * documentsPerPage
+);
+const totalPages = Math.ceil(documents.length / documentsPerPage);
+
+
+  const resetForm = () => {
+    setSelectedFile(null);
+    setDocumentType('');
+    setCustomDocumentType('');
+    setMontant('');
+    setIsNotificationSent(false);
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setSelectedFile(e.target.files[0]);
@@ -113,31 +129,52 @@ export default function ProjectDocuments() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedFile || !documentType || !projectId) return;
+
+    if (documentType.toLowerCase() === 'devis' && !montant) {
+      setError('Le montant est obligatoire pour un devis');
+      return;
+    }
+
+    if (!selectedFile || !documentType || !projectId) {
+      setError('Tous les champs sont obligatoires');
+      return;
+    }
+
     setUploading(true);
+    setError(null);
+
     try {
-      // Upload Cloudinary
       const formData = new FormData();
       formData.append('file', selectedFile);
       formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET || '');
+
       const res = await fetch(CLOUDINARY_UPLOAD_URL, {
         method: 'POST',
         body: formData,
       });
+
+      if (!res.ok) throw new Error("Échec de l'upload Cloudinary");
+
       const data = await res.json();
       const uploadedUrl = data.secure_url;
-      await addProjectDocument({
+
+      const documentData = {
         projectId,
         name: selectedFile.name,
         category: documentType === 'autre' ? customDocumentType : documentType,
-        date: new Date().toISOString().slice(0,10),
-        size: `${(selectedFile.size/1024/1024).toFixed(2)} MB`,
-        status: "en attente",
+        date: new Date().toISOString(),
+        size: `${(selectedFile.size / 1024 / 1024).toFixed(2)} MB`,
+        status: "en attente" as "en attente" | "signé",
         url: uploadedUrl,
-        montant: documentType.toLowerCase() === 'devis' && montant ? Number(montant) : undefined,
-      });
+        createdAt: new Date().toISOString(),
+        ...(documentType.toLowerCase() === 'devis' && {
+          montant: Number(montant),
+          devisConfigId: ""
+        })
+      };
 
-      // --- Notification automatique (comme plans) ---
+      await addProjectDocument(documentData);
+
       try {
         const { fetchProjectEmails } = await import('@/lib/projectEmails');
         const emails = await fetchProjectEmails(projectId);
@@ -146,6 +183,7 @@ export default function ProjectDocuments() {
         if (emails.courtier) recipients.push(emails.courtier);
         if (emails.artisans && emails.artisans.length > 0) recipients.push(...emails.artisans);
         if (emails.vendor) recipients.push(emails.vendor);
+
         if (recipients.length > 0) {
           await fetch('/api/send-email', {
             method: 'POST',
@@ -181,7 +219,7 @@ export default function ProjectDocuments() {
                   </div>
                 </div>
               `,
-            })
+            }),
           });
         }
       } catch (err) {
@@ -190,15 +228,12 @@ export default function ProjectDocuments() {
 
       setIsNotificationSent(true);
       setTimeout(() => {
-        setIsNotificationSent(false);
         setIsAddDocumentOpen(false);
-        setSelectedFile(null);
-        setDocumentType('');
-        setCustomDocumentType('');
-        setMontant('');
+        resetForm();
       }, 2000);
+
     } catch (err) {
-      alert('Erreur lors de l\'upload ou de l\'ajout du document');
+      setError(`Erreur lors de l'ajout du document: ${err instanceof Error ? err.message : 'Erreur inconnue'}`);
     } finally {
       setUploading(false);
     }
@@ -229,7 +264,7 @@ export default function ProjectDocuments() {
 
       {/* Version mobile: affichage en cartes */}
       <div className="block md:hidden space-y-4">
-        {documents.map((document) => (
+      {paginatedDocuments.map((document) => (
           <div key={document.id} className="bg-white rounded-lg shadow-sm p-4 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
@@ -270,75 +305,116 @@ export default function ProjectDocuments() {
             </div>
           </div>
         ))}
+        {/* Pagination mobile */}
+<div className="flex justify-between items-center px-2 pt-2">
+  <button
+    disabled={currentPage === 1}
+    onClick={() => setCurrentPage(currentPage - 1)}
+    className={`flex items-center gap-1 text-sm font-medium px-3 py-1.5 rounded-md ${
+      currentPage === 1 ? 'text-gray-400 cursor-not-allowed' : 'text-[#f26755] hover:bg-[#f26755]/10'
+    }`}
+  >
+    <ChevronLeft className="w-4 h-4" />
+    Précédent
+  </button>
+  <span className="text-sm text-gray-600">Page {currentPage} sur {totalPages}</span>
+  <button
+    disabled={currentPage === totalPages}
+    onClick={() => setCurrentPage(currentPage + 1)}
+    className={`flex items-center gap-1 text-sm font-medium px-3 py-1.5 rounded-md ${
+      currentPage === totalPages ? 'text-gray-400 cursor-not-allowed' : 'text-[#f26755] hover:bg-[#f26755]/10'
+    }`}
+  >
+    Suivant
+    <ChevronRight className="w-4 h-4" />
+  </button>
+</div>
+
       </div>
 
       {/* Version desktop: affichage en tableau */}
-      <div className="hidden md:block bg-white rounded-lg shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Document
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Catégorie
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Date
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Taille
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Statut
-                </th>
-                <th scope="col" className="relative px-6 py-3">
-                  <span className="sr-only">Actions</span>
-                </th>
+{/* Version desktop: affichage en tableau avec pagination */}
+<div className="hidden md:block bg-white rounded-lg shadow-sm overflow-hidden">
+  {paginatedDocuments.length === 0 ? (
+    <div className="p-6 text-center border border-dashed border-gray-300">
+      <p className="text-gray-700 text-sm mb-4">Aucun document disponible pour ce projet.</p>
+      <button
+        onClick={() => setIsAddDocumentOpen(true)}
+        className="inline-flex items-center gap-2 px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-semibold hover:bg-[#f26755]/90 transition-colors"
+      >
+        <Upload className="h-4 w-4" />
+        Ajouter un document
+      </button>
+    </div>
+  ) : (
+    <>
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Document</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Catégorie</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Taille</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
+              <th className="relative px-6 py-3"><span className="sr-only">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {paginatedDocuments.map((document) => (
+              <tr key={document.id} className="hover:bg-gray-50">
+                <td className="px-6 py-4 whitespace-nowrap flex items-center">
+                  <FileText className="h-5 w-5 text-gray-400 mr-2" />
+                  <span className="text-sm font-medium text-gray-900">{document.name}</span>
+                </td>
+                <td className="px-6 py-4 text-sm text-gray-500">{document.category}</td>
+                <td className="px-6 py-4 text-sm text-gray-500">{document.date}</td>
+                <td className="px-6 py-4 text-sm text-gray-500">{document.size}</td>
+                <td className="px-6 py-4">
+                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                    document.status === 'signé' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                  }`}>
+                    {document.status}
+                  </span>
+                </td>
+                <td className="px-6 py-4 text-right text-sm font-medium">
+                  <button className="text-[#f26755] hover:text-[#f26755]/80" title="Télécharger le document">
+                    <Download className="h-5 w-5" />
+                  </button>
+                </td>
               </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {documents.map((document) => (
-                <tr key={document.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <FileText className="h-5 w-5 text-gray-400 mr-2" />
-                      <span className="text-sm font-medium text-gray-900">{document.name}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {document.category}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {document.date}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {document.size}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${document.status === 'signé'
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                      {document.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button
-                      className="text-[#f26755] hover:text-[#f26755]/80"
-                      title="Télécharger le document"
-                      aria-label="Télécharger le document"
-                    >
-                      <Download className="h-5 w-5" aria-hidden="true" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </tbody>
+        </table>
       </div>
+      {/* Pagination */}
+      <div className="flex justify-between items-center p-4 border-t bg-gray-50">
+        <button
+          disabled={currentPage === 1}
+          onClick={() => setCurrentPage(currentPage - 1)}
+          className={`flex items-center gap-1 text-sm font-medium px-3 py-1.5 rounded-md ${
+            currentPage === 1 ? 'text-gray-400 cursor-not-allowed' : 'text-[#f26755] hover:bg-[#f26755]/10'
+          }`}
+        >
+          <ChevronLeft className="w-4 h-4" />
+          Précédent
+        </button>
+        <span className="text-sm text-gray-600">Page {currentPage} sur {totalPages}</span>
+        <button
+          disabled={currentPage === totalPages}
+          onClick={() => setCurrentPage(currentPage + 1)}
+          className={`flex items-center gap-1 text-sm font-medium px-3 py-1.5 rounded-md ${
+            currentPage === totalPages ? 'text-gray-400 cursor-not-allowed' : 'text-[#f26755] hover:bg-[#f26755]/10'
+          }`}
+        >
+          Suivant
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+    </>
+  )}
+</div>
+
 
       <Sheet open={isAddDocumentOpen} onOpenChange={setIsAddDocumentOpen}>
         <div>
@@ -479,5 +555,5 @@ export default function ProjectDocuments() {
         </div>
       </Sheet>
     </div>
-  );
+  ); 
 }
