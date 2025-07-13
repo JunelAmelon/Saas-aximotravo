@@ -1,11 +1,35 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Devis } from '@/types/devis';
+import { useParams } from 'next/navigation';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase/config';
 
 interface PDFPreviewProps {
   devis: Devis;
 }
 
 export const PDFPreview: React.FC<PDFPreviewProps> = ({ devis }) => {
+  const params = useParams();
+  const projectId = params?.id as string;
+  const [client, setClient] = useState<any>(null);
+
+  useEffect(() => {
+    async function loadClient() {
+      if (!projectId) return;
+      // Charger le projet
+      const projectRef = doc(db, 'projects', projectId);
+      const projectSnap = await getDoc(projectRef);
+      if (!projectSnap.exists()) return;
+      const project = projectSnap.data();
+      // Charger le client
+      if (project.client_id) {
+        const clientRef = doc(db, 'users', project.client_id);
+        const clientSnap = await getDoc(clientRef);
+        if (clientSnap.exists()) setClient(clientSnap.data());
+      }
+    }
+    loadClient();
+  }, [projectId]);
   // Calcul des totaux avec gestion de la TVA variable et des prestations offertes
   let totalHT = 0;
   let totalTVA = 0;
@@ -66,17 +90,25 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ devis }) => {
           <p className="text-3xl text-gray-500">{devis.titre} • Valable 30 jours</p>
         </div>
 
-        {/* Carte client premium */}
-        <div className="bg-[#F26755] text-white p-5 rounded-lg mb-6 shadow-lg">
-          <div className="font-bold mb-2 text-3xl">CLIENT</div>
-          <div className="text-2xl leading-relaxed">
-            <div>Société Client</div>
-            <div>12 Rue des Entrepreneurs</div>
-            <div>75000 Paris</div>
-            <div className="mt-2">contact@client.com</div>
-            <div>Tél: 01 23 45 67 89</div>
+        {/* Carte client premium dynamique */}
+        {client ? (
+          <div className="bg-[#F26755] text-white p-5 rounded-lg mb-6 shadow-lg">
+            <div className="font-bold mb-2 text-3xl">CLIENT</div>
+            <div className="text-2xl leading-relaxed">
+              <div>{client.displayName || client.companyName || `${client.firstName ?? ""} ${client.lastName ?? ""}`.trim() || "Nom du client"}</div>
+              {client.location && <div>{client.location}</div>}
+              {(client.zip || client.city) && (
+                <div>{client.zip} {client.city}</div>
+              )}
+              {client.email && <div className="mt-2">{client.email}</div>}
+              {(client.phone || client.phoneNumber) && <div>Tél: {client.phone || client.phoneNumber}</div>}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="bg-[#F26755] text-white p-5 rounded-lg mb-6 shadow-lg animate-pulse text-center">
+            Chargement client...
+          </div>
+        )}
 
         {/* Message d'intro avec bordure stylée */}
         <div className="mb-6 p-5 border-l-4 border-[#F26755] bg-gray-50 rounded-r-lg">

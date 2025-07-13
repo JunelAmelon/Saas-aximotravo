@@ -293,7 +293,7 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
                 Aucun acompte enregistré
               </h3>
               <p className="text-gray-600 mb-6">
-                Aucune demande d&apos;acompte n&apos;a été effectuée pour ce projet.
+                Aucune demande d'acompte n'a été effectuée pour ce projet.
               </p>
               {userRole !== 'admin' && (
                 <Button onClick={() => setOpenAddModal(true)} className="bg-[#f26755] hover:bg-[#e55a4a]">
@@ -539,7 +539,6 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
                 Type de versement
               </label>
               <select
-              aria-label="Titre"
                 name="title"
                 required
                 value={form.title}
@@ -592,7 +591,6 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
                 Images justificatives
               </label>
               <input
-                aria-label="Files"
                 name="files"
                 type="file"
                 accept="image/*"
@@ -607,7 +605,6 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
                 Documents (PDF, DOC, etc.)
               </label>
               <input
-                aria-label="Documents"
                 name="documents"
                 type="file"
                 accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"

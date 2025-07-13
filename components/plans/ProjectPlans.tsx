@@ -1,17 +1,32 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
-import { useProjectPlans } from '@/hooks/useProjectPlans';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
+import { useProjectPlans } from "@/hooks/useProjectPlans";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Card } from "@/components/ui/card";
-import { Upload, Plus } from 'lucide-react';
-import Image from 'next/image';
-import { useAuth } from '@/lib/contexts/AuthContext';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
-import { getUserById } from '@/lib/firebase/users';
-import { fetchProjectEmails } from '@/lib/projectEmails';
+import { Upload, Info, Mail, Plus } from "lucide-react";
+import Image from "next/image";
+import { useAuth } from "@/lib/contexts/AuthContext";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase/config";
+import { getUserById } from "@/lib/firebase/users";
+import { fetchProjectEmails } from "@/lib/projectEmails";
+
+interface Plan {
+  id: string;
+  title: string;
+  date: string;
+  author: string;
+  image: string;
+  status: "validé" | "en_attente";
+}
 
 export default function ProjectPlans() {
   const [isAddPlanOpen, setIsAddPlanOpen] = useState(false);
@@ -21,7 +36,7 @@ export default function ProjectPlans() {
   useEffect(() => {
     const fetchRole = async () => {
       if (currentUser) {
-        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+        const userDoc = await getDoc(doc(db, "users", currentUser.uid));
         if (userDoc.exists()) {
           setUserRole(userDoc.data().role?.toLowerCase() || null);
         }
@@ -35,7 +50,9 @@ export default function ProjectPlans() {
 
   // Récupération du projectId depuis l'URL
   const params = useParams() ?? {};
-  const projectId = Array.isArray(params.id) ? params.id[0] : params.id as string;
+  const projectId = Array.isArray(params.id)
+    ? params.id[0]
+    : (params.id as string);
   const [plans, setPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,11 +63,11 @@ export default function ProjectPlans() {
     setError(null);
     (async () => {
       try {
-        const { fetchProjectPlans } = await import('@/hooks/useProjectPlans');
+        const { fetchProjectPlans } = await import("@/hooks/useProjectPlans");
         const freshPlans = await fetchProjectPlans(projectId);
         setPlans(freshPlans);
       } catch (e) {
-        setError('Erreur lors du chargement des plans');
+        setError("Erreur lors du chargement des plans");
       } finally {
         setLoading(false);
       }
@@ -58,14 +75,14 @@ export default function ProjectPlans() {
   }, [projectId, isAddPlanOpen]);
 
   const [planForm, setPlanForm] = useState({
-    title: '',
+    title: "",
     files: [null, null] as (File | null)[], // [plan existant, plan exécution]
     notifications: {
-      client: { email: 'client@test.fr', selected: false },
-      artisan: { email: 'artisan@test.fr', selected: false },
-      pilote: { email: 'pilote@test.fr', selected: false },
-      vendeur: { email: 'vendeur@test.fr', selected: false }
-    }
+      client: { email: "client@test.fr", selected: false },
+      artisan: { email: "artisan@test.fr", selected: false },
+      pilote: { email: "pilote@test.fr", selected: false },
+      vendeur: { email: "vendeur@test.fr", selected: false },
+    },
   });
   const [uploading, setUploading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -76,28 +93,37 @@ export default function ProjectPlans() {
     currentPage * plansPerPage
   );
 
-  if (loading) return <div className="flex justify-center items-center h-64">Chargement...</div>;
-  if (error) return <div className="text-red-600 p-4">Erreur : {error}</div>;
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col w-full mb-6 gap-2">
-        <h2 className="text-xl font-bold text-center text-gray-900 w-full mb-2">Plans du projet</h2>
+        <h2 className="text-xl font-bold text-center text-gray-900 w-full mb-2">
+          Plans du projet
+        </h2>
         <div className="flex flex-col sm:flex-row sm:justify-between gap-2 sm:gap-4 w-full">
           <button
             onClick={() => window.history.back()}
             type="button"
             className="w-full sm:w-auto flex items-center justify-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg font-semibold shadow hover:bg-gray-200 transition text-base"
-            aria-label="Retour"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M15 19l-7-7 7-7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
             Retour
           </button>
-          {userRole !== 'admin' && (
+          {userRole !== "admin" && (
             <button
               onClick={() => setIsAddPlanOpen(true)}
               className="w-full sm:w-auto flex items-center justify-center px-4 py-3 bg-[#f26755] text-white rounded-md text-base font-semibold hover:bg-[#f26755]/90 transition-colors mb-1 sm:mb-0"
-              aria-label="Ajouter un plan"
             >
               <Plus className="h-4 w-4 mr-2" />
               Ajouter un plan
@@ -106,100 +132,87 @@ export default function ProjectPlans() {
         </div>
       </div>
 
-      {plans.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 bg-white rounded-lg border border-gray-200">
-
-          <h3 className="text-lg font-medium text-gray-700 mb-2">Aucun plan disponible</h3>
-          <p className="text-sm text-gray-500 mb-4 text-center max-w-md">
-            Ce projet ne contient aucun plan pour le moment.
-          </p>
-          {userRole !== 'admin' && (
-            <button
-              onClick={() => setIsAddPlanOpen(true)}
-              className="flex items-center px-4 py-2 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#f26755]/90"
-              aria-label="Ajouter un plan"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Ajouter un plan
-            </button>
-          )}
-        </div>
-      ) : (
-        <>
-          <div className="grid grid-cols-1 gap-6">
-            {currentPlans.map((plan) => (
-              <Card key={plan.id} className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900">{plan.title}</h3>
-                    <p className="text-sm text-gray-500">
-                      déposé par {plan.author} le {plan.date}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {plan.status === 'validé' && (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        Plan validé pour exécution
-                      </span>
-                    )}
-                    <button
-                      className="text-gray-400 hover:text-gray-600"
-                      aria-label="Options du plan"
-                      title="Options"
-                    >•••</button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="relative aspect-[4/3] rounded-lg overflow-hidden">
-                    <Image
-                      src={plan.images[0]}
-                      alt={`${plan.title} - Plan existant`}
-                      fill
-                      className="object-cover"
-                    />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="absolute inset-0 bg-black/40"></div>
-                      <span className="relative text-white font-medium">Plan existant</span>
-                    </div>
-                  </div>
-                  <div className="relative aspect-[4/3] rounded-lg overflow-hidden">
-                    <Image
-                      src={plan.images[1]}
-                      alt={`${plan.title} - Plan d'exécution`}
-                      fill
-                      className="object-cover"
-                    />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="absolute inset-0 bg-black/40"></div>
-                      <span className="relative text-white font-medium">Plan d&apos;exécution</span>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2">
-              {Array.from({ length: totalPages }).map((_, i) => (
+      <div className="grid grid-cols-1 gap-6">
+        {currentPlans.map((plan) => (
+          <Card key={plan.id} className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-medium text-gray-900">
+                  {plan.title}
+                </h3>
+                <p className="text-sm text-gray-500">
+                  déposé par {plan.author} le {plan.date}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                {plan.status === "validé" && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    Plan validé pour exécution
+                  </span>
+                )}
                 <button
-                  key={i}
-                  onClick={() => setCurrentPage(i + 1)}
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors
-                    ${currentPage === i + 1
-                      ? 'bg-[#f26755] text-white'
-                      : 'text-gray-600 hover:bg-gray-100'
-                    }`}
-                  aria-label={`Page ${i + 1}`}
-                  title={`Aller à la page ${i + 1}`}
+                  className="text-gray-400 hover:text-gray-600"
+                  aria-label="Options du plan"
+                  title="Options"
                 >
-                  {i + 1}
+                  •••
                 </button>
-              ))}
+              </div>
             </div>
-          )}
-        </>
+
+            <div className="grid grid-cols-2 gap-6">
+              <div className="relative aspect-[4/3] rounded-lg overflow-hidden">
+                <Image
+                  src={plan.images[0]}
+                  alt={plan.title}
+                  fill
+                  className="object-cover"
+                />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="absolute inset-0 bg-black/40"></div>
+                  <span className="relative text-white font-medium">
+                    Plan existant
+                  </span>
+                </div>
+              </div>
+              <div className="relative aspect-[4/3] rounded-lg overflow-hidden">
+                <Image
+                  src={plan.images[1]}
+                  alt={plan.title}
+                  fill
+                  className="object-cover"
+                />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="absolute inset-0 bg-black/40"></div>
+                  <span className="relative text-white font-medium">
+                    Plan d&apos;exécution
+                  </span>
+                </div>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2">
+          {Array.from({ length: totalPages }).map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrentPage(i + 1)}
+              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors
+                ${
+                  currentPage === i + 1
+                    ? "bg-[#f26755] text-white"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+              aria-label={`Page ${i + 1}`}
+              title={`Aller à la page ${i + 1}`}
+            >
+              {i + 1}
+            </button>
+          ))}
+        </div>
       )}
 
       <Sheet open={isAddPlanOpen} onOpenChange={setIsAddPlanOpen}>
@@ -208,131 +221,182 @@ export default function ProjectPlans() {
             <SheetTitle>Ajouter un plan</SheetTitle>
           </SheetHeader>
 
-          <form className="mt-6 space-y-6" onSubmit={async (e) => {
-            e.preventDefault();
-            setFormError(null);
-            setUploading(true);
-            try {
-              if (!planForm.title || !planForm.files[0] || !planForm.files[1]) {
-                setFormError('Tous les champs et les deux images sont obligatoires.');
-                setUploading(false);
-                return;
-              }
-              // Upload des deux images sur Cloudinary
-              const uploadImage = async (file: File) => {
-                const data = new FormData();
-                data.append('file', file);
-                data.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET as string);
-                const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-                const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`;
-                const res = await fetch(uploadUrl, { method: 'POST', body: data });
-                const result = await res.json();
-                if (!result.secure_url) throw new Error('Erreur upload Cloudinary');
-                return result.secure_url as string;
-              };
-              const [urlExistant, urlExecution] = await Promise.all([
-                uploadImage(planForm.files[0] as File),
-                uploadImage(planForm.files[1] as File)
-              ]);
-              // Ajout du plan en base
-              const { addPlan } = await import('@/hooks/useProjectPlans');
-              const author = await getUserById(currentUser?.uid as string);
-              await addPlan({
-                projectId,
-                title: planForm.title,
-                author: author?.displayName || "",
-                date: new Date().toLocaleDateString(),
-                status: "en attente",
-                images: [urlExistant, urlExecution],
-              });
-
-              // Notification automatique
+          <form
+            className="mt-6 space-y-6"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              setFormError(null);
+              setUploading(true);
               try {
-                const emails = await fetchProjectEmails(projectId);
-                const recipients: string[] = [];
-                if (emails.client) recipients.push(emails.client);
-                if (emails.courtier) recipients.push(emails.courtier);
-                if (emails.artisans && emails.artisans.length > 0) recipients.push(...emails.artisans);
-                if (recipients.length > 0) {
-                  await fetch('/api/send-email', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      to: recipients,
-                      subject: `Nouveau plan ajouté au projet`,
-                      html: `<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
-                        <h2 style='color: #f26755; margin-bottom: 0.5em;'>Nouveau plan ajouté au projet</h2>
-                        <div style='font-size: 1em; color: #333; margin-bottom: 1em;'>
-                          Un nouveau plan intitulé <strong>"${planForm.title}"</strong> vient d&apos;être ajouté.<br/>
-                          <strong>Auteur :</strong> ${author?.displayName || ""}<br/>
-                          <strong>Date :</strong> ${new Date().toLocaleString()}
-                        </div>
-                      </div>`
-                    })
+                if (
+                  !planForm.title ||
+                  !planForm.files[0] ||
+                  !planForm.files[1]
+                ) {
+                  setFormError(
+                    "Tous les champs et les deux images sont obligatoires."
+                  );
+                  setUploading(false);
+                  return;
+                }
+                // Upload des deux images sur Cloudinary
+                const uploadImage = async (file: File) => {
+                  const data = new FormData();
+                  data.append("file", file);
+                  data.append(
+                    "upload_preset",
+                    process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET as string
+                  );
+                  const cloudName =
+                    process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+                  const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`;
+                  const res = await fetch(uploadUrl, {
+                    method: "POST",
+                    body: data,
                   });
-                }
-              } catch (err) {
-                console.error('Erreur notification email plan :', err);
-              }
+                  const result = await res.json();
+                  if (!result.secure_url)
+                    throw new Error("Erreur upload Cloudinary");
+                  return result.secure_url as string;
+                };
+                const [urlExistant, urlExecution] = await Promise.all([
+                  uploadImage(planForm.files[0]),
+                  uploadImage(planForm.files[1]),
+                ]);
+                // Ajout du plan en base
+                const { addPlan } = await import("@/hooks/useProjectPlans");
+                const author = await getUserById(currentUser?.uid as string);
+                await addPlan({
+                  projectId,
+                  title: planForm.title,
+                  author: author?.displayName || "",
+                  date: new Date().toLocaleDateString(),
+                  status: "en attente",
+                  images: [urlExistant, urlExecution],
+                });
 
-              setIsAddPlanOpen(false);
-              setPlanForm({
-                title: '',
-                files: [null, null],
-                notifications: {
-                  client: { email: 'client@test.fr', selected: false },
-                  artisan: { email: 'artisan@test.fr', selected: false },
-                  pilote: { email: 'pilote@test.fr', selected: false },
-                  vendeur: { email: 'vendeur@test.fr', selected: false }
+                // --- Notification automatique ---
+                try {
+                  const emails = await fetchProjectEmails(projectId);
+                  const recipients: string[] = [];
+                  if (emails.client) recipients.push(emails.client);
+                  if (emails.courtier) recipients.push(emails.courtier);
+                  if (emails.artisans && emails.artisans.length > 0)
+                    recipients.push(...emails.artisans);
+                  if (recipients.length > 0) {
+                    await fetch("/api/send-email", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        to: recipients,
+                        subject: `Nouveau plan ajouté au projet`,
+                        html: `<div style="font-family: Arial, sans-serif; color: #222; max-width: 480px; margin: 0 auto; border: 1px solid #f26755; border-radius: 8px; overflow: hidden;">
+  <div style="background: linear-gradient(90deg, #f26755 0%, #f28c55 100%); padding: 16px 24px;">
+    <h2 style="color: #fff; margin: 0; font-size: 1.3rem; font-weight: bold;">
+      Nouveau plan ajouté au projet
+    </h2>
+  </div>
+  <div style="padding: 24px;">
+    <p style="margin-bottom: 16px;">
+      Un nouveau plan intitulé <b>"${
+        planForm.title
+      }"</b> vient d'être ajouté au projet.
+    </p>
+    <table style="background: #f9f9f9; border-radius: 6px; padding: 12px 16px; margin-bottom: 20px; width: 100%; font-size: 1em;">
+      <tr>
+        <td style="padding: 6px 0;"><b>Auteur&nbsp;:</b></td>
+        <td style="padding: 6px 0;">${author?.displayName || ""}</td>
+      </tr>
+      <tr>
+        <td style="padding: 6px 0;"><b>Date&nbsp;:</b></td>
+        <td style="padding: 6px 0;">${new Date().toLocaleString()}</td>
+      </tr>
+    </table>
+    <p style="color: #f26755; font-size: 0.97em; margin-bottom: 0;">
+      Merci de consulter la plateforme pour plus de détails.
+    </p>
+  </div>
+</div>`,
+                      }),
+                    });
+                  }
+                } catch (err) {
+                  // Optionnel : afficher une notification ou log
+                  console.error("Erreur notification email plan :", err);
                 }
-              });
-            } catch (err: any) {
-              setFormError(`Erreur lors de l&apos;ajout du plan.`);
-            } finally {
-              setUploading(false);
-            }
-          }}>
-            {formError && <div className="text-red-600 text-sm">{formError}</div>}
+
+                setIsAddPlanOpen(false);
+                setPlanForm({
+                  title: "",
+                  files: [null, null],
+                  notifications: {
+                    client: { email: "client@test.fr", selected: false },
+                    artisan: { email: "artisan@test.fr", selected: false },
+                    pilote: { email: "pilote@test.fr", selected: false },
+                    vendeur: { email: "vendeur@test.fr", selected: false },
+                  },
+                });
+              } catch (err: any) {
+                setFormError("Erreur lors de l'ajout du plan.");
+              } finally {
+                setUploading(false);
+              }
+            }}
+          >
+            {formError && (
+              <div className="text-red-600 text-sm">{formError}</div>
+            )}
             <div>
-              <label htmlFor="plan-title" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="plan-title"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Titre du plan
               </label>
               <input
                 id="plan-title"
                 type="text"
                 value={planForm.title}
-                onChange={(e) => setPlanForm({ ...planForm, title: e.target.value })}
+                onChange={(e) =>
+                  setPlanForm({ ...planForm, title: e.target.value })
+                }
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-[#f26755] focus:border-[#f26755]"
                 placeholder="Entrez le titre du plan"
                 aria-label="Titre du plan"
-                required
               />
             </div>
 
             <div className="grid grid-cols-1 gap-4">
               {/* Plan existant */}
               <div>
-                <label htmlFor="plan-existant-input" className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Image du plan existant
                 </label>
                 <div
-                  className={`border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center transition-colors cursor-pointer hover:border-[#f26755] bg-gray-50 relative ${planForm.files[0] ? 'border-[#f26755]' : 'border-gray-300'}`}
-                  onClick={() => document.getElementById('plan-existant-input')?.click()}
-                  onDrop={e => {
+                  className={`border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center transition-colors cursor-pointer hover:border-[#f26755] bg-gray-50 relative ${
+                    planForm.files[0] ? "border-[#f26755]" : "border-gray-300"
+                  }`}
+                  onClick={() =>
+                    document.getElementById("plan-existant-input")?.click()
+                  }
+                  onDrop={(e) => {
                     e.preventDefault();
                     const file = e.dataTransfer.files?.[0] || null;
-                    if (file && file.type.startsWith('image/')) {
-                      setPlanForm(f => ({ ...f, files: [file, f.files[1]] }));
+                    if (file && file.type.startsWith("image/")) {
+                      setPlanForm((f) => ({ ...f, files: [file, f.files[1]] }));
                     }
                   }}
-                  onDragOver={e => e.preventDefault()}
+                  onDragOver={(e) => e.preventDefault()}
                   style={{ minHeight: 120 }}
-                  aria-label="Zone de dépôt pour le plan existant"
                 >
                   {!planForm.files[0] ? (
                     <>
                       <Upload className="h-8 w-8 text-[#f26755] mb-2" />
-                      <span className="text-sm text-gray-500 text-center">Cliquez ou glissez une image ici<br />(plan existant)</span>
+                      <span className="text-sm text-gray-500 text-center">
+                        Cliquez ou glissez une image ici
+                        <br />
+                        (plan existant)
+                      </span>
                     </>
                   ) : (
                     <div className="flex flex-col items-center w-full">
@@ -344,15 +408,20 @@ export default function ProjectPlans() {
                         className="rounded shadow max-h-32 object-contain mb-2"
                       />
                       <div className="flex items-center justify-between w-full">
-                        <span className="text-xs text-gray-700 truncate">{planForm.files[0].name}</span>
+                        <span className="text-xs text-gray-700 truncate">
+                          {planForm.files[0].name}
+                        </span>
                         <button
                           type="button"
                           className="ml-2 px-2 py-1 text-xs bg-red-100 text-red-600 rounded hover:bg-red-200"
-                          onClick={e => {
+                          onClick={(e) => {
                             e.stopPropagation();
-                            setPlanForm(f => ({ ...f, files: [null, f.files[1]] }));
+                            setPlanForm((f) => ({
+                              ...f,
+                              files: [null, f.files[1]],
+                            }));
                           }}
-                          aria-label="Supprimer le plan existant"
+                          title="Supprimer la sélection"
                         >
                           Supprimer
                         </button>
@@ -363,38 +432,45 @@ export default function ProjectPlans() {
                     id="plan-existant-input"
                     type="file"
                     accept="image/*"
-                    onChange={e => {
+                    capture="environment"
+                    onChange={(e) => {
                       const file = e.target.files?.[0] || null;
-                      setPlanForm(f => ({ ...f, files: [file, f.files[1]] }));
+                      setPlanForm((f) => ({ ...f, files: [file, f.files[1]] }));
                     }}
                     className="hidden"
-                    required
                   />
                 </div>
               </div>
               {/* Plan d'exécution */}
               <div>
-                <label htmlFor="plan-execution-input" className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Image du plan d&apos;exécution
                 </label>
                 <div
-                  className={`border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center transition-colors cursor-pointer hover:border-[#f26755] bg-gray-50 relative ${planForm.files[1] ? 'border-[#f26755]' : 'border-gray-300'}`}
-                  onClick={() => document.getElementById('plan-execution-input')?.click()}
-                  onDrop={e => {
+                  className={`border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center transition-colors cursor-pointer hover:border-[#f26755] bg-gray-50 relative ${
+                    planForm.files[1] ? "border-[#f26755]" : "border-gray-300"
+                  }`}
+                  onClick={() =>
+                    document.getElementById("plan-execution-input")?.click()
+                  }
+                  onDrop={(e) => {
                     e.preventDefault();
                     const file = e.dataTransfer.files?.[0] || null;
-                    if (file && file.type.startsWith('image/')) {
-                      setPlanForm(f => ({ ...f, files: [f.files[0], file] }));
+                    if (file && file.type.startsWith("image/")) {
+                      setPlanForm((f) => ({ ...f, files: [f.files[0], file] }));
                     }
                   }}
-                  onDragOver={e => e.preventDefault()}
+                  onDragOver={(e) => e.preventDefault()}
                   style={{ minHeight: 120 }}
-                  aria-label="Zone de dépôt pour le plan d'exécution"
                 >
                   {!planForm.files[1] ? (
                     <>
                       <Upload className="h-8 w-8 text-[#f26755] mb-2" />
-                      <span className="text-sm text-gray-500 text-center">Cliquez ou glissez une image ici<br />(plan d&apos;exécution)</span>
+                      <span className="text-sm text-gray-500 text-center">
+                        Cliquez ou glissez une image ici
+                        <br />
+                        (plan d&apos;exécution)
+                      </span>
                     </>
                   ) : (
                     <div className="flex flex-col items-center w-full">
@@ -406,15 +482,20 @@ export default function ProjectPlans() {
                         className="rounded shadow max-h-32 object-contain mb-2"
                       />
                       <div className="flex items-center justify-between w-full">
-                        <span className="text-xs text-gray-700 truncate">{planForm.files[1].name}</span>
+                        <span className="text-xs text-gray-700 truncate">
+                          {planForm.files[1].name}
+                        </span>
                         <button
                           type="button"
                           className="ml-2 px-2 py-1 text-xs bg-red-100 text-red-600 rounded hover:bg-red-200"
-                          onClick={e => {
+                          onClick={(e) => {
                             e.stopPropagation();
-                            setPlanForm(f => ({ ...f, files: [f.files[0], null] }));
+                            setPlanForm((f) => ({
+                              ...f,
+                              files: [f.files[0], null],
+                            }));
                           }}
-                          aria-label="Supprimer le plan d'exécution"
+                          title="Supprimer la sélection"
                         >
                           Supprimer
                         </button>
@@ -425,34 +506,94 @@ export default function ProjectPlans() {
                     id="plan-execution-input"
                     type="file"
                     accept="image/*"
-                    onChange={e => {
+                    capture="environment"
+                    onChange={(e) => {
                       const file = e.target.files?.[0] || null;
-                      setPlanForm(f => ({ ...f, files: [f.files[0], file] }));
+                      setPlanForm((f) => ({ ...f, files: [f.files[0], file] }));
                     }}
                     className="hidden"
-                    required
                   />
                 </div>
               </div>
             </div>
 
+            <div className="border-t border-gray-200 pt-6">
+              <div className="flex items-center gap-2 mb-3">
+                <Mail className="h-4 w-4 text-gray-500" aria-hidden="true" />
+                <span className="text-sm font-medium text-gray-700">
+                  Envoyer ce plan par mail
+                </span>
+              </div>
+
+              {/* <div className="space-y-3">
+                {Object.entries(planForm.notifications).map(([key, value]) => (
+                  <div key={key} className="flex items-center gap-2">
+                    <input
+                      id={`notify-${key}`}
+                      type="checkbox"
+                      checked={value.selected}
+                      onChange={(e) => setPlanForm({
+                        ...planForm,
+                        notifications: {
+                          ...planForm.notifications,
+                          [key]: { ...value, selected: e.target.checked }
+                        }
+                      })}
+                      className="rounded border-gray-300 text-[#f26755] focus:ring-[#f26755]"
+                      title={`Notifier ${key}`}
+                      aria-label={`Notifier ${key} par email`}
+                    />
+                    <label htmlFor={`notify-${key}`} className="flex-1">
+                      <span className="text-sm text-gray-700 capitalize">
+                        {key}
+                      </span>
+                      <span className="text-sm text-gray-500 ml-2">
+                        - {value.email}
+                      </span>
+                    </label>
+                  </div>
+                ))}
+              </div> */}
+            </div>
+
             <div className="flex justify-end pt-4">
               <button
                 type="submit"
-                className={`px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 ${uploading ? 'bg-gray-200 text-gray-400 cursor-wait' : 'bg-[#f26755] text-white hover:bg-[#f26755]/90'}`}
-                aria-label={uploading ? "Envoi en cours" : "Enregistrer le plan"}
+                className={`px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 ${
+                  uploading
+                    ? "bg-gray-200 text-gray-400 cursor-wait"
+                    : "bg-[#f26755] text-white hover:bg-[#f26755]/90"
+                }`}
+                aria-label="Enregistrer le plan"
+                title="Enregistrer le plan"
                 disabled={uploading}
               >
                 {uploading ? (
                   <>
-                    <svg className="animate-spin h-4 w-4 mr-2 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                    <svg
+                      className="animate-spin h-4 w-4 mr-2 text-gray-500"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v8z"
+                      ></path>
                     </svg>
                     Envoi en cours...
                   </>
                 ) : (
-                  'Enregistrer'
+                  "Enregistrer"
                 )}
               </button>
             </div>
