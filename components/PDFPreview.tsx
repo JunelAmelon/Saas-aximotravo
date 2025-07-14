@@ -130,7 +130,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ devis }) => {
   </div>
 ) : (
           <div className="bg-[#F26755] text-white p-5 rounded-lg mb-6 shadow-lg animate-pulse text-center">
-            Chargement client...
+            Chargement client..
           </div>
         )}
 
