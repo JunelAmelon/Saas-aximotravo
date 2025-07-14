@@ -86,21 +86,21 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ devis }) => {
       <div className="min-h-screen p-10 text-sm text-gray-800">
         {/* Header élégant */}
         <div className="mb-6 relative">
-          <h1 className="text-6xl font-bold text-[#F26755] mb-1">DEVIS N°{devis.numero}</h1>
-          <p className="text-3xl text-gray-500">{devis.titre} • Valable 30 jours</p>
+          <h1 className="text-4xl md:text-6xl font-bold text-[#F26755] mb-1">DEVIS N°{devis.numero}</h1>
+          <p className="text-xl md:text-3xl text-gray-500">{devis.titre} • Valable 30 jours</p>
         </div>
 
         {/* Carte client premium dynamique */}
         {client ? (
-          <div className="bg-[#F26755] text-white p-5 rounded-lg mb-6 shadow-lg">
-            <div className="font-bold mb-2 text-3xl">CLIENT</div>
-            <div className="text-2xl leading-relaxed">
+          <div className="bg-[#F26755] text-white p-5 rounded-lg mb-6 shadow-lg w-full">
+            <div className="font-bold mb-2 text-2xl md:text-3xl">CLIENT</div>
+            <div className="text-lg md:text-2xl leading-relaxed">
               <div>{client.displayName || client.companyName || `${client.firstName ?? ""} ${client.lastName ?? ""}`.trim() || "Nom du client"}</div>
               {client.location && <div>{client.location}</div>}
               {(client.zip || client.city) && (
                 <div>{client.zip} {client.city}</div>
               )}
-              {client.email && <div className="mt-2">{client.email}</div>}
+              {client.email && <div className="mt-2 text-xs md:text-lg">{client.email}</div>}
               {(client.phone || client.phoneNumber) && <div>Tél: {client.phone || client.phoneNumber}</div>}
             </div>
           </div>
