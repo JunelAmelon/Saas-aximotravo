@@ -347,6 +347,7 @@ export default function ProjectDetails() {
     "generes" | "uploades"
   >("uploades");
   const [selectedDevisId, setSelectedDevisId] = useState<string | null>(null);
+const [selectedDevisType, setSelectedDevisType] = useState<"devis" | "devisConfig" | null>(null);
   const [step, setStep] = useState<
     "create" | "pieces" | "calcul" | "generation" | null
   >(null);
@@ -582,24 +583,55 @@ export default function ProjectDetails() {
     setSelectedArtisanIds([]);
   };
 
-  const handleUpdateDevisConfigStatus = async (
-    devisConfigId: string,
+  // Generic handler for updating status in both devis and devisConfig
+  const handleUpdateStatus = async (
+    type: "devis" | "devisConfig",
+    docId: string,
     newStatus: string
   ) => {
-    setUpdatingStatusId(devisConfigId); // Active le loader pour cette ligne
+    setUpdatingStatusId(docId); // Set loading for this item
     try {
-      const devisConfigRef = doc(db, "devisConfig", devisConfigId);
-      await updateDoc(devisConfigRef, { status: newStatus });
+      const ref = doc(db, type, docId);
+      await updateDoc(ref, { status: newStatus });
 
-      setListDevisConfigs((prev) =>
-        prev.map((item) =>
-          item.id === devisConfigId ? { ...item, status: newStatus } : item
-        )
-      );
+      if (type === "devis") {
+        setDevis((prev) =>
+          prev.map((item) =>
+            item.id === docId ? { ...item, status: newStatus } : item
+          )
+        );
+      } else if (type === "devisConfig") {
+        setListDevisConfigs((prev) =>
+          prev.map((item) =>
+            item.id === docId ? { ...item, status: newStatus } : item
+          )
+        );
+      }
     } catch (error) {
-      alert("Erreur lors de la mise à jour du statut du devisConfig");
+      alert(`Erreur lors de la mise à jour du statut du ${type}`);
+      console.error(error);
     } finally {
-      setUpdatingStatusId(null); // Désactive le loader
+      setUpdatingStatusId(null);
+    }
+  };
+
+  // Backward compatibility for existing usages
+  const handleUpdateDevisConfigStatus = async (
+    type: "devis" | "devisConfig",
+    docId: string,
+    newStatus: string
+  ) => {
+    await handleUpdateStatus(type, docId, newStatus);
+  };
+
+  // Wrapper pour compatibilité avec la signature (type: string, docId: string, newStatus: string) => void
+  const handleUpdateStatusWrapper = (type: string, docId: string, newStatus: string) => {
+    if (type === "devis" || type === "devisConfig") {
+      // Appelle la fonction asynchrone sans attendre le résultat
+      handleUpdateDevisConfigStatus(type as "devis" | "devisConfig", docId, newStatus);
+    } else {
+      // Optionnel : gérer les autres cas
+      console.warn(`Type non supporté : ${type}`);
     }
   };
 
@@ -633,10 +665,10 @@ export default function ProjectDetails() {
       </div>
     );
   }
-  if (step === "generation" && selectedDevisId) {
+  if (step === "generation" && selectedDevisId && selectedDevisType) {
     return (
       <div className="fixed inset-0 z-50 bg-white overflow-y-auto">
-        <DevisConfigProvider devisId={selectedDevisId}>
+        <DevisConfigProvider type={selectedDevisType} devisId={selectedDevisId} >
           <DevisGenerationPage
             open={step === "generation"}
             onOpenChange={(open) => {
@@ -651,9 +683,10 @@ export default function ProjectDetails() {
     );
   }
 
-  // Fonction pour ouvrir la génération/édition d'un devis existant
-  const handleEditDevisConfig = (devisConfigId: string) => {
-    setSelectedDevisId(devisConfigId);
+  // Fonction pour ouvrir la génération/édition d'un devis ou devisConfig existant
+  const handleEditDevis = (type: "devis" | "devisConfig", id: string) => {
+    setSelectedDevisType(type);
+    setSelectedDevisId(id);
     setStep("generation");
   };
 
@@ -1037,8 +1070,10 @@ export default function ProjectDetails() {
         activeDevisTab={activeDevisTab}
         setActiveDevisTab={setActiveDevisTab}
         paginatedDevis={paginatedDevis}
+        setPaginatedDevis={setDevis}
         listDevisConfigs={listDevisConfigs}
         paginatedDevisConfigs={paginatedDevisConfigs}
+        setPaginatedDevisConfigs={setListDevisConfigs}
         currentPage={currentPage}
         setCurrentPage={setCurrentPage}
         currentPageUpload={currentPageUpload}
@@ -1052,9 +1087,10 @@ export default function ProjectDetails() {
         handleFilterChange={handleFilterChange}
         setShowCreateModal={setShowCreateModal}
         setSelectedDevisId={setSelectedDevisId}
-        handleEditDevisConfig={handleEditDevisConfig}
-        handleUpdateDevisConfigStatus={handleUpdateDevisConfigStatus}
+        handleEditDevis={handleEditDevis}
+        handleUpdateDevisConfigStatus={handleUpdateStatusWrapper}
         updatingStatusId={updatingStatusId}
+        userRole={project?.broker?.courtier?.role || ""}
       />
 
       {/* Modals */}
@@ -1068,8 +1104,8 @@ export default function ProjectDetails() {
         }}
       />
 
-      {selectedDevisId && (
-        <DevisConfigProvider devisId={selectedDevisId}>
+      {selectedDevisId && selectedDevisType && (
+        <DevisConfigProvider devisId={selectedDevisId} type={selectedDevisType}>
           <PiecesSelectionModal
             open={step === "pieces"}
             itemId={selectedDevisId}

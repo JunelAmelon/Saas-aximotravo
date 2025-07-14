@@ -1,9 +1,26 @@
-import React, { useState } from 'react';
-import { Plus, Eye, Download, Filter, ChevronLeft, ChevronRight, MoreHorizontal, FileText, Calendar, Euro, Search } from 'lucide-react';
+import React, { useState } from "react";
+import {
+  Plus,
+  Eye,
+  Download,
+  Filter,
+  ChevronLeft,
+  ChevronRight,
+  MoreHorizontal,
+  FileText,
+  Calendar,
+  Euro,
+  Search,
+} from "lucide-react";
 import { MoreVertical, UserCheck } from "lucide-react";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { useParams } from 'next/navigation';
-import { TVAHelper } from './TVAHelper';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+import { useParams } from "next/navigation";
+import { TVAHelper } from "./TVAHelper";
 
 interface DevisItem {
   id: string;
@@ -22,7 +39,15 @@ interface DevisItem {
   };
 }
 
-import { collection, query, where, getDocs, getDoc, doc, updateDoc } from "firebase/firestore";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  getDoc,
+  doc,
+  updateDoc,
+} from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 
 export interface User {
@@ -44,8 +69,10 @@ interface ModernDevisSectionProps {
   activeDevisTab: "generes" | "uploades";
   setActiveDevisTab: (tab: "generes" | "uploades") => void;
   paginatedDevis: DevisItem[];
+  setPaginatedDevis: React.Dispatch<React.SetStateAction<DevisItem[]>>;
   listDevisConfigs: DevisItem[];
   paginatedDevisConfigs: DevisItem[];
+  setPaginatedDevisConfigs: React.Dispatch<React.SetStateAction<DevisItem[]>>;
   currentPage: number;
   setCurrentPage: (page: number) => void;
   currentPageUpload: number;
@@ -56,20 +83,29 @@ interface ModernDevisSectionProps {
   itemsPerPageUpload: number;
   filteredDevis: DevisItem[];
   filters: any;
-  handleFilterChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
+  handleFilterChange: (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => void;
   setShowCreateModal: (show: boolean) => void;
   setSelectedDevisId: (id: string) => void;
-  handleEditDevisConfig: (id: string) => void;
-  handleUpdateDevisConfigStatus: (id: string, status: string) => void;
+  handleEditDevis: (type: "devis" | "devisConfig", id: string) => void;
+  handleUpdateDevisConfigStatus: (
+    type: string,
+    id: string,
+    status: string
+  ) => void;
   updatingStatusId: string | null;
+  userRole: string;
 }
 
 export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
   activeDevisTab,
   setActiveDevisTab,
   paginatedDevis,
+  setPaginatedDevis,
   listDevisConfigs,
   paginatedDevisConfigs,
+  setPaginatedDevisConfigs,
   currentPage,
   setCurrentPage,
   currentPageUpload,
@@ -83,9 +119,10 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
   handleFilterChange,
   setShowCreateModal,
   setSelectedDevisId,
-  handleEditDevisConfig,
+  handleEditDevis,
   handleUpdateDevisConfigStatus,
   updatingStatusId,
+  userRole,
 }) => {
   const [acceptedArtisans, setAcceptedArtisans] = useState<User[]>([]);
   const [showAssignModal, setShowAssignModal] = useState(false);
@@ -94,7 +131,11 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
   const [selectedArtisanId, setSelectedArtisanId] = useState<string>("");
 
   // Récupération des artisans acceptés du projet
-  const projectId = params.id ? (Array.isArray(params.id) ? params.id[0] : params.id) : undefined;
+  const projectId = params.id
+    ? Array.isArray(params.id)
+      ? params.id[0]
+      : params.id
+    : undefined;
   React.useEffect(() => {
     if (!projectId) return;
     async function getAcceptedArtisansForProject(projectId: string) {
@@ -104,7 +145,9 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
         where("status", "==", "accepté") // ou "accepted" selon ta base
       );
       const snapshot = await getDocs(q);
-      const artisanIds = snapshot.docs.map((docSnap) => docSnap.data().artisanId);
+      const artisanIds = snapshot.docs.map(
+        (docSnap) => docSnap.data().artisanId
+      );
       const users = await Promise.all(
         artisanIds.map(async (uid) => {
           const userDoc = await getDoc(doc(db, "users", uid));
@@ -117,14 +160,19 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
   }, [projectId]);
 
   // Fonction d'attribution d'un devis à un artisan
-  async function attribuerDevis(devisId: string, artisanId: string, artisanName: string) {
+  async function attribuerDevis(
+    devisId: string,
+    artisanId: string,
+    artisanName: string,
+    type: "devis" | "devisConfig"
+  ) {
     try {
-      const devisRef = doc(db, "devisConfig", devisId);
+      const devisRef = doc(db, type, devisId);
       await updateDoc(devisRef, {
         attribution: {
           artisanId,
-          artisanName
-        }
+          artisanName,
+        },
       });
       window.alert("Attribution réussie !");
     } catch (err) {
@@ -137,83 +185,120 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      'Validé': {
-        bg: 'bg-emerald-50',
-        text: 'text-emerald-700',
-        border: 'border-emerald-200',
-        icon: '✓'
+      Validé: {
+        bg: "bg-emerald-50",
+        text: "text-emerald-700",
+        border: "border-emerald-200",
+        icon: "✓",
       },
-      'En attente': {
-        bg: 'bg-amber-50',
-        text: 'text-amber-700',
-        border: 'border-amber-200',
-        icon: '⏳'
+      "En attente": {
+        bg: "bg-amber-50",
+        text: "text-amber-700",
+        border: "border-amber-200",
+        icon: "⏳",
       },
-      'En cours': {
-        bg: 'bg-sky-50',
-        text: 'text-sky-700',
-        border: 'border-sky-200',
-        icon: '🔄'
+      "En cours": {
+        bg: "bg-sky-50",
+        text: "text-sky-700",
+        border: "border-sky-200",
+        icon: "🔄",
       },
-      'Refusé': {
-        bg: 'bg-rose-50',
-        text: 'text-rose-700',
-        border: 'border-rose-200',
-        icon: '✗'
+      Refusé: {
+        bg: "bg-rose-50",
+        text: "text-rose-700",
+        border: "border-rose-200",
+        icon: "✗",
       },
-      'Annulé': {
-        bg: 'bg-slate-50',
-        text: 'text-slate-700',
-        border: 'border-slate-200',
-        icon: '⊘'
+      Annulé: {
+        bg: "bg-slate-50",
+        text: "text-slate-700",
+        border: "border-slate-200",
+        icon: "⊘",
       },
-      'Envoyé': {
-        bg: 'bg-violet-50',
-        text: 'text-violet-700',
-        border: 'border-violet-200',
-        icon: '📤'
+      Envoyé: {
+        bg: "bg-violet-50",
+        text: "text-violet-700",
+        border: "border-violet-200",
+        icon: "📤",
       },
-      'À modifier': {
-        bg: 'bg-orange-50',
-        text: 'text-orange-700',
-        border: 'border-orange-200',
-        icon: '✏️'
-      }
+      "À modifier": {
+        bg: "bg-orange-50",
+        text: "text-orange-700",
+        border: "border-orange-200",
+        icon: "✏️",
+      },
     };
 
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig['En attente'];
+    const config =
+      statusConfig[status as keyof typeof statusConfig] ||
+      statusConfig["En attente"];
 
     return (
-      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border ${config.bg} ${config.text} ${config.border}`}>
+      <span
+        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border ${config.bg} ${config.text} ${config.border}`}
+      >
         <span className="text-xs">{config.icon}</span>
         {status}
       </span>
     );
   };
 
-  const StatusSelect = ({ value, onChange, disabled, docId }: {
+  const StatusSelect = ({
+    value,
+    onChange,
+    disabled,
+    docId,
+  }: {
     value: string;
     onChange: (value: string) => void;
     disabled: boolean;
     docId: string;
   }) => {
     const statusOptions = [
-      { value: "En cours", label: "En cours", bg: "bg-sky-50", text: "text-sky-700", border: "border-sky-200" },
-      { value: "Annulé", label: "Annulé", bg: "bg-rose-50", text: "text-rose-700", border: "border-rose-200" },
-      { value: "Validé", label: "Validé", bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200" },
-      { value: "À modifier", label: "À modifier", bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-200" },
+      {
+        value: "En cours",
+        label: "En cours",
+        bg: "bg-sky-50",
+        text: "text-sky-700",
+        border: "border-sky-200",
+      },
+      {
+        value: "Annulé",
+        label: "Annulé",
+        bg: "bg-rose-50",
+        text: "text-rose-700",
+        border: "border-rose-200",
+      },
+      {
+        value: "Validé",
+        label: "Validé",
+        bg: "bg-emerald-50",
+        text: "text-emerald-700",
+        border: "border-emerald-200",
+      },
+      {
+        value: "À modifier",
+        label: "À modifier",
+        bg: "bg-orange-50",
+        text: "text-orange-700",
+        border: "border-orange-200",
+      },
     ];
 
     if (updatingStatusId === docId) {
       return (
         <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-200">
           <div className="w-4 h-4 border-2 border-gray-300 border-t-[#f26755] rounded-full animate-spin"></div>
-          <span className="text-xs text-gray-600 font-medium">Mise à jour...</span>
+          <span className="text-xs text-gray-600 font-medium">
+            Mise à jour...
+          </span>
         </div>
       );
     }
 
-    const currentOption = statusOptions.find(opt => opt.value === (value || "En cours"));
+    const currentOption = statusOptions.find(
+      (opt) => opt.value === (value || "En cours")
+    );
     const currentConfig = currentOption || statusOptions[0];
 
     return (
@@ -299,7 +384,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
     totalPages,
     onPageChange,
     totalItems,
-    itemsPerPage
+    itemsPerPage,
   }: {
     currentPage: number;
     totalPages: number;
@@ -343,10 +428,11 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
               <button
                 key={pageNum}
                 onClick={() => onPageChange(pageNum)}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentPage === pageNum
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  currentPage === pageNum
                     ? "bg-[#f26755] text-white shadow-sm"
                     : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
-                  }`}
+                }`}
               >
                 {pageNum}
               </button>
@@ -371,10 +457,11 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div className="flex bg-gray-100 rounded-xl p-1 w-full sm:w-auto">
           <button
-            className={`flex-1 sm:flex-none px-4 sm:px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${activeDevisTab === "uploades"
+            className={`flex-1 sm:flex-none px-4 sm:px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
+              activeDevisTab === "uploades"
                 ? "bg-white text-[#f26755] shadow-sm"
                 : "text-gray-600 hover:text-gray-800"
-              }`}
+            }`}
             onClick={() => setActiveDevisTab("uploades")}
           >
             <div className="flex items-center justify-center sm:justify-start gap-2">
@@ -384,10 +471,11 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
             </div>
           </button>
           <button
-            className={`flex-1 sm:flex-none px-4 sm:px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${activeDevisTab === "generes"
+            className={`flex-1 sm:flex-none px-4 sm:px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
+              activeDevisTab === "generes"
                 ? "bg-white text-[#f26755] shadow-sm"
                 : "text-gray-600 hover:text-gray-800"
-              }`}
+            }`}
             onClick={() => setActiveDevisTab("generes")}
           >
             <div className="flex items-center justify-center sm:justify-start gap-2">
@@ -417,13 +505,16 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
           {/* Header avec filtres */}
           <div className="p-6 border-b border-gray-200">
             <div className="flex items-center justify-between mb-4">
-              <h4 className="text-lg font-bold text-gray-900">Devis importés</h4>
+              <h4 className="text-lg font-bold text-gray-900">
+                Devis importés
+              </h4>
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${showFilters
+                className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                  showFilters
                     ? "bg-[#f26755] text-white shadow-sm"
                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                  }`}
+                }`}
               >
                 <Filter className="h-4 w-4" />
                 Filtres
@@ -431,8 +522,11 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
             </div>
 
             {/* Filtres */}
-            <div className={`transition-all duration-300 overflow-hidden ${showFilters ? "max-h-32 opacity-100" : "max-h-0 opacity-0"
-              }`}>
+            <div
+              className={`transition-all duration-300 overflow-hidden ${
+                showFilters ? "max-h-32 opacity-100" : "max-h-0 opacity-0"
+              }`}
+            >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-100">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -474,6 +568,9 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                     Type
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Attribué
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                     Statut
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
@@ -490,24 +587,49 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                     <td colSpan={5} className="px-6 py-12 text-center">
                       <div className="flex flex-col items-center gap-3">
                         <FileText className="h-12 w-12 text-gray-300" />
-                        <p className="text-gray-500 font-medium">Aucun devis trouvé</p>
-                        <p className="text-sm text-gray-400">Essayez de modifier vos filtres</p>
+                        <p className="text-gray-500 font-medium">
+                          Aucun devis trouvé
+                        </p>
+                        <p className="text-sm text-gray-400">
+                          Essayez de modifier vos filtres
+                        </p>
                       </div>
                     </td>
                   </tr>
                 ) : (
                   paginatedDevis.map((devisItem) => (
-                    <tr key={devisItem.id} className="hover:bg-gray-50 transition-colors">
+                    <tr
+                      key={devisItem.id}
+                      className="hover:bg-gray-50 transition-colors"
+                    >
                       <td className="px-6 py-4">
                         <div className="font-medium text-gray-900">
                           {devisItem.titre || "-"}
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="text-gray-600">{devisItem.type || "-"}</span>
+                        <span className="text-gray-600">
+                          {devisItem.type || "-"}
+                        </span>
                       </td>
                       <td className="px-6 py-4">
-                        {getStatusBadge(devisItem.statut || "En attente")}
+                        <div className="font-medium text-gray-900">
+                          {devisItem.attribution?.artisanName || "-"}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <StatusSelect
+                          value={devisItem.status || "En cours"}
+                          onChange={(value) =>
+                            handleUpdateDevisConfigStatus(
+                              "devis",
+                              devisItem.id,
+                              value
+                            )
+                          }
+                          disabled={updatingStatusId !== null}
+                          docId={devisItem.id}
+                        />
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-1">
@@ -515,15 +637,63 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                           <span className="font-semibold text-gray-900">
                             {typeof devisItem.montant === "number"
                               ? devisItem.montant.toLocaleString("fr-FR", {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              })
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })
                               : "-"}
                           </span>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <ActionDropdown devisItem={devisItem} />
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button className="inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100">
+                              <MoreVertical className="w-5 h-5 text-gray-500" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {userRole === "courtier" &&
+                              (!devisItem.attribution ||
+                                !devisItem.attribution.artisanId) && (
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setAssignDevisId(devisItem.id);
+                                    setShowAssignModal(true);
+                                  }}
+                                >
+                                  <UserCheck className="w-4 h-4 mr-2" />{" "}
+                                  Attribuer
+                                </DropdownMenuItem>
+                              )}
+                            {devisItem.pdfUrl && (
+                              <>
+                                <DropdownMenuItem asChild>
+                                  <a
+                                    href={devisItem.pdfUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-3 w-full"
+                                  >
+                                    <FileText className="w-4 h-4 mr-2" />{" "}
+                                    Visualiser PDF
+                                  </a>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem asChild>
+                                  <a
+                                    href={devisItem.pdfUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    download
+                                    className="flex items-center gap-3 w-full"
+                                  >
+                                    <Download className="w-4 h-4 mr-2" />{" "}
+                                    Télécharger PDF
+                                  </a>
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </td>
                     </tr>
                   ))
@@ -549,8 +719,57 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
       {activeDevisTab === "generes" && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="p-6 border-b border-gray-200">
-            <h4 className="text-lg font-bold text-gray-900">Devis créés</h4>
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-lg font-bold text-gray-900">Devis créés</h4>
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                  showFilters
+                    ? "bg-[#f26755] text-white shadow-sm"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                <Filter className="h-4 w-4" />
+                Filtres
+              </button>
+            </div>
+
+            {/* Filtres */}
+            <div
+              className={`transition-all duration-300 overflow-hidden ${
+                showFilters ? "max-h-32 opacity-100" : "max-h-0 opacity-0"
+              }`}
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-100">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Rechercher par titre..."
+                    name="titre"
+                    value={filters.titre}
+                    onChange={handleFilterChange}
+                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f26755]/20 focus:border-[#f26755] transition-colors"
+                  />
+                </div>
+                <select
+                  name="statut"
+                  value={filters.statut}
+                  onChange={handleFilterChange}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f26755]/20 focus:border-[#f26755] transition-colors"
+                >
+                  <option value="">Tous les statuts</option>
+                  <option value="Validé">Validé</option>
+                  <option value="En attente">En attente</option>
+                  <option value="Refusé">Refusé</option>
+                  <option value="Annulé">Annulé</option>
+                  <option value="Envoyé">Envoyé</option>
+                </select>
+              </div>
+            </div>
           </div>
+
+
 
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -579,7 +798,10 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
               <tbody className="divide-y divide-gray-200">
                 {listDevisConfigs && listDevisConfigs.length > 0 ? (
                   paginatedDevisConfigs.map((doc) => (
-                    <tr key={doc.id} className="hover:bg-gray-50 transition-colors">
+                    <tr
+                      key={doc.id}
+                      className="hover:bg-gray-50 transition-colors"
+                    >
                       <td className="px-6 py-4">
                         <span className="font-mono text-sm font-medium text-gray-900">
                           {doc.numero || "-"}
@@ -598,7 +820,13 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                       <td className="px-6 py-4">
                         <StatusSelect
                           value={doc.status || "En cours"}
-                          onChange={(value) => handleUpdateDevisConfigStatus(doc.id, value)}
+                          onChange={(value) =>
+                            handleUpdateDevisConfigStatus(
+                              "devisConfig",
+                              doc.id,
+                              value
+                            )
+                          }
                           disabled={updatingStatusId !== null}
                           docId={doc.id}
                         />
@@ -607,16 +835,25 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                         <div className="flex items-center gap-1">
                           <Euro className="h-4 w-4 text-gray-400" />
                           <span className="font-semibold text-gray-900">
-                            {Array.isArray(doc.selectedItems) && doc.selectedItems.length > 0
+                            {Array.isArray(doc.selectedItems) &&
+                            doc.selectedItems.length > 0
                               ? doc.selectedItems
-                                .reduce((sum: number, item: any) => {
-                                  const tva = typeof item.tva === "number" ? item.tva : parseFloat(item.tva as string) || 20;
-                                  return sum + item.quantite * item.prix_ht * (1 + tva / 100);
-                                }, 0)
-                                .toLocaleString("fr-FR", {
-                                  minimumFractionDigits: 2,
-                                  maximumFractionDigits: 2,
-                                })
+                                  .reduce((sum: number, item: any) => {
+                                    const tva =
+                                      typeof item.tva === "number"
+                                        ? item.tva
+                                        : parseFloat(item.tva as string) || 20;
+                                    return (
+                                      sum +
+                                      item.quantite *
+                                        item.prix_ht *
+                                        (1 + tva / 100)
+                                    );
+                                  }, 0)
+                                  .toLocaleString("fr-FR", {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                  })
                               : "-"}
                           </span>
                         </div>
@@ -629,14 +866,26 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                             </button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleEditDevisConfig(doc.id)}>
+                            <DropdownMenuItem
+                              onClick={() =>
+                                handleEditDevis("devisConfig", doc.id)
+                              }
+                            >
                               <FileText className="w-4 h-4 mr-2" /> Modifier
                             </DropdownMenuItem>
-                            {(!doc.attribution || !doc.attribution.artisanId) && (
-                              <DropdownMenuItem onClick={() => { setAssignDevisId(doc.id); setShowAssignModal(true); }}>
-                                <UserCheck className="w-4 h-4 mr-2" /> Attribuer
-                              </DropdownMenuItem>
-                            )}
+                            {userRole === "courtier" &&
+                              (!doc.attribution ||
+                                !doc.attribution.artisanId) && (
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setAssignDevisId(doc.id);
+                                    setShowAssignModal(true);
+                                  }}
+                                >
+                                  <UserCheck className="w-4 h-4 mr-2" />{" "}
+                                  Attribuer
+                                </DropdownMenuItem>
+                              )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </td>
@@ -647,8 +896,12 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                     <td colSpan={6} className="px-6 py-12 text-center">
                       <div className="flex flex-col items-center gap-3">
                         <Calendar className="h-12 w-12 text-gray-300" />
-                        <p className="text-gray-500 font-medium">Aucun devis créé</p>
-                        <p className="text-sm text-gray-400">Commencez par créer votre premier devis</p>
+                        <p className="text-gray-500 font-medium">
+                          Aucun devis créé
+                        </p>
+                        <p className="text-sm text-gray-400">
+                          Commencez par créer votre premier devis
+                        </p>
                       </div>
                     </td>
                   </tr>
@@ -676,20 +929,27 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
           <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md relative">
             <button
               className="absolute top-2 right-2 text-gray-400 hover:text-gray-700"
-              onClick={() => { setShowAssignModal(false); setAssignDevisId(null); setSelectedArtisanId(""); }}
+              onClick={() => {
+                setShowAssignModal(false);
+                setAssignDevisId(null);
+                setSelectedArtisanId("");
+              }}
             >
-              <span className="sr-only">Fermer</span>
-              ×
+              <span className="sr-only">Fermer</span>×
             </button>
-            <h3 className="text-lg font-semibold mb-4">Attribuer le devis à un artisan</h3>
-            <label className="block mb-2 text-sm font-medium text-gray-700">Choisir un artisan</label>
+            <h3 className="text-lg font-semibold mb-4">
+              Attribuer le devis à un artisan
+            </h3>
+            <label className="block mb-2 text-sm font-medium text-gray-700">
+              Choisir un artisan
+            </label>
             <select
               className="w-full border rounded px-3 py-2 mb-4"
               value={selectedArtisanId}
-              onChange={e => setSelectedArtisanId(e.target.value)}
+              onChange={(e) => setSelectedArtisanId(e.target.value)}
             >
               <option value="">Sélectionner...</option>
-              {acceptedArtisans.map(artisan => (
+              {acceptedArtisans.map((artisan) => (
                 <option key={artisan.uid} value={artisan.uid}>
                   {artisan.displayName || artisan.email}
                 </option>
@@ -697,18 +957,63 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
             </select>
             <button
               className="w-full bg-[#f26755] hover:bg-[#e55a4a] text-white font-semibold py-2 rounded"
-              disabled={!selectedArtisanId}
+              disabled={!selectedArtisanId || userRole !== "courtier"}
+              title={
+                userRole !== "courtier"
+                  ? "Seuls les courtiers peuvent attribuer un devis à un artisan."
+                  : undefined
+              }
               onClick={async () => {
+                if (userRole !== "courtier") return;
                 if (!assignDevisId || !selectedArtisanId) return;
-                const artisan = acceptedArtisans.find(a => a.uid === selectedArtisanId);
+                const artisan = acceptedArtisans.find(
+                  (a) => a.uid === selectedArtisanId
+                );
                 if (!artisan) return;
-                await attribuerDevis(assignDevisId, artisan.uid, artisan.displayName || artisan.email);
+                await attribuerDevis(
+                  assignDevisId,
+                  artisan.uid,
+                  artisan.displayName || artisan.email,
+                  activeDevisTab === "generes" ? "devisConfig" : "devis"
+                );
+                // Mise à jour du state local pour affichage immédiat
+                if (activeDevisTab === "generes") {
+                  setPaginatedDevisConfigs((prev) =>
+                    prev.map((devis) =>
+                      devis.id === assignDevisId
+                        ? {
+                            ...devis,
+                            attribution: {
+                              artisanId: artisan.uid,
+                              artisanName: artisan.displayName || artisan.email,
+                            },
+                          }
+                        : devis
+                    )
+                  );
+                } else {
+                  setPaginatedDevis((prev) =>
+                    prev.map((devis) =>
+                      devis.id === assignDevisId
+                        ? {
+                            ...devis,
+                            attribution: {
+                              artisanId: artisan.uid,
+                              artisanName: artisan.displayName || artisan.email,
+                            },
+                          }
+                        : devis
+                    )
+                  );
+                }
                 setShowAssignModal(false);
                 setAssignDevisId(null);
                 setSelectedArtisanId("");
               }}
             >
-              Confirmer l&apos;attribution
+              {userRole !== "courtier"
+                ? "Attribution réservée au courtier"
+                : "Confirmer l'attribution"}
             </button>
           </div>
         </div>
@@ -716,4 +1021,3 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
     </div>
   );
 };
-
