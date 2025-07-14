@@ -85,14 +85,39 @@ export function useCreateProject() {
           body: JSON.stringify({
             to: clientEmail,
             subject: "Votre compte a été créé",
-            html: `
-              <p>Bonjour,</p>
-              <p>Votre compte a été créé avec succès.</p>
-              <p><b>Email :</b> ${clientEmail}</p>
-              <p><b>Mot de passe :</b> ${password}</p>
-              <p>Merci de vous connecter et de modifier votre mot de passe dès la première connexion.</p>
-            `,
-            // text: `Votre compte a été créé.\nEmail: ${clientEmail}\nMot de passe: ${password}`,
+            html: `<div style="font-family: Arial, sans-serif; color: #222; max-width: 480px; margin: 0 auto; border: 1px solid #f26755; border-radius: 8px; overflow: hidden;">
+  <div style="background: linear-gradient(90deg, #f26755 0%, #f28c55 100%); padding: 16px 24px;">
+    <h2 style="color: #fff; margin: 0; font-size: 1.5rem; font-weight: bold;">
+      Bienvenue sur Aximotravo
+    </h2>
+  </div>
+  <div style="padding: 24px;">
+    <p style="margin-bottom: 16px;">
+      Bonjour,
+    </p>
+    <p style="margin-bottom: 16px;">
+      Nous sommes ravis de vous accueillir sur la plateforme <b>Aximotravo</b>.<br>
+      Votre compte client a été créé avec succès.
+    </p>
+    <table style="background: #f9f9f9; border-radius: 6px; padding: 12px 16px; margin-bottom: 20px; width: 100%;">
+      <tr>
+        <td style="padding: 6px 0;"><b>Email&nbsp;:</b></td>
+        <td style="padding: 6px 0;">${clientEmail}</td>
+      </tr>
+      <tr>
+        <td style="padding: 6px 0;"><b>Mot de passe&nbsp;:</b></td>
+        <td style="padding: 6px 0;">${password}</td>
+      </tr>
+    </table>
+    <p style="margin-bottom: 12px;">
+      Vous pouvez maintenant vous connecter à votre espace personnel.<br>
+      <b>Pensez à modifier votre mot de passe lors de votre première connexion pour plus de sécurité.</b>
+    </p>
+    <p style="color: #f26755; font-size: 0.97em; margin-bottom: 0;">
+      L’équipe Aximotravo reste à votre disposition pour toute question ou accompagnement.
+    </p>
+  </div>
+</div>`,
             fromName: "Aximotravo",
           }),
         });
