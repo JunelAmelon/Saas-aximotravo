@@ -3,7 +3,8 @@ import { Devis } from '@/types/devis';
 import { useParams } from 'next/navigation';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
-
+import { Project, getProjectById } from '@/lib/firebase/projects';
+import { MapPin } from 'lucide-react';
 interface PDFPreviewProps {
   devis: Devis;
 }
@@ -12,6 +13,16 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ devis }) => {
   const params = useParams();
   const projectId = params?.id as string;
   const [client, setClient] = useState<any>(null);
+
+  const [project, setProject] = useState<Project | null>(null);
+  useEffect(() => {
+    async function loadProject() {
+      if (!projectId) return;
+      const project = await getProjectById(projectId);
+      setProject(project);
+    }
+    loadProject();
+  }, [projectId]);
 
   useEffect(() => {
     async function loadClient() {
@@ -99,11 +110,11 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ devis }) => {
     <div className="text-base md:text-2xl font-bold mb-1 truncate">
       {client.displayName || client.companyName || `${client.firstName ?? ""} ${client.lastName ?? ""}`.trim() || "Nom du client"}
     </div>
-    {client.location && (
+    {project?.location && (
       <div className="flex items-center gap-2 text-base md:text-lg">
         {/* MapPin icon Lucide */}
-        <svg className="w-5 h-5 text-white/70" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 21c-4.418 0-8-4.03-8-9a8 8 0 1 1 16 0c0 4.97-3.582 9-8 9z"/><circle cx="12" cy="12" r="3"/></svg>
-        <span>{client.location}</span>
+        <MapPin className="h-5 w-5 text-white/70" />
+        <span>{project.location}</span>
       </div>
     )}
     {(client.zip || client.city) && (
