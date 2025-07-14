@@ -121,13 +121,13 @@ export const PDFGenerator: React.FC<{ className?: string; iconOnly?: boolean }> 
           disabled={loading}
         >
           <Eye className="h-4 w-4" />
-          {!iconOnly && <span className="ml-2">Aperçu</span>}
+          {!iconOnly && <span className="ml-2 hidden md:inline">Aperçu</span>}
         </Button>
 
         {/* Bouton Télécharger */}
         <Button onClick={generatePDF} className={className} disabled={loading}>
           {loading ? <Loader size={20} /> : <Download className="h-4 w-4" />}
-          {!iconOnly && !loading && <span className="ml-2">Télécharger PDF</span>}
+          {!iconOnly && !loading && <span className="ml-2 hidden md:inline">Télécharger PDF</span>}
         </Button>
       </div>
 
@@ -147,7 +147,7 @@ export const PDFGenerator: React.FC<{ className?: string; iconOnly?: boolean }> 
                   disabled={loading}
                 >
                   {loading ? <Loader size={16} /> : <Download className="h-4 w-4" />}
-                  {!loading && <span className="ml-2">Télécharger</span>}
+                  {!loading && <span className="ml-2 hidden md:inline">Télécharger</span>}
                 </Button>
                 <Button
                   variant="ghost"
