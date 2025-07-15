@@ -158,7 +158,6 @@ export const getDevisConfigForProject = async (
   }
 };
 
-const currentUserId = useCurrentUserId();
 
 export const getProjectDetail = async (
   id: string
@@ -342,6 +341,7 @@ import { getAuth } from "firebase/auth";
 import router from "next/router";
 import { useCurrentUserId } from "@/hooks/useCurrentUserId";
 
+
 export default function ProjectDetails() {
   const [showAddressDetails, setShowAddressDetails] = useState(false);
   const [currentPageUpload, setCurrentPageUpload] = useState(1);
@@ -405,6 +405,8 @@ const [selectedDevisType, setSelectedDevisType] = useState<"devis" | "devisConfi
   });
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
+
+  const currentUserId = useCurrentUserId();
 
   // Fonction pour filtrer les devis
   const filteredDevis = devis.filter((item) => {

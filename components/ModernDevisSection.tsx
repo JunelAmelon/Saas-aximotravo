@@ -26,7 +26,7 @@ interface DevisItem {
   id: string;
   titre?: string;
   type?: string;
-  statut?: string;
+  status?: string;
   montant?: number;
   pdfUrl?: string;
   numero?: string;
@@ -91,7 +91,7 @@ interface ModernDevisSectionProps {
   handleUpdateDevisConfigstatut: (
     type: string,
     id: string,
-    statut: string
+    status: string
   ) => void;
   updatingstatutId: string | null;
   userRole: string;
@@ -127,17 +127,17 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
   currentUserId,
 }) => {
   // Filtrage pour n'afficher que les devis attribués à l'artisan connecté
-  const isArtisan = userRole === "artisan" && !!currentUserId;
-  const filteredPaginatedDevisConfigs = isArtisan
-    ? paginatedDevisConfigs.filter(
-        (doc) => doc.attribution && doc.attribution.artisanId === currentUserId
-      )
-    : paginatedDevisConfigs;
-  const filteredListDevisConfigs = isArtisan
-    ? listDevisConfigs.filter(
-        (doc) => doc.attribution && doc.attribution.artisanId === currentUserId
-      )
-    : listDevisConfigs;
+  // const isArtisan = userRole === "artisan" && !!currentUserId;
+  // const filteredPaginatedDevisConfigs = isArtisan
+  //   ? paginatedDevisConfigs.filter(
+  //       (doc) => doc.attribution && doc.attribution.artisanId === currentUserId
+  //     )
+  //   : paginatedDevisConfigs;
+  // const filteredListDevisConfigs = isArtisan
+  //   ? listDevisConfigs.filter(
+  //       (doc) => doc.attribution && doc.attribution.artisanId === currentUserId
+  //     )
+  //   : listDevisConfigs;
 
   const [acceptedArtisans, setAcceptedArtisans] = useState<User[]>([]);
   const [showAssignModal, setShowAssignModal] = useState(false);
@@ -157,7 +157,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
       const q = query(
         collection(db, "artisan_projet"),
         where("projetId", "==", projectId),
-        where("statut", "==", "accepté") // ou "accepted" selon ta base
+        where("status", "==", "accepté") // ou "accepted" selon ta base
       );
       const snapshot = await getDocs(q);
       const artisanIds = snapshot.docs.map(
@@ -277,7 +277,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
   const itemsPerPageFactures = 5; // Modifie ce nombre si besoin
 
   const facturesValidees = paginatedDevisConfigs.filter(
-    (doc) => doc.statut && doc.statut.trim().toLowerCase() === "validé"
+    (doc) => doc.status && doc.status.trim().toLowerCase() === "validé"
   );
   const startIdxFactures = (currentPageFactures - 1) * itemsPerPageFactures;
   const endIdxFactures = startIdxFactures + itemsPerPageFactures;
@@ -463,12 +463,12 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                   />
                 </div>
                 <select
-                  name="statut"
-                  value={filters.statut}
+                  name="status"
+                  value={filters.status}
                   onChange={handleFilterChange}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f26755]/20 focus:border-[#f26755] transition-colors"
                 >
-                  <option value="">Tous les statuts</option>
+                  <option value="">Tous les statuss</option>
                   <option value="Validé">Validé</option>
                   <option value="En attente">En attente</option>
                   <option value="À modifier">À modifier</option>
@@ -494,7 +494,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                     Attribué
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Statut
+                    status
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                     Montant
@@ -542,7 +542,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                       </td>
                       <td className="px-6 py-4">
                         <StatutSelect
-                          value={devisItem.statut || "En Attente"}
+                          value={devisItem.status || "En Attente"}
                           onChange={(value) =>
                             handleUpdateDevisConfigstatut(
                               "devis",
@@ -677,7 +677,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                 </div>
                 <select
                   name="statut"
-                  value={filters.statut}
+                  value={filters.status}
                   onChange={handleFilterChange}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f26755]/20 focus:border-[#f26755] transition-colors"
                 >
@@ -741,7 +741,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                       </td>
                       <td className="px-6 py-4">
                         <StatutSelect
-                          value={doc.statut || "En Attente"}
+                          value={doc.status || "En Attente"}
                           onChange={(value) =>
                             handleUpdateDevisConfigstatut(
                               "devisConfig",
@@ -901,7 +901,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        {doc.statut}
+                        {doc.status}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-1">
