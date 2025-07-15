@@ -256,6 +256,10 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
     );
   };
 
+  const facturesValidees = paginatedDevisConfigs.filter(
+    (doc) => doc.statut && doc.statut.trim().toLowerCase() === "validé"
+  );
+
   const Pagination = ({
     currentPage,
     totalPages,
@@ -845,8 +849,8 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {listDevisConfigs && listDevisConfigs.length > 0 ? (
-                  paginatedDevisConfigs.map((doc) => (
+                {facturesValidees && facturesValidees.length > 0 ? (
+                  facturesValidees.map((doc) => (
                     <tr
                       key={doc.id}
                       className="hover:bg-gray-50 transition-colors"
@@ -867,18 +871,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <StatutSelect
-                          value={doc.statut || "En Attente"}
-                          onChange={(value) =>
-                            handleUpdateDevisConfigstatut(
-                              "devisConfig",
-                              doc.id,
-                              value
-                            )
-                          }
-                          disabled={updatingstatutId !== null}
-                          docId={doc.id}
-                        />
+                        {doc.statut}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-1">
@@ -915,26 +908,33 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                             </button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() =>
-                                handleEditDevis("devisConfig", doc.id)
-                              }
-                            >
-                              <FileText className="w-4 h-4 mr-2" /> Modifier
-                            </DropdownMenuItem>
-                            {userRole === "courtier" &&
-                              (!doc.attribution ||
-                                !doc.attribution.artisanId) && (
-                                <DropdownMenuItem
-                                  onClick={() => {
-                                    setAssignDevisId(doc.id);
-                                    setShowAssignModal(true);
-                                  }}
-                                >
-                                  <UserCheck className="w-4 h-4 mr-2" />{" "}
-                                  Attribuer
+                          {(
+                              <>
+                                <DropdownMenuItem asChild>
+                                  <a
+                                    href={doc.pdfUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-3 w-full"
+                                  >
+                                    <FileText className="w-4 h-4 mr-2" />{" "}
+                                    Visualiser PDF
+                                  </a>
                                 </DropdownMenuItem>
-                              )}
+                                <DropdownMenuItem asChild>
+                                  <a
+                                    href={doc.pdfUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    download
+                                    className="flex items-center gap-3 w-full"
+                                  >
+                                    <Download className="w-4 h-4 mr-2" />{" "}
+                                    Télécharger PDF
+                                  </a>
+                                </DropdownMenuItem>
+                              </>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </td>
@@ -946,10 +946,10 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                       <div className="flex flex-col items-center gap-3">
                         <Calendar className="h-12 w-12 text-gray-300" />
                         <p className="text-gray-500 font-medium">
-                          Aucun devis créé
+                          Aucune facture validée
                         </p>
                         <p className="text-sm text-gray-400">
-                          Commencez par créer votre premier devis
+                        Il n'y a aucune facture validée pour l’instant.
                         </p>
                       </div>
                     </td>
