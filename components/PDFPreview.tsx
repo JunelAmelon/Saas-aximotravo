@@ -116,19 +116,22 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ devis }) => {
         </div>
 
         {/* Carte client premium dynamique */}
-        {client ? (
+        {client && (
           <div className="bg-[#F26755] text-white p-6 rounded-2xl mb-6 shadow-lg w-full flex flex-col gap-2">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-base md:text-2xl font-extrabold tracking-wide">
                 CLIENT
               </span>
             </div>
-            <div className="text-base md:text-2xl font-bold mb-1 truncate">
-              {client.displayName ||
-                client.companyName ||
-                `${client.firstName ?? ""} ${client.lastName ?? ""}`.trim() ||
-                "Nom du client"}
-            </div>
+
+            {client && (
+              <div className="text-base md:text-2xl font-bold mb-1 truncate">
+                {client.displayName ||
+                  client.companyName ||
+                  `${client.firstName ?? ""} ${client.lastName ?? ""}`.trim() ||
+                  "Nom du client"}
+              </div>
+            )}
             {project?.location && (
               <div className="flex items-center gap-2 text-base md:text-lg">
                 {/* MapPin icon Lucide */}
@@ -186,10 +189,6 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ devis }) => {
                 <span>{client.phone || client.phoneNumber}</span>
               </div>
             )}
-          </div>
-        ) : (
-          <div className="bg-[#F26755] text-white p-5 rounded-lg mb-6 shadow-lg animate-pulse text-center">
-            Chargement client..
           </div>
         )}
 
