@@ -9,6 +9,8 @@ import { useArtisanDashboard } from "@/hooks/useArtisanDashboard";
 export default function ArtisanDashboard() {
   const { loading, error, recentsProjects, appointments, clients, activities, stats, refresh } = useArtisanDashboard();
 
+
+  console.log(stats);
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
