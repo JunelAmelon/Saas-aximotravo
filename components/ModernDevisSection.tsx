@@ -95,7 +95,9 @@ interface ModernDevisSectionProps {
   ) => void;
   updatingstatutId: string | null;
   userRole: string;
+  currentUserId: string | null;
 }
+
 
 export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
   activeDevisTab,
@@ -122,7 +124,21 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
   handleUpdateDevisConfigstatut,
   updatingstatutId,
   userRole,
+  currentUserId,
 }) => {
+  // Filtrage pour n'afficher que les devis attribués à l'artisan connecté
+  const isArtisan = userRole === "artisan" && !!currentUserId;
+  const filteredPaginatedDevisConfigs = isArtisan
+    ? paginatedDevisConfigs.filter(
+        (doc) => doc.attribution && doc.attribution.artisanId === currentUserId
+      )
+    : paginatedDevisConfigs;
+  const filteredListDevisConfigs = isArtisan
+    ? listDevisConfigs.filter(
+        (doc) => doc.attribution && doc.attribution.artisanId === currentUserId
+      )
+    : listDevisConfigs;
+
   const [acceptedArtisans, setAcceptedArtisans] = useState<User[]>([]);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [assignDevisId, setAssignDevisId] = useState<string | null>(null);
@@ -256,9 +272,21 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
     );
   };
 
+  // --- Pagination pour la section Factures ---
+  const [currentPageFactures, setCurrentPageFactures] = useState(1);
+  const itemsPerPageFactures = 5; // Modifie ce nombre si besoin
+
   const facturesValidees = paginatedDevisConfigs.filter(
     (doc) => doc.statut && doc.statut.trim().toLowerCase() === "validé"
   );
+  const startIdxFactures = (currentPageFactures - 1) * itemsPerPageFactures;
+  const endIdxFactures = startIdxFactures + itemsPerPageFactures;
+  const paginatedFactures = facturesValidees.slice(startIdxFactures, endIdxFactures);
+  const totalPagesFactures = Math.ceil(facturesValidees.length / itemsPerPageFactures);
+
+  useEffect(() => {
+    if (activeDevisTab === "Factures") setCurrentPageFactures(1);
+  }, [activeDevisTab]);
 
   const Pagination = ({
     currentPage,
@@ -824,6 +852,8 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
           <div className="flex items-center justify-between mb-4">
             <h4 className="text-lg font-bold text-gray-900">Factures</h4>
           </div>
+  
+
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50">
@@ -849,8 +879,8 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {facturesValidees && facturesValidees.length > 0 ? (
-                  facturesValidees.map((doc) => (
+                {paginatedFactures && paginatedFactures.length > 0 ? (
+                  paginatedFactures.map((doc) => (
                     <tr
                       key={doc.id}
                       className="hover:bg-gray-50 transition-colors"
@@ -957,6 +987,16 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                 )}
               </tbody>
             </table>
+            {/* Pagination Factures */}
+            {facturesValidees && facturesValidees.length > 0 && (
+              <Pagination
+                currentPage={currentPageFactures}
+                totalPages={totalPagesFactures}
+                onPageChange={setCurrentPageFactures}
+                totalItems={facturesValidees.length}
+                itemsPerPage={itemsPerPageFactures}
+              />
+            )}
           </div>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import { db } from './config';
 import { collection, doc, getDoc, getDocs, setDoc, query, where, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { createUser as firebaseCreateUser } from './auth';
+import { getAuth } from 'firebase/auth';
 
 export type UserRole = 'admin' | 'courtier' | 'artisan';
 
@@ -192,3 +193,8 @@ export async function getAllArtisans(): Promise<ArtisanUser[]> {
     throw error;
   }
 }
+
+export const getCurrentUserId = () => {
+  const auth = getAuth();
+  return auth.currentUser?.uid;
+};
