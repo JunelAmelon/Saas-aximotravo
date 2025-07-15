@@ -84,7 +84,7 @@ export interface ProjectDetails {
   name: string;
   description: string;
   type: string;
-  status: string;
+  statut: string;
   location: string;
   image: string;
   budget: number;
@@ -212,7 +212,7 @@ export const inviteArtisanToProject = async (
     const docRef = await addDoc(collection(db, "artisan_projet"), {
       projetId,
       artisanId,
-      status: "pending", // EN ATTENTE
+      statut: "pending", // EN ATTENTE
       createdAt: serverTimestamp(),
     });
     return docRef.id;
@@ -266,7 +266,7 @@ export const getArtisansByCourtier = async (
       const invitationsQ = query(
         collection(db, "artisan_projet"),
         where("projetId", "==", projectId),
-        where("status", "in", ["pending", "refusé", "rejeté", "accepté"])
+        where("statut", "in", ["pending", "refusé", "rejeté", "accepté"])
       );
       const invitationsSnap = await getDocs(invitationsQ);
       const invitedArtisanIds = invitationsSnap.docs.map(
@@ -295,12 +295,12 @@ export default function ProjectDetails() {
   const [currentPageUpload, setCurrentPageUpload] = useState(1);
   const itemsPerPageUpload = 5;
   const [activeDevisTab, setActiveDevisTab] = React.useState<
-    "generes" | "uploades"
+    "generes" | "uploades" | "Factures"
   >("uploades");
 const [selectedDevisType, setSelectedDevisType] = useState<"devis" | "devisConfig" | null>(null);
   // State to track invitation acceptance
   const [invitationAccepted, setInvitationAccepted] = useState<boolean>(false);
-  const [invitationStatus, setInvitationStatus] = useState<
+  const [invitationstatut, setInvitationstatut] = useState<
     "none" | "pending" | "accepted"
   >("none");
   // --- Initialisation des paramètres et id projet ---
@@ -396,7 +396,7 @@ const [selectedDevisType, setSelectedDevisType] = useState<"devis" | "devisConfi
   const [isRequestSent, setIsRequestSent] = useState(false);
   // Nouvel état pour stocker les invitations envoyées (en attente, refusées, etc)
   const [artisanInvitations, setArtisanInvitations] = useState<
-    { id: string; artisan: User | null; status: string }[]
+    { id: string; artisan: User | null; statut: string }[]
   >([]);
 
   // Récupérer l'ID de l'utilisateur connecté (artisan)
@@ -449,7 +449,7 @@ const [selectedDevisType, setSelectedDevisType] = useState<"devis" | "devisConfi
         collection(db, "artisan_projet"),
         where("projetId", "==", id),
         where("artisanId", "==", currentUserId),
-        where("status", "==", "accepté")
+        where("statut", "==", "accepté")
       );
       const snapshot = await getDocs(q);
       setInvitationAccepted(snapshot.docs.length > 0);
@@ -458,28 +458,28 @@ const [selectedDevisType, setSelectedDevisType] = useState<"devis" | "devisConfi
   }, [id, currentUserId]);
 
   useEffect(() => {
-    async function checkInvitationStatus() {
+    async function checkInvitationstatut() {
       if (!id || !currentUserId) {
-        setInvitationStatus("none");
+        setInvitationstatut("none");
         return;
       }
       const q = query(
         collection(db, "artisan_projet"),
         where("projetId", "==", id),
         where("artisanId", "==", currentUserId),
-        where("status", "in", ["pending", "accepté"])
+        where("statut", "in", ["pending", "accepté"])
       );
       const snapshot = await getDocs(q);
       if (snapshot.empty) {
-        setInvitationStatus("none");
+        setInvitationstatut("none");
       } else {
-        const status = snapshot.docs[0].data().status;
-        if (status === "pending") setInvitationStatus("pending");
-        else if (status === "accepté") setInvitationStatus("accepted");
-        else setInvitationStatus("none");
+        const statut = snapshot.docs[0].data().statut;
+        if (statut === "pending") setInvitationstatut("pending");
+        else if (statut === "accepté") setInvitationstatut("accepted");
+        else setInvitationstatut("none");
       }
     }
-    checkInvitationStatus();
+    checkInvitationstatut();
   }, [id, currentUserId]);
 
   // Récupération des devis du projet
@@ -497,7 +497,7 @@ const [selectedDevisType, setSelectedDevisType] = useState<"devis" | "devisConfi
       const q = query(
         collection(db, "artisan_projet"),
         where("projetId", "==", projectId),
-        where("status", "==", "accepté") // ou "accepted" selon ta base
+        where("statut", "==", "accepté") // ou "accepted" selon ta base
       );
       const snapshot = await getDocs(q);
       const artisanIds = snapshot.docs.map((doc) => doc.data().artisanId);
@@ -537,7 +537,7 @@ const [selectedDevisType, setSelectedDevisType] = useState<"devis" | "devisConfi
     }
   }, [pendingInvitation.refused, router]);
 
-  const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
+  const [updatingstatutId, setUpdatingstatutId] = useState<string | null>(null);
 
   const handleSendRequest = async () => {
     if (!selectedArtisanIds.length || !project?.id) return;
@@ -577,27 +577,27 @@ const [selectedDevisType, setSelectedDevisType] = useState<"devis" | "devisConfi
     setSelectedArtisanIds([]);
   };
 
-    // Generic handler for updating status in both devis and devisConfig
-    const handleUpdateStatus = async (
+    // Generic handler for updating statut in both devis and devisConfig
+    const handleUpdatestatut = async (
       type: "devis" | "devisConfig",
       docId: string,
-      newStatus: string
+      newstatut: string
     ) => {
-      setUpdatingStatusId(docId); // Set loading for this item
+      setUpdatingstatutId(docId); // Set loading for this item
       try {
         const ref = doc(db, type, docId);
-        await updateDoc(ref, { status: newStatus });
+        await updateDoc(ref, { statut: newstatut });
   
         if (type === "devis") {
           setDevis((prev) =>
             prev.map((item) =>
-              item.id === docId ? { ...item, status: newStatus } : item
+              item.id === docId ? { ...item, statut: newstatut } : item
             )
           );
         } else if (type === "devisConfig") {
           setListDevisConfigs((prev) =>
             prev.map((item) =>
-              item.id === docId ? { ...item, status: newStatus } : item
+              item.id === docId ? { ...item, statut: newstatut } : item
             )
           );
         }
@@ -605,24 +605,24 @@ const [selectedDevisType, setSelectedDevisType] = useState<"devis" | "devisConfi
         alert(`Erreur lors de la mise à jour du statut du ${type}`);
         console.error(error);
       } finally {
-        setUpdatingStatusId(null);
+        setUpdatingstatutId(null);
       }
     };
   
     // Backward compatibility for existing usages
-    const handleUpdateDevisConfigStatus = async (
+    const handleUpdateDevisConfigstatut = async (
       type: "devis" | "devisConfig",
       docId: string,
-      newStatus: string
+      newstatut: string
     ) => {
-      await handleUpdateStatus(type, docId, newStatus);
+      await handleUpdatestatut(type, docId, newstatut);
     };
   
-    // Wrapper pour compatibilité avec la signature (type: string, docId: string, newStatus: string) => void
-    const handleUpdateStatusWrapper = (type: string, docId: string, newStatus: string) => {
+    // Wrapper pour compatibilité avec la signature (type: string, docId: string, newstatut: string) => void
+    const handleUpdatestatutWrapper = (type: string, docId: string, newstatut: string) => {
       if (type === "devis" || type === "devisConfig") {
         // Appelle la fonction asynchrone sans attendre le résultat
-        handleUpdateDevisConfigStatus(type as "devis" | "devisConfig", docId, newStatus);
+        handleUpdateDevisConfigstatut(type as "devis" | "devisConfig", docId, newstatut);
       } else {
         // Optionnel : gérer les autres cas
         console.warn(`Type non supporté : ${type}`);
@@ -646,7 +646,7 @@ const [selectedDevisType, setSelectedDevisType] = useState<"devis" | "devisConfi
     );
   }
 
-  if (invitationStatus === "none") {
+  if (invitationstatut === "none") {
     return (
       <div className="flex justify-center items-center h-64">
         <p className="text-gray-500">
@@ -745,7 +745,7 @@ const [selectedDevisType, setSelectedDevisType] = useState<"devis" | "devisConfi
                   </p>
                 </div>
                 <span className="inline-flex px-3 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">
-                  {project?.status}
+                  {project?.statut}
                 </span>
               </div>
 
@@ -1092,8 +1092,8 @@ const [selectedDevisType, setSelectedDevisType] = useState<"devis" | "devisConfi
         setShowCreateModal={setShowCreateModal}
         setSelectedDevisId={setSelectedDevisId}
         handleEditDevis={handleEditDevis}
-        handleUpdateDevisConfigStatus={handleUpdateStatusWrapper}
-        updatingStatusId={updatingStatusId}
+        handleUpdateDevisConfigstatut={handleUpdatestatutWrapper}
+        updatingstatutId={updatingstatutId}
         userRole={"artisan"}
       />
       {/* Modals */}
