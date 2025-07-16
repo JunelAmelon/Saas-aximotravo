@@ -1,3 +1,6 @@
+// ====================
+// Imports externes
+// ====================
 import React, { useEffect, useState } from "react";
 import {
   Plus,
@@ -21,7 +24,24 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useParams } from "next/navigation";
 import { TVAHelper } from "./TVAHelper";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  getDoc,
+  doc,
+  updateDoc,
+} from "firebase/firestore";
+import { db } from "@/lib/firebase/config";
 
+// ====================
+// Types et Interfaces
+// ====================
+
+/**
+ * Représente un devis ou une facture dans le système.
+ */
 interface DevisItem {
   id: string;
   titre?: string;
@@ -38,17 +58,9 @@ interface DevisItem {
   };
 }
 
-import {
-  collection,
-  query,
-  where,
-  getDocs,
-  getDoc,
-  doc,
-  updateDoc,
-} from "firebase/firestore";
-import { db } from "@/lib/firebase/config";
-
+/**
+ * Représente un utilisateur (artisan, courtier, etc.) dans le système.
+ */
 export interface User {
   uid: string;
   displayName: string;
@@ -64,88 +76,76 @@ export interface User {
   photoURL?: string;
 }
 
+/**
+ * Props du composant principal ModernDevisSection.
+ * Permet de gérer l'affichage, la pagination, les filtres et les actions sur les devis/factures.
+ */
 interface ModernDevisSectionProps {
   activeDevisTab: "generes" | "uploades" | "Factures";
   setActiveDevisTab: (tab: "generes" | "uploades" | "Factures") => void;
-  paginatedDevis: DevisItem[];
-  setPaginatedDevis: React.Dispatch<React.SetStateAction<DevisItem[]>>;
-  listDevisConfigs: DevisItem[];
-  paginatedDevisConfigs: DevisItem[];
-  setPaginatedDevisConfigs: React.Dispatch<React.SetStateAction<DevisItem[]>>;
-  currentPage: number;
-  setCurrentPage: (page: number) => void;
-  currentPageUpload: number;
-  setCurrentPageUpload: (page: number) => void;
-  totalPages: number;
-  totalUploadPages: number;
-  itemsPerPage: number;
-  itemsPerPageUpload: number;
-  filteredDevis: DevisItem[];
+  devisTabsData: {
+    [key in "generes" | "uploades" | "Factures"]: {
+      items: DevisItem[];
+      setItems:
+        | React.Dispatch<React.SetStateAction<DevisItem[]>>
+        | (() => void);
+      filtered: DevisItem[];
+      currentPage: number;
+      setCurrentPage: (page: number) => void;
+      totalPages: number;
+      itemsPerPage: number;
+      type: "devis" | "devisConfig";
+    };
+  };
   filters: any;
   handleFilterChange: (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => void;
   setShowCreateModal: (show: boolean) => void;
   setSelectedDevisId: (id: string) => void;
-  handleEditDevis: (type: "devis" | "devisConfig", id: string) => void;
-  handleUpdateDevisConfigstatut: (
-    type: string,
+  handleEditDevis: (id: string) => void;
+  handleUpdateDevisStatus: (
+    type: "devis" | "devisConfig",
     id: string,
     status: string
   ) => void;
-  updatingstatutId: string | null;
+  updatingStatusId: string | null;
   userRole: string;
   currentUserId: string | null;
 }
 
+// ====================
+// Composant principal : ModernDevisSection
+// ====================
 
+/**
+ * Affiche et gère les devis/factures (créés, importés, validés) avec filtres, pagination, et attribution à un artisan.
+ */
 export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
   activeDevisTab,
   setActiveDevisTab,
-  paginatedDevis,
-  setPaginatedDevis,
-  listDevisConfigs,
-  paginatedDevisConfigs,
-  setPaginatedDevisConfigs,
-  currentPage,
-  setCurrentPage,
-  currentPageUpload,
-  setCurrentPageUpload,
-  totalPages,
-  totalUploadPages,
-  itemsPerPage,
-  itemsPerPageUpload,
-  filteredDevis,
+  devisTabsData,
   filters,
   handleFilterChange,
   setShowCreateModal,
   setSelectedDevisId,
   handleEditDevis,
-  handleUpdateDevisConfigstatut,
-  updatingstatutId,
+  handleUpdateDevisStatus,
+  updatingStatusId,
   userRole,
   currentUserId,
 }) => {
-  // Filtrage pour n'afficher que les devis attribués à l'artisan connecté
-  // const isArtisan = userRole === "artisan" && !!currentUserId;
-  // const filteredPaginatedDevisConfigs = isArtisan
-  //   ? paginatedDevisConfigs.filter(
-  //       (doc) => doc.attribution && doc.attribution.artisanId === currentUserId
-  //     )
-  //   : paginatedDevisConfigs;
-  // const filteredListDevisConfigs = isArtisan
-  //   ? listDevisConfigs.filter(
-  //       (doc) => doc.attribution && doc.attribution.artisanId === currentUserId
-  //     )
-  //   : listDevisConfigs;
-
+  // --- State hooks internes ---
   const [acceptedArtisans, setAcceptedArtisans] = useState<User[]>([]);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [assignDevisId, setAssignDevisId] = useState<string | null>(null);
+  // Récupération des paramètres d'URL (ex: projectId)
   const params = useParams() || {};
   const [selectedArtisanId, setSelectedArtisanId] = useState<string>("");
 
-  // Récupération des artisans acceptés du projet
+  // ====================
+  // Effet : Récupération des artisans acceptés pour le projet courant
+  // ====================
   const projectId = params.id
     ? Array.isArray(params.id)
       ? params.id[0]
@@ -174,7 +174,9 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
     getAcceptedArtisansForProject(projectId).then(setAcceptedArtisans);
   }, [projectId]);
 
-  // Fonction d'attribution d'un devis à un artisan
+  // ====================
+  // Fonction utilitaire : Attribution d'un devis à un artisan
+  // ====================
   async function attribuerDevis(
     devisId: string,
     artisanId: string,
@@ -196,8 +198,12 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
     }
   }
 
+  // --- Affichage des filtres ---
   const [showFilters, setShowFilters] = useState(false);
 
+  // ====================
+  // Sous-composant : Sélecteur de statut
+  // ====================
   const StatutSelect = ({
     value,
     onChange,
@@ -240,7 +246,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
       },
     ];
 
-    if (updatingstatutId === docId) {
+    if (updatingStatusId === docId) {
       return (
         <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-200">
           <div className="w-4 h-4 border-2 border-gray-300 border-t-[#f26755] rounded-full animate-spin"></div>
@@ -272,22 +278,9 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
     );
   };
 
-  // --- Pagination pour la section Factures ---
-  const [currentPageFactures, setCurrentPageFactures] = useState(1);
-  const itemsPerPageFactures = 5; // Modifie ce nombre si besoin
-
-  const facturesValidees = paginatedDevisConfigs.filter(
-    (doc) => doc.status && doc.status.trim().toLowerCase() === "validé"
-  );
-  const startIdxFactures = (currentPageFactures - 1) * itemsPerPageFactures;
-  const endIdxFactures = startIdxFactures + itemsPerPageFactures;
-  const paginatedFactures = facturesValidees.slice(startIdxFactures, endIdxFactures);
-  const totalPagesFactures = Math.ceil(facturesValidees.length / itemsPerPageFactures);
-
-  useEffect(() => {
-    if (activeDevisTab === "Factures") setCurrentPageFactures(1);
-  }, [activeDevisTab]);
-
+  // ====================
+  // Pagination générique
+  // ====================
   const Pagination = ({
     currentPage,
     totalPages,
@@ -362,7 +355,11 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
 
   return (
     <div className="mt-8">
-      {/* Onglets modernes - RESPONSIVE */}
+      {/*
+          ====================
+          Onglets principaux (Devis importés, Devis créés, Factures)
+          ====================
+        */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div className="flex bg-gray-100 rounded-xl p-1 w-full sm:w-auto">
           <button
@@ -422,10 +419,16 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
         </div>
       </div>
 
-      {/* Contenu des onglets */}
+      {/*
+          ====================
+          Contenu dynamique selon l'onglet sélectionné
+          ====================
+        */}
       {activeDevisTab === "uploades" && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-          {/* Header avec filtres */}
+          {/*
+                --- Header avec filtres pour les devis importés ---
+              */}
           <div className="p-6 border-b border-gray-200">
             <div className="flex items-center justify-between mb-4">
               <h4 className="text-lg font-bold text-gray-900">
@@ -473,13 +476,12 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                   <option value="En attente">En attente</option>
                   <option value="À modifier">À modifier</option>
                   <option value="Annulé">Annulé</option>
-
                 </select>
               </div>
             </div>
           </div>
 
-          {/* Tableau */}
+          {/* --- Tableau des devis importés --- */}
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50">
@@ -505,7 +507,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {paginatedDevis.length === 0 ? (
+                {devisTabsData["uploades"].items.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-6 py-12 text-center">
                       <div className="flex flex-col items-center gap-3">
@@ -520,7 +522,13 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                     </td>
                   </tr>
                 ) : (
-                  paginatedDevis.map((devisItem) => (
+                  (userRole === "artisan" && currentUserId
+                    ? devisTabsData["uploades"].items.filter(
+                        (devisItem) =>
+                          devisItem.attribution?.artisanId === currentUserId
+                      )
+                    : devisTabsData["uploades"].items
+                  ).map((devisItem) => (
                     <tr
                       key={devisItem.id}
                       className="hover:bg-gray-50 transition-colors"
@@ -544,13 +552,13 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                         <StatutSelect
                           value={devisItem.status || "En Attente"}
                           onChange={(value) =>
-                            handleUpdateDevisConfigstatut(
+                            handleUpdateDevisStatus(
                               "devis",
                               devisItem.id,
                               value
                             )
                           }
-                          disabled={updatingstatutId !== null}
+                          disabled={updatingStatusId !== null}
                           docId={devisItem.id}
                         />
                       </td>
@@ -626,19 +634,23 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
           </div>
 
           {/* Pagination */}
-          {paginatedDevis.length > 0 && (
+          {devisTabsData["uploades"].items.length > 0 && (
             <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={setCurrentPage}
-              totalItems={filteredDevis.length}
-              itemsPerPage={itemsPerPage}
+              currentPage={devisTabsData["uploades"].currentPage}
+              totalPages={devisTabsData["uploades"].totalPages}
+              onPageChange={devisTabsData["uploades"].setCurrentPage}
+              totalItems={devisTabsData["uploades"].filtered.length}
+              itemsPerPage={devisTabsData["uploades"].itemsPerPage}
             />
           )}
         </div>
       )}
 
-      {/* Devis créés */}
+      {/*
+          ====================
+          Section : Devis créés
+          ====================
+        */}
       {activeDevisTab === "generes" && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="p-6 border-b border-gray-200">
@@ -691,8 +703,6 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
             </div>
           </div>
 
-
-
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50">
@@ -718,8 +728,13 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {listDevisConfigs && listDevisConfigs.length > 0 ? (
-                  paginatedDevisConfigs.map((doc) => (
+                {devisTabsData["generes"].items.length > 0 ? (
+                  (userRole === "artisan" && currentUserId
+                    ? devisTabsData["generes"].items.filter(
+                        (doc) => doc.attribution?.artisanId === currentUserId
+                      )
+                    : devisTabsData["generes"].items
+                  ).map((doc) => (
                     <tr
                       key={doc.id}
                       className="hover:bg-gray-50 transition-colors"
@@ -743,13 +758,13 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                         <StatutSelect
                           value={doc.status || "En Attente"}
                           onChange={(value) =>
-                            handleUpdateDevisConfigstatut(
+                            handleUpdateDevisStatus(
                               "devisConfig",
                               doc.id,
                               value
                             )
                           }
-                          disabled={updatingstatutId !== null}
+                          disabled={updatingStatusId !== null}
                           docId={doc.id}
                         />
                       </td>
@@ -789,9 +804,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem
-                              onClick={() =>
-                                handleEditDevis("devisConfig", doc.id)
-                              }
+                              onClick={() => handleEditDevis(doc.id)}
                             >
                               <FileText className="w-4 h-4 mr-2" /> Modifier
                             </DropdownMenuItem>
@@ -833,177 +846,186 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
           </div>
 
           {/* Pagination */}
-          {listDevisConfigs && listDevisConfigs.length > 0 && (
+          {devisTabsData["generes"].items.length > 0 && (
             <Pagination
-              currentPage={currentPageUpload}
-              totalPages={totalUploadPages}
-              onPageChange={setCurrentPageUpload}
-              totalItems={listDevisConfigs.length}
-              itemsPerPage={itemsPerPageUpload}
+              currentPage={devisTabsData["generes"].currentPage}
+              totalPages={devisTabsData["generes"].totalPages}
+              onPageChange={devisTabsData["generes"].setCurrentPage}
+              totalItems={devisTabsData["generes"].filtered.length}
+              itemsPerPage={devisTabsData["generes"].itemsPerPage}
             />
           )}
         </div>
       )}
 
-      {/*Factures*/}
+      {/*
+          ====================
+          Section : Factures validées
+          ====================
+        */}
       {activeDevisTab === "Factures" && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center justify-between mb-4">
-            <h4 className="text-lg font-bold text-gray-900">Factures</h4>
-          </div>
-  
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-lg font-bold text-gray-900">Factures</h4>
+            </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Numéro
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Titre
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Attribué
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Statut
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Montant
-                  </th>
-                  <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {paginatedFactures && paginatedFactures.length > 0 ? (
-                  paginatedFactures.map((doc) => (
-                    <tr
-                      key={doc.id}
-                      className="hover:bg-gray-50 transition-colors"
-                    >
-                      <td className="px-6 py-4">
-                        <span className="font-mono text-sm font-medium text-gray-900">
-                          {doc.numero || "-"}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="font-medium text-gray-900">
-                          {doc.titre || "-"}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="font-medium text-gray-900">
-                          {doc.attribution?.artisanName || "-"}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        {doc.status}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-1">
-                          <Euro className="h-4 w-4 text-gray-400" />
-                          <span className="font-semibold text-gray-900">
-                            {Array.isArray(doc.selectedItems) &&
-                            doc.selectedItems.length > 0
-                              ? doc.selectedItems
-                                  .reduce((sum: number, item: any) => {
-                                    const tva =
-                                      typeof item.tva === "number"
-                                        ? item.tva
-                                        : parseFloat(item.tva as string) || 20;
-                                    return (
-                                      sum +
-                                      item.quantite *
-                                        item.prix_ht *
-                                        (1 + tva / 100)
-                                    );
-                                  }, 0)
-                                  .toLocaleString("fr-FR", {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2,
-                                  })
-                              : "-"}
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Numéro
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Titre
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Attribué
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Statut
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Montant
+                    </th>
+                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {devisTabsData["Factures"].items.length > 0 ? ( 
+                    (userRole === "artisan" && currentUserId
+                    ? devisTabsData["Factures"].items.filter(
+                        (doc) => doc.attribution?.artisanId === currentUserId
+                      )
+                    : devisTabsData["Factures"].items).map((doc) => (
+                      <tr
+                        key={doc.id}
+                        className="hover:bg-gray-50 transition-colors"
+                      >
+                        <td className="px-6 py-4">
+                          <span className="font-mono text-sm font-medium text-gray-900">
+                            {doc.numero || "-"}
                           </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="font-medium text-gray-900">
+                            {doc.titre || "-"}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="font-medium text-gray-900">
+                            {doc.attribution?.artisanName || "-"}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">{doc.status}</td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-1">
+                            <Euro className="h-4 w-4 text-gray-400" />
+                            <span className="font-semibold text-gray-900">
+                              {Array.isArray(doc.selectedItems) &&
+                              doc.selectedItems.length > 0
+                                ? doc.selectedItems
+                                    .reduce((sum: number, item: any) => {
+                                      const tva =
+                                        typeof item.tva === "number"
+                                          ? item.tva
+                                          : parseFloat(item.tva as string) ||
+                                            20;
+                                      return (
+                                        sum +
+                                        item.quantite *
+                                          item.prix_ht *
+                                          (1 + tva / 100)
+                                      );
+                                    }, 0)
+                                    .toLocaleString("fr-FR", {
+                                      minimumFractionDigits: 2,
+                                      maximumFractionDigits: 2,
+                                    })
+                                : "-"}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button className="inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100">
+                                <MoreVertical className="w-5 h-5 text-gray-500" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {
+                                <>
+                                  <DropdownMenuItem asChild>
+                                    <a
+                                      href={doc.pdfUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="flex items-center gap-3 w-full"
+                                    >
+                                      <FileText className="w-4 h-4 mr-2" />{" "}
+                                      Visualiser PDF
+                                    </a>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem asChild>
+                                    <a
+                                      href={doc.pdfUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      download
+                                      className="flex items-center gap-3 w-full"
+                                    >
+                                      <Download className="w-4 h-4 mr-2" />{" "}
+                                      Télécharger PDF
+                                    </a>
+                                  </DropdownMenuItem>
+                                </>
+                              }
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-12 text-center">
+                        <div className="flex flex-col items-center gap-3">
+                          <Calendar className="h-12 w-12 text-gray-300" />
+                          <p className="text-gray-500 font-medium">
+                            Aucune facture validée
+                          </p>
+                          <p className="text-sm text-gray-400">
+                            Il n'y a aucune facture validée pour l’instant.
+                          </p>
                         </div>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button className="inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100">
-                              <MoreVertical className="w-5 h-5 text-gray-500" />
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                          {(
-                              <>
-                                <DropdownMenuItem asChild>
-                                  <a
-                                    href={doc.pdfUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center gap-3 w-full"
-                                  >
-                                    <FileText className="w-4 h-4 mr-2" />{" "}
-                                    Visualiser PDF
-                                  </a>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem asChild>
-                                  <a
-                                    href={doc.pdfUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    download
-                                    className="flex items-center gap-3 w-full"
-                                  >
-                                    <Download className="w-4 h-4 mr-2" />{" "}
-                                    Télécharger PDF
-                                  </a>
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center">
-                      <div className="flex flex-col items-center gap-3">
-                        <Calendar className="h-12 w-12 text-gray-300" />
-                        <p className="text-gray-500 font-medium">
-                          Aucune facture validée
-                        </p>
-                        <p className="text-sm text-gray-400">
-                        Il n'y a aucune facture validée pour l’instant.
-                        </p>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-            {/* Pagination Factures */}
-            {facturesValidees && facturesValidees.length > 0 && (
-              <Pagination
-                currentPage={currentPageFactures}
-                totalPages={totalPagesFactures}
-                onPageChange={setCurrentPageFactures}
-                totalItems={facturesValidees.length}
-                itemsPerPage={itemsPerPageFactures}
-              />
-            )}
+                  )}
+                </tbody>
+              </table>
+              {/* --- Pagination des factures validées --- */}
+              {devisTabsData["Factures"] && devisTabsData["Factures"].items.length > 0 && (
+                <Pagination
+                  currentPage={devisTabsData["Factures"].currentPage}
+                  totalPages={devisTabsData["Factures"].totalPages}
+                  onPageChange={devisTabsData["Factures"].setCurrentPage}
+                  totalItems={devisTabsData["Factures"].filtered.length}
+                  itemsPerPage={devisTabsData["Factures"].itemsPerPage}
+                />
+              )}
+            </div>
           </div>
         </div>
-      </div>
       )}
-      
 
-      {/* Modal d'attribution */}
+      {/*
+          ====================
+          Modal d'attribution d'un devis à un artisan
+          ====================
+        */}
       {showAssignModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
           <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md relative">
@@ -1057,35 +1079,19 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                   activeDevisTab === "generes" ? "devisConfig" : "devis"
                 );
                 // Mise à jour du state local pour affichage immédiat
-                if (activeDevisTab === "generes") {
-                  setPaginatedDevisConfigs((prev) =>
-                    prev.map((devis) =>
-                      devis.id === assignDevisId
-                        ? {
-                            ...devis,
-                            attribution: {
-                              artisanId: artisan.uid,
-                              artisanName: artisan.displayName || artisan.email,
-                            },
-                          }
-                        : devis
-                    )
-                  );
-                } else {
-                  setPaginatedDevis((prev) =>
-                    prev.map((devis) =>
-                      devis.id === assignDevisId
-                        ? {
-                            ...devis,
-                            attribution: {
-                              artisanId: artisan.uid,
-                              artisanName: artisan.displayName || artisan.email,
-                            },
-                          }
-                        : devis
-                    )
-                  );
-                }
+                devisTabsData[activeDevisTab].setItems((prev) =>
+                  prev.map((devis) =>
+                    devis.id === assignDevisId
+                      ? {
+                          ...devis,
+                          attribution: {
+                            artisanId: artisan.uid,
+                            artisanName: artisan.displayName || artisan.email,
+                          },
+                        }
+                      : devis
+                  )
+                );
                 setShowAssignModal(false);
                 setAssignDevisId(null);
                 setSelectedArtisanId("");
