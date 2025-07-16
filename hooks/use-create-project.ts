@@ -17,16 +17,19 @@ export interface CreateProjectInput {
   paidAmount: number;
   startDate: string;
   estimatedEndDate: string;
-  status: "En cours" | "En attente" | "Terminé"; // Removed "Annulé" to match ProjectStatus
+  status: "En cours" | "En attente" | "Terminé";
   progress: number;
   type: string;
   location: string;
   firstDepositPercent: number;
   clientEmail: string;
+  clientFullName: string; // ✅ AJOUTÉ
+  clientPhone: string;    // ✅ AJOUTÉ
   image?: string;
   amoIncluded?: boolean;
   addressDetails?: string;
 }
+
 
 export function useCreateProject() {
   const [loading, setLoading] = useState(false);
@@ -72,13 +75,15 @@ export function useCreateProject() {
         await setDoc(doc(db, "users", clientUid), {
           uid: clientUid,
           email: clientEmail,
-          firstName: null,
-          lastName: null,
+          firstName: data.clientFullName || "", // le nom complet dans firstName
+          lastName: "",                         // vide pour ne rien afficher
           company: null,
-          phone: null,
+          phone: data.clientPhone || null,
           role: "client",
           createdAt: new Date().toISOString(),
         });
+        
+        
         await fetch("/api/send-email", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
