@@ -30,14 +30,14 @@ async function getRevolutAccessToken({ code }: { code: string }) {
   const iss = process.env.REVOLUT_JWT_ISS || 'localhost:3000';
   if (!clientId) throw new Error('Client ID manquant');
   if (!code) throw new Error('Code d\'autorisation OAuth manquant');
-  const certPath = path.resolve(process.cwd(), 'public/publiccert.cer');
-  const keyPath = path.resolve(process.cwd(), 'public/privatecert.pem');
-  const cert = Buffer.from(process.env.REVOLUT_CERT || '', 'utf8');
-  console.log("Cert : ", cert);
-  const key = Buffer.from(process.env.REVOLUT_PRIVATE_KEY || '', 'utf8');
-  console.log("Key : ", key);
+
+  // Lecture des secrets depuis secrets.json
+  const secretsPath = path.resolve(process.cwd(), 'secrets.json');
+  const secrets = JSON.parse(fs.readFileSync(secretsPath, 'utf8'));
+  const cert = Buffer.from(secrets.REVOLUT_CERT, 'utf8');
+  const key = Buffer.from(secrets.REVOLUT_PRIVATE_KEY, 'utf8');
   const agent = new https.Agent({ cert, key });
-  const privateKey = process.env.REVOLUT_PRIVATE_KEY || '';
+  const privateKey = secrets.REVOLUT_PRIVATE_KEY;
   const clientAssertion = generateClientAssertion({ clientId, iss, privateKey });
   const params = new URLSearchParams();
   params.append('grant_type', 'authorization_code');
