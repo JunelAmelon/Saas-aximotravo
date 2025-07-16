@@ -25,9 +25,9 @@ export default function MainLayout({
   // Bloque l'accès si non connecté (hors page de login)
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const isLoginPage = window.location.pathname === '/login';
+    const isLoginPage = window.location.pathname === '/auth/login';
     if (!currentUser && !isLoginPage) {
-      router.push('/login');
+      router.push('/auth/login');
     }
   }, [currentUser, router]);
 
