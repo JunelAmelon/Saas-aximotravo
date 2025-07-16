@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { createProject } from "@/lib/firebase/projects";
-import { getUserById, getUserByEmail, createUser as createUserInDb } from "@/lib/firebase/users";
+import {
+  getUserById,
+  getUserByEmail,
+  createUser as createUserInDb,
+} from "@/lib/firebase/users";
 import { createUser as createUserWithAuth } from "@/lib/firebase/auth";
 import { auth } from "@/lib/firebase/config";
 import { User as FirebaseUser } from "firebase/auth";
@@ -8,7 +12,6 @@ import { useAuth } from "@/lib/contexts/AuthContext";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 import { createAccompte } from "@/lib/firebase/accomptes";
-
 
 export interface CreateProjectInput {
   name: string;
@@ -39,7 +42,9 @@ export function useCreateProject() {
 
   // Génère un mot de passe aléatoire sécurisé
   function generateRandomPassword(length = 12) {
-    return Array.from({ length }, () => Math.random().toString(36).slice(2)).join('').slice(0, length);
+    return Array.from({ length }, () => Math.random().toString(36).slice(2))
+      .join("")
+      .slice(0, length);
   }
 
   const addProject = async (data: CreateProjectInput) => {
@@ -67,7 +72,9 @@ export function useCreateProject() {
           body: JSON.stringify({ email: clientEmail, password }),
         });
         if (!res.ok) {
-          throw new Error("Erreur lors de la création du compte client: " + (await res.text()));
+          throw new Error(
+            "Erreur lors de la création du compte client: " + (await res.text())
+          );
         }
         const dataRes = await res.json();
         clientUid = dataRes.uid;
@@ -123,6 +130,7 @@ export function useCreateProject() {
     </p>
   </div>
 </div>`,
+            // text: Votre compte a été créé.\nEmail: ${clientEmail}\nMot de passe: ${password},
             fromName: "Aximotravo",
           }),
         });
@@ -133,16 +141,18 @@ export function useCreateProject() {
       let broker = null;
       if (currentUser?.uid) {
         const brokerUser = await getUserById(currentUser.uid);
-        broker = brokerUser ? {
-          id: brokerUser.uid,
-          name: brokerUser.displayName || '',
-          company: (brokerUser as any).companyName || '',
-          rating: (brokerUser as any).rating || null,
-          projectsCount: (brokerUser as any).projectsCount || null,
-          specialties: (brokerUser as any).specialties || [],
-          image: brokerUser.image || '',
-          phone: brokerUser.phone || '',
-        } : null;
+        broker = brokerUser
+          ? {
+              id: brokerUser.uid,
+              name: brokerUser.displayName || "",
+              company: (brokerUser as any).companyName || "",
+              rating: (brokerUser as any).rating || null,
+              projectsCount: (brokerUser as any).projectsCount || null,
+              specialties: (brokerUser as any).specialties || [],
+              image: brokerUser.image || "",
+              phone: brokerUser.phone || "",
+            }
+          : null;
       }
       // 5. Créer le projet
       const project = await createProject({
@@ -153,18 +163,18 @@ export function useCreateProject() {
         broker,
         image: image || undefined,
         amoIncluded: amoIncluded ?? false,
-        addressDetails: addressDetails || '',
+        addressDetails: addressDetails || "",
       });
       // 6. Créer automatiquement le premier accompte (nouvelle structure)
       const accompteAmount = data.budget * (data.firstDepositPercent / 100);
       const today = new Date();
-      const dateStr = today.toISOString().split('T')[0];
+      const dateStr = today.toISOString().split("T")[0];
       await createAccompte({
         projectId: project.id,
-        title: 'Premier accompte',
+        title: "Premier accompte",
         date: dateStr,
-        description: 'Premier versement à la signature du contrat',
-        status: 'en_attente',
+        description: "Premier versement à la signature du contrat",
+        status: "en_attente",
         amount: accompteAmount,
         images: [],
       });

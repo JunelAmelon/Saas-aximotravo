@@ -64,6 +64,7 @@ export function useArtisanDashboard(): UseArtisanDashboardResult {
           return projectData;
         })
       );
+      console.log(projectsData);
       // Enrichir chaque projet avec les infos client pour l'affichage
       const formattedProjects = await Promise.all(
         projects.filter(Boolean).map(async (project: any) => {
@@ -92,7 +93,7 @@ export function useArtisanDashboard(): UseArtisanDashboardResult {
         })
       );
       setProjects(formattedProjects);
-
+      console.log(formattedProjects);
       // Générer la liste des projets récents (acceptés, triés par acceptedAt)
       const recents = (await Promise.all(
         projectsData
@@ -120,7 +121,7 @@ export function useArtisanDashboard(): UseArtisanDashboardResult {
       // Récupérer les rendez-vous à venir (start > maintenant) pour l'artisan
       const now = new Date();
       // On récupère les rendez-vous des projets de l'artisan
-      const projectIds = projects.map((p: any) => p.id);
+      const projectIds = formattedProjects.map((p: any) => p.id);
       let allAppointments: Event[] = [];
       for (const projectId of projectIds) {
         const projectEvents = await queryDocuments(
@@ -132,9 +133,10 @@ export function useArtisanDashboard(): UseArtisanDashboardResult {
       }
       // Filtrer pour ne garder que les rendez-vous à venir
       const upcomingAppointments = allAppointments
-        .filter(ev => ev.start && new Date(ev.start) > now)
+        .filter(ev => ev.end && new Date(ev.end) >= now)
         .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
       setAppointments(upcomingAppointments);
+      console.log("upcomingAppointments", allAppointments);
 
       // 3. Fetch clients for the artisan's projects
       const clientIds = Array.from(
@@ -163,10 +165,10 @@ export function useArtisanDashboard(): UseArtisanDashboardResult {
       setActivities(activitiesArr.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)));
 
       // 5. Compute stats
-      const totalProjects = projectsData.length;
-      const activeProjects = projectsData.filter((p: any) => p.status === 'En cours').length;
-      const completedProjects = projectsData.filter((p: any) => p.status === 'Terminé').length;
-      const pendingProjects = projectsData.filter((p: any) => p.status === 'En attente').length;
+      const totalProjects = formattedProjects.length;
+      const activeProjects = formattedProjects.filter((p: any) => p.status === 'En cours').length;
+      const completedProjects = formattedProjects.filter((p: any) => p.status === 'Terminé').length;
+      const pendingProjects = formattedProjects.filter((p: any) => p.status === 'En attente').length;
       setStats({ totalProjects, activeProjects, completedProjects, pendingProjects });
     } catch (err: any) {
       setError(err.message || 'Erreur lors du chargement du dashboard');
