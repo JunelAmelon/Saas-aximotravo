@@ -45,7 +45,7 @@ async function getRevolutAccessToken({ code }: { code: string }) {
   params.append('client_assertion_type', 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer');
   params.append('client_assertion', clientAssertion);
   const response = await axios.post(
-    'https://sandbox-b2b.revolut.com/api/1.0/auth/token',
+    'https://b2b.revolut.com/api/1.0/auth/token',
     params,
     {
       httpsAgent: agent,
@@ -75,7 +75,7 @@ export default async function handler(
     }
     // Récupération du token via client_assertion
     const token = await getRevolutAccessToken({ code });
-    const response = await axios.get('https://sandbox-b2b.revolut.com/api/1.0/transactions', {
+    const response = await axios.get('https://b2b.revolut.com/api/1.0/transactions', {
       headers: {
         Accept: 'application/json',
         Authorization: `Bearer ${token}`,
