@@ -262,11 +262,9 @@ export default function ProjectDetails() {
   const { id } = params ?? {};
 
   // --- États de base ---
-  const [activeDevisTab, setActiveDevisTab] = useState<
-    "uploades" | "generes" | "Factures"
-  >("uploades");
+  const [activeDevisTab, setActiveDevisTab] = useState<"uploades" | "generes" | "Factures">("uploades");
   const [devisImportes, setDevisImportes] = useState<any[]>([]); // devis (importés)
-  const [devisGeneres, setDevisGeneres] = useState<any[]>([]);
+  const [devisGeneres, setDevisGeneres] = useState<any[]>([]); 
   const [devisFactures, setDevisFactures] = useState<any[]>([]); // devisConfig (générés)
   const [currentPageImportes, setCurrentPageImportes] = useState(1);
   const [currentPageGeneres, setCurrentPageGeneres] = useState(1);
@@ -274,7 +272,10 @@ export default function ProjectDetails() {
   const itemsPerPage = 5;
   const [filters, setFilters] = useState({
     titre: "",
+    type: "",
     status: "",
+    montantMin: "",
+    montantMax: "",
   });
 
   const getDevisForProject = async (projectId: string): Promise<any[]> => {
@@ -289,9 +290,7 @@ export default function ProjectDetails() {
     }
   };
 
-  const getDevisConfigForProject = async (
-    projectId: string
-  ): Promise<any[]> => {
+  const getDevisConfigForProject = async (projectId: string): Promise<any[]> => {
     try {
       const devisConfigRef = collection(db, "devisConfig");
       const q = query(devisConfigRef, where("projectId", "==", projectId));
@@ -310,58 +309,85 @@ export default function ProjectDetails() {
     getDevisForProject(id).then(setDevisImportes);
     getDevisConfigForProject(id).then((allDevisGeneres) => {
       setDevisGeneres(allDevisGeneres);
-      setDevisFactures(
-        allDevisGeneres.filter((d) => d.status?.toLowerCase() === "validé")
-      );
+      setDevisFactures(allDevisGeneres.filter((d) => d.status?.toLowerCase() === "validé"));
     });
   }, [id, currentUser?.uid]);
 
   // --- Filtres et pagination mutualisés ---
-  const filterDevis = (items: any[]) =>
-    items.filter(
+  const filterDevis = (list: any[]) =>
+    list.filter(
       (item) =>
         (!filters.titre ||
           item.titre?.toLowerCase().includes(filters.titre.toLowerCase())) &&
-        (!filters.status || item.status === filters.status)
+        (!filters.type ||
+          item.type?.toLowerCase().includes(filters.type.toLowerCase())) &&
+        (!filters.status || item.status === filters.status) &&
+        (!filters.montantMin ||
+          item.montant >= parseFloat(filters.montantMin)) &&
+        (!filters.montantMax || item.montant <= parseFloat(filters.montantMax))
     );
 
+  const filteredImportes = filterDevis(devisImportes);
+  const filteredGeneres = filterDevis(devisGeneres);
   const filteredFactures = filterDevis(
     devisGeneres.filter((d) => d.status?.toLowerCase() === "validé")
   );
 
+  const totalPagesImportes = Math.max(
+    1,
+    Math.ceil(filteredImportes.length / itemsPerPage)
+  );
+  const totalPagesGeneres = Math.max(
+    1,
+    Math.ceil(filteredGeneres.length / itemsPerPage)
+  );
+  const totalPagesFactures = Math.max(
+    1,
+    Math.ceil(filteredFactures.length / itemsPerPage)
+  );
 
-
+  const paginatedImportes = filteredImportes.slice(
+    (currentPageImportes - 1) * itemsPerPage,
+    currentPageImportes * itemsPerPage
+  );
+  const paginatedGeneres = filteredGeneres.slice(
+    (currentPageGeneres - 1) * itemsPerPage,
+    currentPageGeneres * itemsPerPage
+  );
   const paginatedFactures = filteredFactures.slice(
     (currentPageFactures - 1) * itemsPerPage,
     currentPageFactures * itemsPerPage
   );
 
- console.log("paginatedImportes", devisImportes);
- console.log("paginatedGeneres", devisGeneres);
- console.log("paginatedFactures", devisFactures);
   // --- Centralisation pour ModernDevisSection ---
   const devisTabsData = {
     uploades: {
-      items: devisImportes,
+      items: paginatedImportes,
       setItems: setDevisImportes,
+      filtered: filteredImportes,
       currentPage: currentPageImportes,
       setCurrentPage: setCurrentPageImportes,
+      totalPages: totalPagesImportes,
       itemsPerPage,
       type: "devis",
     },
     generes: {
-      items: devisGeneres,
+      items: paginatedGeneres,
       setItems: setDevisGeneres,
+      filtered: filteredGeneres,
       currentPage: currentPageGeneres,
       setCurrentPage: setCurrentPageGeneres,
+      totalPages: totalPagesGeneres,
       itemsPerPage,
       type: "devisConfig",
     },
     Factures: {
-      items: filteredFactures,
+      items: paginatedFactures,
       setItems: setDevisFactures, // ou un setter dédié si tu veux séparer
+      filtered: filteredFactures,
       currentPage: currentPageFactures,
       setCurrentPage: setCurrentPageFactures,
+      totalPages: totalPagesFactures,
       itemsPerPage,
       type: "devisConfig",
     },
@@ -374,7 +400,7 @@ export default function ProjectDetails() {
   ) => {
     const { name, value } = e.target;
     setFilters((prev) => ({ ...prev, [name]: value }));
-
+  
     // Remettre la page à 1 selon l'onglet actif
     switch (activeDevisTab) {
       case "uploades":
@@ -390,22 +416,6 @@ export default function ProjectDetails() {
         break;
     }
   };
-
-  useEffect(() => {
-    switch (activeDevisTab) {
-      case "uploades":
-        setCurrentPageImportes(1);
-        break;
-      case "generes":
-        setCurrentPageGeneres(1);
-        break;
-      case "Factures":
-        setCurrentPageFactures(1);
-        break;
-      default:
-        break;
-    }
-  }, [activeDevisTab]);
 
   const handleUpdateDevisStatus = async (
     type: "devis" | "devisConfig",
