@@ -408,11 +408,6 @@ export default function ProjectDetails() {
     devisGeneres.filter((d) => d.status?.toLowerCase() === "validé")
   );
 
-  const paginatedFactures = filteredFactures.slice(
-    (currentPageFactures - 1) * itemsPerPage,
-    currentPageFactures * itemsPerPage
-  );
-
   // --- Centralisation pour ModernDevisSection ---
   const devisTabsData = {
     uploades: {
