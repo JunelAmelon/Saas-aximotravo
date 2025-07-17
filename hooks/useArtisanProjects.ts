@@ -10,6 +10,7 @@ export interface ArtisanProject {
   deadline: string;
   location: string;
   amoIncluded: boolean;
+  acceptedAt?: string | null; // Ajouté pour la date de rattachement
 }
 
 export function useArtisanProjects() {
@@ -65,6 +66,13 @@ export function useArtisanProjects() {
                 image: p.image,
                 location: p.location,
                 amoIncluded: p.amoIncluded || false,
+                acceptedAt: inv.acceptedAt
+                ? (typeof inv.acceptedAt.toDate === "function"
+                    ? inv.acceptedAt.toDate().toISOString()
+                    : typeof inv.acceptedAt === "string"
+                      ? inv.acceptedAt
+                      : null)
+                : null
               } as ArtisanProject;
             })
         );

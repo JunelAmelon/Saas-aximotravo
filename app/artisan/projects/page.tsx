@@ -32,6 +32,7 @@ interface Project {
   date?: string;
   location?: string;
   amoIncluded?: boolean;
+  acceptedAt?: string;
 }
 
 const statusConfig: Record<ProjectStatus, StatusConfig> = {
@@ -99,6 +100,7 @@ export default function ArtisanProjects() {
               "Non spécifiée",
             location: p.location || "Non spécifié",
             amoIncluded: !!p.amoIncluded,
+            acceptedAt: p.acceptedAt || null,
           };
         })
       );
@@ -112,7 +114,14 @@ export default function ArtisanProjects() {
     setCurrentPage(1);
   };
 
-  const filteredProjects = projects.filter((project) => {
+  // Tri par date de rattachement du plus récent au plus ancien
+  const sortedProjects = projects.slice().sort((a, b) => {
+    const dateA = a.acceptedAt ? new Date(a.acceptedAt).getTime() : 0;
+    const dateB = b.acceptedAt ? new Date(b.acceptedAt).getTime() : 0;
+    return dateB - dateA;
+  });
+
+  const filteredProjects = sortedProjects.filter((project) => {
     const clientName = project.client || "";
     const matchesSearch =
       (project.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -126,6 +135,11 @@ export default function ArtisanProjects() {
     (currentPage - 1) * projectsPerPage,
     currentPage * projectsPerPage
   );
+
+  console.log("sortedProjects", sortedProjects.map(p => ({
+    name: p.name,
+    acceptedAt: p.acceptedAt
+  })));
 
   const hasActiveFilters = searchTerm !== "" || statusFilter !== "";
 

@@ -329,6 +329,7 @@ export default function CourtierProjects() {
       {totalPages > 1 && (
         <div className="flex justify-center gap-2 mt-8">
           <button
+            aria-label="CurrentPage"
             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
             disabled={currentPage === 1}
             className="p-2 rounded-full border border-gray-200 hover:bg-gray-50 disabled:opacity-50 transition-all"
@@ -345,6 +346,7 @@ export default function CourtierProjects() {
             </button>
           ))}
           <button
+            aria-label="CurrentPage"
             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
             className="p-2 rounded-full border border-gray-200 hover:bg-gray-50 disabled:opacity-50 transition-all"

@@ -30,14 +30,14 @@ async function getRevolutAccessToken({ code }: { code: string }) {
   const iss = process.env.REVOLUT_JWT_ISS || 'localhost:3000';
   if (!clientId) throw new Error('Client ID manquant');
   if (!code) throw new Error('Code d\'autorisation OAuth manquant');
-  const certPath = path.resolve(process.cwd(), 'public/publiccert.cer');
-  const keyPath = path.resolve(process.cwd(), 'public/privatecert.pem');
-  const cert = Buffer.from(process.env.REVOLUT_CERT || '', 'utf8');
-  console.log("Cert : ", cert);
-  const key = Buffer.from(process.env.REVOLUT_PRIVATE_KEY || '', 'utf8');
-  console.log("Key : ", key);
+
+  // Lecture des secrets depuis secrets.json
+  const secretsPath = path.resolve(process.cwd(), 'secrets.json');
+  const secrets = JSON.parse(fs.readFileSync(secretsPath, 'utf8'));
+  const cert = Buffer.from(secrets.REVOLUT_CERT, 'utf8');
+  const key = Buffer.from(secrets.REVOLUT_PRIVATE_KEY, 'utf8');
   const agent = new https.Agent({ cert, key });
-  const privateKey = process.env.REVOLUT_PRIVATE_KEY || '';
+  const privateKey = secrets.REVOLUT_PRIVATE_KEY;
   const clientAssertion = generateClientAssertion({ clientId, iss, privateKey });
   const params = new URLSearchParams();
   params.append('grant_type', 'authorization_code');
@@ -45,7 +45,7 @@ async function getRevolutAccessToken({ code }: { code: string }) {
   params.append('client_assertion_type', 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer');
   params.append('client_assertion', clientAssertion);
   const response = await axios.post(
-    'https://sandbox-b2b.revolut.com/api/1.0/auth/token',
+    'https://b2b.revolut.com/api/1.0/auth/token',
     params,
     {
       httpsAgent: agent,
@@ -75,7 +75,7 @@ export default async function handler(
     }
     // Récupération du token via client_assertion
     const token = await getRevolutAccessToken({ code });
-    const response = await axios.get('https://sandbox-b2b.revolut.com/api/1.0/transactions', {
+    const response = await axios.get('https://b2b.revolut.com/api/1.0/transactions', {
       headers: {
         Accept: 'application/json',
         Authorization: `Bearer ${token}`,

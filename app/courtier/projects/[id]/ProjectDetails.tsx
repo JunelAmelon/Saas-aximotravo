@@ -102,25 +102,14 @@ export interface ProjectDetails {
   artisans?: User[];
 }
 
-// --- SERVICES & FONCTIONS UTILITAIRES FIRESTORE ---
+// ====================
+// Fonctions utilitaires Firestore (hors devis)
+// ====================
 
 /**
- * Récupère tous les devis d'un projet
- */
-export const getDevisForProject = async (projectId: string) => {
-  try {
-    const devisRef = collection(db, "devis");
-    const q = query(devisRef, where("projectId", "==", projectId));
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-  } catch (error) {
-    console.error("Erreur lors de la récupération des devis:", error);
-    return [];
-  }
-};
-
-/**
- * Récupère un utilisateur par son ID
+ * Récupère un utilisateur par son ID depuis Firestore.
+ * @param uid - Identifiant utilisateur
+ * @returns L'utilisateur (User) ou null
  */
 export const getUserById = async (
   uid: string | number
@@ -135,30 +124,6 @@ export const getUserById = async (
     return null;
   }
 };
-
-/**
- * Récupère les détails d'un projet enrichi avec client et courtier
- */
-export const getDevisConfigForProject = async (
-  projectId: string,
-  userId: string
-) => {
-  try {
-    const devisConfigRef = collection(db, "devisConfig");
-    const q = query(
-      devisConfigRef,
-      where("projectId", "==", projectId),
-      where("userId", "==", userId)
-    );
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-  } catch (error) {
-    console.error("Erreur lors de la récupération des devisConfig:", error);
-    return [];
-  }
-};
-
-const currentUserId = useCurrentUserId();
 
 export const getProjectDetail = async (
   id: string
@@ -344,18 +309,12 @@ import { useCurrentUserId } from "@/hooks/useCurrentUserId";
 
 export default function ProjectDetails() {
   const [showAddressDetails, setShowAddressDetails] = useState(false);
-  const [currentPageUpload, setCurrentPageUpload] = useState(1);
-  const itemsPerPageUpload = 5;
-  const [activeDevisTab, setActiveDevisTab] = React.useState<
-    "generes" | "uploades" | "Factures"
-  >("uploades");
   const [selectedDevisId, setSelectedDevisId] = useState<string | null>(null);
-const [selectedDevisType, setSelectedDevisType] = useState<"devis" | "devisConfig" | null>(null);
+
   const [step, setStep] = useState<
     "create" | "pieces" | "calcul" | "generation" | null
   >(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
   const {
     currentDevis,
     createDevis,
@@ -378,12 +337,187 @@ const [selectedDevisType, setSelectedDevisType] = useState<"devis" | "devisConfi
     setStep(null); // Ferme PiecesSelectionModal
     setShowCreateModal(true); // Réaffiche la modale de création
   };
-  const [updatingstatusId, setUpdatingstatusId] = useState<string | null>(null);
-  // ...
-  const [devis, setDevis] = useState<any[]>([]);
-  const [listDevisConfigs, setListDevisConfigs] = useState<any[]>([]);
   const params = useParams<{ id: string; tab?: string }>();
   const { id } = params || {};
+
+  // --- États de base ---
+  const [activeDevisTab, setActiveDevisTab] = useState<
+    "uploades" | "generes" | "Factures"
+  >("uploades");
+  const [devisImportes, setDevisImportes] = useState<any[]>([]); // devis (importés)
+  const [devisGeneres, setDevisGeneres] = useState<any[]>([]);
+  const [devisFactures, setDevisFactures] = useState<any[]>([]); // devisConfig (générés)
+  const [currentPageImportes, setCurrentPageImportes] = useState(1);
+  const [currentPageGeneres, setCurrentPageGeneres] = useState(1);
+  const [currentPageFactures, setCurrentPageFactures] = useState(1);
+  const itemsPerPage = 5;
+  const [filters, setFilters] = useState({
+    titre: "",
+    status: "",
+  });
+
+  const getDevisForProject = async (projectId: string): Promise<any[]> => {
+    try {
+      const devisRef = collection(db, "devis");
+      const q = query(devisRef, where("projectId", "==", projectId));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error("Erreur lors de la récupération des devis:", error);
+      return [];
+    }
+  };
+
+  const getDevisConfigForProject = async (
+    projectId: string
+  ): Promise<any[]> => {
+    try {
+      const devisConfigRef = collection(db, "devisConfig");
+      const q = query(devisConfigRef, where("projectId", "==", projectId));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error("Erreur lors de la récupération des devisConfig:", error);
+      return [];
+    }
+  };
+
+  // --- Récupération des devis Firestore ---
+  const { currentUser } = useAuth();
+  useEffect(() => {
+    if (!id || !currentUser?.uid) return;
+    getDevisForProject(id).then(setDevisImportes);
+    getDevisConfigForProject(id).then((allDevisGeneres) => {
+      setDevisGeneres(allDevisGeneres);
+      setDevisFactures(
+        allDevisGeneres.filter((d) => d.status?.toLowerCase() === "validé")
+      );
+    });
+  }, [id, currentUser?.uid]);
+
+  // --- Filtres et pagination mutualisés ---
+  const filterDevis = (items: any[]) =>
+    items.filter(
+      (item) =>
+        (!filters.titre ||
+          item.titre?.toLowerCase().includes(filters.titre.toLowerCase())) &&
+        (!filters.status || item.status === filters.status)
+    );
+
+  const filteredFactures = filterDevis(
+    devisGeneres.filter((d) => d.status?.toLowerCase() === "validé")
+  );
+
+  const paginatedFactures = filteredFactures.slice(
+    (currentPageFactures - 1) * itemsPerPage,
+    currentPageFactures * itemsPerPage
+  );
+
+  // --- Centralisation pour ModernDevisSection ---
+  const devisTabsData = {
+    uploades: {
+      items: devisImportes,
+      setItems: setDevisImportes,
+      currentPage: currentPageImportes,
+      setCurrentPage: setCurrentPageImportes,
+      itemsPerPage,
+      type: "devis",
+    },
+    generes: {
+      items: devisGeneres,
+      setItems: setDevisGeneres,
+      currentPage: currentPageGeneres,
+      setCurrentPage: setCurrentPageGeneres,
+      itemsPerPage,
+      type: "devisConfig",
+    },
+    Factures: {
+      items: filteredFactures,
+      setItems: setDevisFactures, // ou un setter dédié si tu veux séparer
+      currentPage: currentPageFactures,
+      setCurrentPage: setCurrentPageFactures,
+      itemsPerPage,
+      type: "devisConfig",
+    },
+  } as const;
+
+  useEffect(() => {
+    switch (activeDevisTab) {
+      case "uploades":
+        setCurrentPageImportes(1);
+        break;
+      case "generes":
+        setCurrentPageGeneres(1);
+        break;
+      case "Factures":
+        setCurrentPageFactures(1);
+        break;
+      default:
+        break;
+    }
+  }, [activeDevisTab]);
+
+  const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
+
+  const handleFilterChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+    setFilters((prev) => ({ ...prev, [name]: value }));
+
+    // Remettre la page à 1 selon l'onglet actif
+    switch (activeDevisTab) {
+      case "uploades":
+        setCurrentPageImportes(1);
+        break;
+      case "generes":
+        setCurrentPageGeneres(1);
+        break;
+      case "Factures":
+        setCurrentPageFactures(1);
+        break;
+      default:
+        break;
+    }
+  };
+
+  const handleUpdateDevisStatus = async (
+    type: "devis" | "devisConfig",
+    docId: string,
+    newstatus: string
+  ) => {
+    setUpdatingStatusId(docId);
+    try {
+      const ref = doc(db, type, docId);
+      await updateDoc(ref, { status: newstatus });
+
+      if (type === "devis") {
+        setDevisImportes((prev) =>
+          prev.map((item) =>
+            item.id === docId ? { ...item, status: newstatus } : item
+          )
+        );
+      } else if (type === "devisConfig") {
+        setDevisGeneres((prev) =>
+          prev.map((item) =>
+            item.id === docId ? { ...item, status: newstatus } : item
+          )
+        );
+      }
+    } catch (error) {
+      alert(`Erreur lors de la mise à jour du status du ${type}`);
+      console.error(error);
+    } finally {
+      setUpdatingStatusId(null);
+    }
+  };
+
+  // Fonction pour ouvrir la génération/édition d'un devis ou devisConfig existant
+  const handleEditDevis = (id: string) => {
+    setSelectedDevisId(id);
+    setStep("generation");
+  };
+
   const [project, setProject] = useState<ProjectDetails | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -395,56 +529,10 @@ const [selectedDevisType, setSelectedDevisType] = useState<"devis" | "devisConfi
   const [artisanInvitations, setArtisanInvitations] = useState<
     { id: string; artisan: User | null; status: string }[]
   >([]);
-  // États et logique de filtres/pagination pour les devis
-  const [filters, setFilters] = useState({
-    titre: "",
-    type: "",
-    status: "",
-    montantMin: "",
-    montantMax: "",
-  });
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
-
-  // Fonction pour filtrer les devis
-  const filteredDevis = devis.filter((item) => {
-    return (
-      (!filters.titre ||
-        item.titre?.toLowerCase().includes(filters.titre.toLowerCase())) &&
-      (!filters.type ||
-        item.type?.toLowerCase().includes(filters.type.toLowerCase())) &&
-      (!filters.status || item.status === filters.status) &&
-      (!filters.montantMin || item.montant >= parseFloat(filters.montantMin)) &&
-      (!filters.montantMax || item.montant <= parseFloat(filters.montantMax))
-    );
-  });
-
-  // Pagination
-  const totalPages = Math.ceil(filteredDevis.length / itemsPerPage);
-  const paginatedDevis = filteredDevis.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  const handleFilterChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    const { name, value } = e.target;
-    setFilters((prev) => ({ ...prev, [name]: value }));
-    setCurrentPage(1); // Reset à la première page après filtrage
-  };
 
   // courtierId récupéré via Firebase Auth
   const [courtierId, setCourtierId] = useState<string | null>(null);
   const [availableArtisans, setAvailableArtisans] = useState<User[]>([]);
-
-  const totalUploadPages = Math.ceil(
-    listDevisConfigs.length / itemsPerPageUpload
-  );
-  const paginatedDevisConfigs = listDevisConfigs.slice(
-    (currentPageUpload - 1) * itemsPerPageUpload,
-    currentPageUpload * itemsPerPageUpload
-  );
 
   useEffect(() => {
     const auth = getAuth();
@@ -513,14 +601,6 @@ const [selectedDevisType, setSelectedDevisType] = useState<"devis" | "devisConfi
     fetchData();
   }, [id]);
 
-  // Récupération des devis du projet
-  const { currentUser } = useAuth();
-  useEffect(() => {
-    if (!id || !currentUser?.uid) return;
-    getDevisForProject(id).then(setDevis);
-    getDevisConfigForProject(id, currentUser.uid).then(setListDevisConfigs);
-  }, [id, currentUser?.uid]);
-
   // Récupération des artisans acceptés du projet
   useEffect(() => {
     if (!id) return;
@@ -586,58 +666,6 @@ const [selectedDevisType, setSelectedDevisType] = useState<"devis" | "devisConfi
     setSelectedArtisanIds([]);
   };
 
-  // Generic handler for updating status in both devis and devisConfig
-  const handleUpdatestatus = async (
-    type: "devis" | "devisConfig",
-    docId: string,
-    newstatus: string
-  ) => {
-    setUpdatingstatusId(docId); // Set loading for this item
-    try {
-      const ref = doc(db, type, docId);
-      await updateDoc(ref, { status: newstatus });
-
-      if (type === "devis") {
-        setDevis((prev) =>
-          prev.map((item) =>
-            item.id === docId ? { ...item, status: newstatus } : item
-          )
-        );
-      } else if (type === "devisConfig") {
-        setListDevisConfigs((prev) =>
-          prev.map((item) =>
-            item.id === docId ? { ...item, status: newstatus } : item
-          )
-        );
-      }
-    } catch (error) {
-      alert(`Erreur lors de la mise à jour du status du ${type}`);
-      console.error(error);
-    } finally {
-      setUpdatingstatusId(null);
-    }
-  };
-
-  // Backward compatibility for existing usages
-  const handleUpdateDevisConfigstatus = async (
-    type: "devis" | "devisConfig",
-    docId: string,
-    newstatus: string
-  ) => {
-    await handleUpdatestatus(type, docId, newstatus);
-  };
-
-  // Wrapper pour compatibilité avec la signature (type: string, docId: string, newstatus: string) => void
-  const handleUpdatestatusWrapper = (type: string, docId: string, newstatus: string) => {
-    if (type === "devis" || type === "devisConfig") {
-      // Appelle la fonction asynchrone sans attendre le résultat
-      handleUpdateDevisConfigstatus(type as "devis" | "devisConfig", docId, newstatus);
-    } else {
-      // Optionnel : gérer les autres cas
-      console.warn(`Type non supporté : ${type}`);
-    }
-  };
-
   const tabs = [
     { id: "notes", icon: FileText, label: "Notes" },
     { id: "events", icon: Calendar, label: "Événements" },
@@ -668,10 +696,10 @@ const [selectedDevisType, setSelectedDevisType] = useState<"devis" | "devisConfi
       </div>
     );
   }
-  if (step === "generation" && selectedDevisId && selectedDevisType) {
+  if (step === "generation" && selectedDevisId) {
     return (
       <div className="fixed inset-0 z-50 bg-white overflow-y-auto">
-        <DevisConfigProvider type={selectedDevisType} devisId={selectedDevisId} >
+        <DevisConfigProvider devisId={selectedDevisId}>
           <DevisGenerationPage
             open={step === "generation"}
             onOpenChange={(open) => {
@@ -685,13 +713,6 @@ const [selectedDevisType, setSelectedDevisType] = useState<"devis" | "devisConfi
       </div>
     );
   }
-
-  // Fonction pour ouvrir la génération/édition d'un devis ou devisConfig existant
-  const handleEditDevis = (type: "devis" | "devisConfig", id: string) => {
-    setSelectedDevisType(type);
-    setSelectedDevisId(id);
-    setStep("generation");
-  };
 
   return (
     <div className="space-y-8">
@@ -1072,29 +1093,16 @@ const [selectedDevisType, setSelectedDevisType] = useState<"devis" | "devisConfi
       <ModernDevisSection
         activeDevisTab={activeDevisTab}
         setActiveDevisTab={setActiveDevisTab}
-        paginatedDevis={paginatedDevis}
-        setPaginatedDevis={setDevis}
-        listDevisConfigs={listDevisConfigs}
-        paginatedDevisConfigs={paginatedDevisConfigs}
-        setPaginatedDevisConfigs={setListDevisConfigs}
-        currentPage={currentPage}
-        setCurrentPage={setCurrentPage}
-        currentPageUpload={currentPageUpload}
-        setCurrentPageUpload={setCurrentPageUpload}
-        totalPages={totalPages}
-        totalUploadPages={totalUploadPages}
-        itemsPerPage={itemsPerPage}
-        itemsPerPageUpload={itemsPerPageUpload}
-        filteredDevis={filteredDevis}
+        devisTabsData={devisTabsData}
         filters={filters}
         handleFilterChange={handleFilterChange}
         setShowCreateModal={setShowCreateModal}
         setSelectedDevisId={setSelectedDevisId}
         handleEditDevis={handleEditDevis}
-        handleUpdateDevisConfigstatut={handleUpdatestatusWrapper}
-        updatingstatutId={updatingstatusId}
-        userRole={project?.broker?.courtier?.role || ""}
-        currentUserId={currentUserId}
+        handleUpdateDevisStatus={handleUpdateDevisStatus}
+        updatingStatusId={updatingStatusId}
+        userRole={"courtier"}
+        currentUserId={currentUser?.uid ?? null}
       />
 
       {/* Modals */}
@@ -1108,8 +1116,8 @@ const [selectedDevisType, setSelectedDevisType] = useState<"devis" | "devisConfi
         }}
       />
 
-      {selectedDevisId && selectedDevisType && (
-        <DevisConfigProvider devisId={selectedDevisId} type={selectedDevisType}>
+      {selectedDevisId && (
+        <DevisConfigProvider devisId={selectedDevisId}>
           <PiecesSelectionModal
             open={step === "pieces"}
             itemId={selectedDevisId}

@@ -21,6 +21,16 @@ export default function MainLayout({
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+
+  // Bloque l'accès si non connecté (hors page de login)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const isLoginPage = window.location.pathname === '/auth/login';
+    if (!currentUser && !isLoginPage) {
+      router.push('/auth/login');
+    }
+  }, [currentUser, router]);
+
   useEffect(() => {
     if (!currentUser?.uid) {
       setUser(null);
@@ -32,11 +42,18 @@ export default function MainLayout({
       .then((u) => setUser(u))
       .finally(() => setLoading(false));
   }, [currentUser]);
+
   useEffect(() => {
     if (user && userRole !== user.role) {
       router.push(`/${user.role}/dashboard`);
     }
   }, [user, userRole, router]);
+
+  // Si non connecté, n'affiche rien (ou un loader)
+  if (!currentUser) {
+    return null;
+  }
+
   // Si noLayout est true, retournez simplement les enfants sans wrapper
   if (noLayout) {
     return <>{children}</>;

@@ -7,9 +7,7 @@ import { useAuth } from "@/lib/contexts/AuthContext";
 import { ChevronLeft, Save, Image as ImageIcon } from "lucide-react";
 import { useCreateProject } from "@/hooks/use-create-project";
 
-// Pour l'upload direct sur Cloudinary
 const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`;
-import { CLOUDINARY_UPLOAD_PRESET } from '@/lib/cloudinary';
 import process from "process";
 
 export default function NewProject() {
@@ -17,25 +15,10 @@ export default function NewProject() {
   const router = useRouter();
   const { addProject, loading: isLoading, error, success } = useCreateProject();
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    if (type === "checkbox") {
-      // Cast pour accéder à .checked sans erreur TS
-      const checked = (e.target as HTMLInputElement).checked;
-      setForm(prev => ({
-        ...prev,
-        [name]: checked
-      }));
-    } else {
-      setForm(prev => ({
-        ...prev,
-        [name]: type === "number" ? Number(value) : value
-      }));
-    }
-  };
-
   const [form, setForm] = useState({
     name: "",
+    clientFullName: "",  // ajouté
+    clientPhone: "",     // ajouté
     clientEmail: "",
     budget: 0,
     paidAmount: 0,
@@ -51,17 +34,36 @@ export default function NewProject() {
     image: "",
     amoIncluded: false
   });
+
   const [imageFile, setImageFile] = useState<File | null>(null);
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    const { name, value, type } = e.target;
+    if (type === "checkbox") {
+      const checked = (e.target as HTMLInputElement).checked;
+      setForm(prev => ({ ...prev, [name]: checked }));
+    } else {
+      setForm(prev => ({
+        ...prev,
+        [name]: type === "number" ? Number(value) : value
+      }));
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!imageFile) {
       alert("Veuillez sélectionner une image pour le projet.");
       return;
     }
+
     const data = new FormData();
     data.append("file", imageFile);
     data.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET as string);
+
     let imageUrl = "";
     try {
       const res = await fetch(CLOUDINARY_UPLOAD_URL, {
@@ -75,7 +77,7 @@ export default function NewProject() {
       alert("Erreur lors de l'upload de l'image");
       return;
     }
-    // Ne pas passer amoIncluded à addProject (CreateProjectInput n'accepte pas ce champ)
+
     await addProject({
       ...form,
       budget: Number(form.budget),
@@ -86,9 +88,12 @@ export default function NewProject() {
       status: "En attente",
       amoIncluded: form.amoIncluded
     });
+
     if (!error) {
       setForm({
         name: "",
+        clientFullName: "",
+        clientPhone: "",
         clientEmail: "",
         budget: 0,
         paidAmount: 0,
@@ -125,7 +130,9 @@ export default function NewProject() {
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-lg p-8 border border-gray-100">
         {error && (
           <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-lg border border-red-200">
-            {typeof error === 'object' && error !== null && 'message' in error ? (error as any).message : String(error)}
+            {typeof error === "object" && error !== null && "message" in error
+              ? (error as any).message
+              : String(error)}
           </div>
         )}
         {success && (
@@ -133,7 +140,7 @@ export default function NewProject() {
             Projet créé avec succès !
           </div>
         )}
-        {/* AMO inclus checkbox */}
+
         <div className="mb-6 flex items-center gap-3">
           <input
             type="checkbox"
@@ -143,13 +150,19 @@ export default function NewProject() {
             onChange={handleChange}
             className="h-4 w-4 text-[#f26755] border-gray-300 rounded focus:ring-[#f26755]"
           />
-          <label htmlFor="amoIncluded" className="text-sm text-gray-700 font-medium select-none">AMO inclus ?</label>
-          <span className="text-xs text-gray-500">{form.amoIncluded ? 'Oui' : 'Non'}</span>
+          <label htmlFor="amoIncluded" className="text-sm text-gray-700 font-medium select-none">
+            AMO inclus ?
+          </label>
+          <span className="text-xs text-gray-500">
+            {form.amoIncluded ? "Oui" : "Non"}
+          </span>
         </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Upload image Cloudinary */}
           <div className="space-y-3 md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Image du projet *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Image du projet *
+            </label>
             <div className="flex items-center gap-4">
               <label className="flex flex-col items-center justify-center w-full max-w-xs cursor-pointer">
                 <div className="flex flex-col items-center justify-center pt-5 pb-6 px-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-[#f26755] transition-colors group">
@@ -159,10 +172,12 @@ export default function NewProject() {
                   </p>
                   <p className="text-xs text-gray-500">PNG, JPG (MAX. 5MB)</p>
                 </div>
-                <input 
-                  type="file" 
+                <input
+                  type="file"
                   accept="image/*"
-                  onChange={e => e.target.files && e.target.files[0] && setImageFile(e.target.files[0])}
+                  onChange={e =>
+                    e.target.files && e.target.files[0] && setImageFile(e.target.files[0])
+                  }
                   className="hidden"
                   required
                 />
@@ -180,9 +195,19 @@ export default function NewProject() {
                     type="button"
                     onClick={() => setImageFile(null)}
                     className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600"
+                    aria-label="bouton"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                   </button>
                 </div>
@@ -191,32 +216,63 @@ export default function NewProject() {
           </div>
 
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nom du projet *</label>
+            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Nom du projet *</label>
             <input
-              type="text"
+              id="name"
               name="name"
+              type="text"
               value={form.name}
               onChange={handleChange}
-              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f26755] focus:border-transparent transition-all shadow-sm"
-              placeholder="Ex: Rénovation appartement Paris 15"
               required
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f26755] focus:border-transparent transition-all shadow-sm"
+              placeholder="Nom du projet"
             />
           </div>
 
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email du client *</label>
+            <label htmlFor="clientFullName" className="block text-sm font-medium text-gray-700 mb-1">Nom complet du client *</label>
             <input
-              type="email"
+              id="clientFullName"
+              name="clientFullName"
+              type="text"
+              value={form.clientFullName}
+              onChange={handleChange}
+              required
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f26755] focus:border-transparent transition-all shadow-sm"
+              placeholder="Jean Dupont"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="clientPhone" className="block text-sm font-medium text-gray-700 mb-1">Contact du client *</label>
+            <input
+              id="clientPhone"
+              name="clientPhone"
+              type="tel"
+              value={form.clientPhone}
+              onChange={handleChange}
+              required
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f26755] focus:border-transparent transition-all shadow-sm"
+              placeholder="06 00 00 00 00"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="clientEmail" className="block text-sm font-medium text-gray-700 mb-1">Email du client *</label>
+            <input
+              id="clientEmail"
               name="clientEmail"
+              type="email"
               value={form.clientEmail}
               onChange={handleChange}
+              required
               className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f26755] focus:border-transparent transition-all shadow-sm"
               placeholder="client@exemple.com"
-              required
             />
           </div>
 
-          <div className="space-y-2">
+          {/* Les autres champs budget, dates, type, location, description… restent inchangés — reporte ton code original ici */}
+                    <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">Budget estimé (€) *</label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">€</span>
@@ -238,6 +294,7 @@ export default function NewProject() {
             <label className="block text-sm font-medium text-[#4CAF50] mb-1">Date de début</label>
             <div className="relative">
               <input
+                aria-label="date"
                 type="date"
                 name="startDate"
                 value={form.startDate}
@@ -251,6 +308,7 @@ export default function NewProject() {
             <label className="block text-sm font-medium text-[#f26755] mb-1">Date de fin estimée</label>
             <div className="relative">
               <input
+                aria-label="date"
                 type="date"
                 name="estimatedEndDate"
                 value={form.estimatedEndDate}
@@ -299,6 +357,7 @@ export default function NewProject() {
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">% premier acompte *</label>
             <select
+              aria-label="firstDepositPercent"
               name="firstDepositPercent"
               value={form.firstDepositPercent}
               onChange={handleChange}
@@ -326,7 +385,7 @@ export default function NewProject() {
         </div>
 
         <div className="mt-8 flex justify-end border-t border-gray-100 pt-6">
-          <button
+        <button
             type="submit"
             disabled={isLoading}
             className={`px-6 py-3 rounded-lg transition-all flex items-center gap-2 shadow-md ${isLoading ? "bg-gray-400" : "bg-[#f26755] hover:bg-[#e05a48]"} text-white font-medium`}

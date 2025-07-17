@@ -42,20 +42,19 @@ const DevisConfigContext = createContext<DevisConfigContextType | undefined>(und
 
 interface DevisConfigProviderProps {
   devisId?: string;
-  type: "devis" | "devisConfig";
   children: React.ReactNode;
 }
 
-export const DevisConfigProvider: React.FC<DevisConfigProviderProps> = ({ devisId, type, children }) => {
+export const DevisConfigProvider: React.FC<DevisConfigProviderProps> = ({ devisId, children }) => {
   const [devisConfig, setDevisConfig] = useState<Partial<DevisConfig> | null>(null);
   const [devisConfigId, setDevisConfigId] = useState<string | null>(devisId ?? null);
 
   // Charger le devis si un devisId est fourni
   useEffect(() => {
-    if (devisId && type) {
+    if (devisId) {
       // Remplace par ta logique Firestore réelle
       const fetchDevis = async () => {
-        const docSnap = await getDocumentGenerate(type, devisId);
+        const docSnap = await getDocumentGenerate("devisConfig", devisId);
         if (docSnap) {
           setDevisConfig({ ...docSnap, id: devisId });
           setDevisConfigId(devisId);
@@ -67,21 +66,17 @@ export const DevisConfigProvider: React.FC<DevisConfigProviderProps> = ({ devisI
 
   // Création initiale
   const createDevisConfig = useCallback(async (data: Partial<DevisConfig>) => {
-    if (!type) throw new Error("Type de devis non défini");
-    const { id } = await addDocument(type, { ...data });
+    const { id } = await addDocument("devisConfig", { ...data });
     // Ajout de l'id dans le document Firestore juste après création
-    await updateDocument(type, id, { id });
+    await updateDocument("devisConfig", id, { id });
     setDevisConfig({ ...data, id });
     setDevisConfigId(id);
     return id;
-  }, [type]);
+  }, []);
 
   // Auto-save sur modification d'un champ
   const setDevisConfigField = useCallback(
     (field: string, value: any) => {
-      console.log('Mise à jour du champ:', field, 'valeur:', value);
-      console.log('devisConfig:', devisConfig);
-      console.log('devisConfigId:', devisConfigId);
       if (!devisConfigId) return;
       const newConfig = { ...devisConfig, [field]: value };
       setDevisConfig(newConfig);
