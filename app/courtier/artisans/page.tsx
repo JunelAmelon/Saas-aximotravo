@@ -385,7 +385,7 @@ export default function CourtierArtisans() {
                   </label>
                   <input
                     name="status"
-                    value={form.status}
+                    value={form.companyLegalForm}
                     onChange={handleFormChange}
                     placeholder="SARL, SAS..."
                     required
