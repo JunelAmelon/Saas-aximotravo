@@ -361,10 +361,6 @@ export default function ProjectDetails() {
     },
   } as const;
 
-  console.log(devisImportes);
-  console.log(devisGeneres);
-  console.log(filteredFactures);
-
   const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
 
   const handleFilterChange = (

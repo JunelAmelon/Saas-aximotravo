@@ -441,10 +441,6 @@ export default function ProjectDetails() {
       },
     } as const;
 
-    console.log(devisImportes);
-    console.log(devisGeneres);
-    console.log(filteredFactures);
-
     useEffect(() => {
       switch (activeDevisTab) {
         case "uploades":

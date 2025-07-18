@@ -398,9 +398,6 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
     },
   });
 
-  console.log(devisTabsData["uploades"].items);
-  console.log(devisTabsData["generes"].items);
-  console.log(devisTabsData["Factures"].items);
 
   // ====================
   // Pagination générique

@@ -59,7 +59,6 @@ export default function CourtierArtisans() {
     companyApe: "",
     companyTva: "",
     companyCapital: "",
-    companyManager: "",
   });
   const [certificationFile, setCertificationFile] = useState<File | null>(null);
   const [insuranceFile, setInsuranceFile] = useState<File | null>(null);
@@ -163,7 +162,6 @@ export default function CourtierArtisans() {
         companyApe: "",
         companyTva: "",
         companyCapital: "",
-        companyManager: "",
       });
       setCertificationFile(null);
       setInsuranceFile(null);
@@ -268,7 +266,7 @@ export default function CourtierArtisans() {
 
       {/* Modal d'ajout */}
       <Dialog open={openAddModal} onOpenChange={setOpenAddModal}>
-        <DialogContent className="max-w-lg w-full p-0 rounded-lg">
+        <DialogContent className="max-w-2xl w-full p-0 rounded-3xl shadow-xl bg-[#fff] border-0">
           <div className="relative bg-white">
             {cloudinaryLoading && (
               <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm rounded-lg">
@@ -281,77 +279,43 @@ export default function CourtierArtisans() {
 
             <form
               onSubmit={handleAddArtisan}
-              className="flex flex-col gap-4 max-h-[70vh] overflow-y-auto p-6"
+              className="flex flex-col gap-6 max-h-[70vh] overflow-y-auto p-8 bg-white rounded-3xl shadow-xl border border-gray-100"
             >
-              <div className="space-y-1 pb-4 mb-2">
-                <h2 className="text-2xl font-bold text-gray-900">
-                  Ajouter un artisan
-                </h2>
-                <p className="text-sm text-gray-500">
-                  Tous les champs sont obligatoires
-                </p>
+              {/* TITRE */}
+              <div className="border-b border-gray-100">
+                <h2 className="text-3xl font-extrabold text-[#f26755] tracking-wide uppercase mb-1">Ajouter un artisan</h2>
+                <p className="text-base text-gray-400 font-medium">Tous les champs sont obligatoires</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                {/* Champs avec style minimaliste mais élégant */}
+              {/* --- SECTION ARTISAN --- */}
+              <h3 className="text-base font-bold text-[#f26755] uppercase tracking-wider col-span-2 mt-1 mb-1">Informations sur l'artisan</h3>
+              <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-1">
-                  <label className="text-sm font-medium text-gray-700">
-                    Entreprise*
-                  </label>
-                  <input
-                    name="companyName"
-                    value={form.companyName}
-                    onChange={handleFormChange}
-                    placeholder="Nom de l'entreprise"
-                    required
-                    className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-[#f26755] focus:border-[#f26755] transition-all"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-sm font-medium text-gray-700">
-                    Adresse*
-                  </label>
-                  <input
-                    name="companyAddress"
-                    value={form.companyAddress}
-                    onChange={handleFormChange}
-                    placeholder="Adresse complète"
-                    required
-                    className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-[#f26755] focus:border-[#f26755] transition-all"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-sm font-medium text-gray-700">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
                     Prénom*
                   </label>
                   <input
                     name="firstName"
                     value={form.firstName}
                     onChange={handleFormChange}
-                    placeholder="Prénom du gérant"
                     required
-                    className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-[#f26755] focus:border-[#f26755] transition-all"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] transition-all"
                   />
                 </div>
-
                 <div className="space-y-1">
-                  <label className="text-sm font-medium text-gray-700">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
                     Nom*
                   </label>
                   <input
                     name="lastName"
                     value={form.lastName}
                     onChange={handleFormChange}
-                    placeholder="Nom du gérant"
                     required
-                    className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-[#f26755] focus:border-[#f26755] transition-all"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] transition-all"
                   />
                 </div>
-
-                <div className="space-y-1 col-span-2">
-                  <label className="text-sm font-medium text-gray-700">
+                <div className="space-y-1 ">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
                     Email*
                   </label>
                   <input
@@ -359,58 +323,26 @@ export default function CourtierArtisans() {
                     name="email"
                     value={form.email}
                     onChange={handleFormChange}
-                    placeholder="email@exemple.com"
                     required
-                    className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-[#f26755] focus:border-[#f26755] transition-all"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] transition-all"
                   />
                 </div>
-
                 <div className="space-y-1">
-                  <label className="text-sm font-medium text-gray-700">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
                     Téléphone*
                   </label>
                   <input
                     name="phoneNumber"
                     value={form.phoneNumber}
                     onChange={handleFormChange}
-                    placeholder="06 12 34 56 78"
                     required
-                    className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-[#f26755] focus:border-[#f26755] transition-all"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] transition-all"
                   />
                 </div>
-
                 <div className="space-y-1">
-                  <label className="text-sm font-medium text-gray-700">
-                    Statut*
-                  </label>
-                  <input
-                    name="status"
-                    value={form.companyLegalForm}
-                    onChange={handleFormChange}
-                    placeholder="SARL, SAS..."
-                    required
-                    className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-[#f26755] focus:border-[#f26755] transition-all"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-sm font-medium text-gray-700">
-                    SIRET*
-                  </label>
-                  <input
-                    name="siret"
-                    value={form.siret}
-                    onChange={handleFormChange}
-                    placeholder="123 456 789 00012"
-                    required
-                    className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-[#f26755] focus:border-[#f26755] transition-all"
-                  />
-                </div>
-
-                <div className="space-y-1 col-span-2">
                   <label
                     htmlFor="specialite-select"
-                    className="text-sm font-medium text-gray-700"
+                    className="text-xs font-semibold uppercase tracking-wide text-gray-600"
                   >
                     Spécialité*
                   </label>
@@ -419,8 +351,7 @@ export default function CourtierArtisans() {
                     value={form.specialite}
                     onChange={handleFormChange}
                     required
-                    aria-label="Sélectionnez une spécialité"
-                    className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-[#f26755] focus:border-[#f26755] transition-all appearance-none bg-white"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f26755]/50 focus:border-[#f26755] transition-all appearance-none"
                   >
                     <option value="">Sélectionnez une spécialité</option>
                     <option value="maçonnerie">Maçonnerie</option>
@@ -439,13 +370,25 @@ export default function CourtierArtisans() {
                       value={form.otherSpecialite}
                       onChange={handleFormChange}
                       placeholder="Précisez la spécialité"
-                      className="w-full mt-2 px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-[#f26755] focus:border-[#f26755] transition-all"
+                      className="rounded-xl bg-gray-50 border border-gray-200 text-base placeholder:text-gray-400 focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] px-4 py-3"
                     />
                   )}
                 </div>
-
+                <div className="space-y-1 ">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
+                    Secteur géographique*
+                  </label>
+                  <input
+                    name="secteur"
+                    value={form.secteur}
+                    onChange={handleFormChange}
+                    required
+                    placeholder="Secteur d'intervention"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] transition-all"
+                  />
+                </div>
                 <div className="space-y-1 col-span-2">
-                  <label className="text-sm font-medium text-gray-700">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
                     Certification*
                   </label>
                   <div className="flex items-center space-x-4 mt-1">
@@ -474,12 +417,12 @@ export default function CourtierArtisans() {
                   </div>
                   {form.hasCertification === "oui" && (
                     <div className="mt-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">
                         Attestation de certification*
                       </label>
                       <div className="flex items-center justify-center w-full">
-                        <label className="flex flex-col w-full border border-gray-200 hover:border-[#f26755] rounded-md cursor-pointer transition-all p-3">
-                          <div className="flex items-center gap-2 text-gray-500">
+                        <label className="flex flex-col w-full border border-dashed border-gray-200 hover:border-[#f26755] rounded-xl cursor-pointer transition-all p-4 bg-gray-50 hover:bg-orange-50 group">
+                          <div className="flex items-center gap-2 text-gray-400 group-hover:text-[#f26755] transition-colors">
                             <Upload className="h-5 w-5" />
                             <span className="text-sm">
                               Cliquez pour uploader (PDF, JPG, PNG)
@@ -498,14 +441,13 @@ export default function CourtierArtisans() {
                     </div>
                   )}
                 </div>
-
                 <div className="space-y-1 col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">
                     Assurance*
                   </label>
                   <div className="flex items-center justify-center w-full">
-                    <label className="flex flex-col w-full border border-gray-200 hover:border-[#f26755] rounded-md cursor-pointer transition-all p-3">
-                      <div className="flex items-center gap-2 text-gray-500">
+                    <label className="flex flex-col w-full border border-dashed border-gray-200 hover:border-[#f26755] rounded-xl cursor-pointer transition-all p-4 bg-gray-50 hover:bg-orange-50 group">
+                      <div className="flex items-center gap-2 text-gray-400 group-hover:text-[#f26755] transition-colors">
                         <Upload className="h-5 w-5" />
                         <span className="text-sm">
                           Cliquez pour uploader (PDF, JPG, PNG)
@@ -520,24 +462,9 @@ export default function CourtierArtisans() {
                     </label>
                   </div>
                 </div>
-
                 <div className="space-y-1 col-span-2">
-                  <label className="text-sm font-medium text-gray-700">
-                    Secteur géographique*
-                  </label>
-                  <input
-                    name="secteur"
-                    value={form.secteur}
-                    onChange={handleFormChange}
-                    placeholder="Secteur d'intervention"
-                    required
-                    className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-[#f26755] focus:border-[#f26755] transition-all"
-                  />
-                </div>
-
-                <div className="space-y-1 col-span-2">
-                  <label className="text-sm font-medium text-gray-700">
-                    Date d&apos;assurance*
+                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
+                    Date d'assurance*
                   </label>
                   <input
                     type="date"
@@ -545,18 +472,193 @@ export default function CourtierArtisans() {
                     value={form.insuranceDate}
                     onChange={handleFormChange}
                     required
-                    aria-label="Date"
-                    className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-[#f26755] focus:border-[#f26755] transition-all"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] transition-all"
                   />
                 </div>
+              </div>
 
+              {/* --- SECTION ENTREPRISE --- */}
+              <h3 className="text-base font-bold text-[#f26755] uppercase tracking-wider col-span-2 mt-10 mb-2 border-t border-gray-100 pt-6">Informations sur l'entreprise</h3>
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
+                    Nom de l'entreprise*
+                  </label>
+                  <input
+                    name="companyName"
+                    value={form.companyName}
+                    onChange={handleFormChange}
+                    required
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] transition-all"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
+                    Adresse*
+                  </label>
+                  <input
+                    name="companyAddress"
+                    value={form.companyAddress}
+                    onChange={handleFormChange}
+                    required
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] transition-all"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
+                    Code postal*
+                  </label>
+                  <input
+                    name="companyPostalCode"
+                    value={form.companyPostalCode}
+                    onChange={handleFormChange}
+                    required
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] transition-all"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
+                    Ville*
+                  </label>
+                  <input
+                    name="companyCity"
+                    value={form.companyCity}
+                    onChange={handleFormChange}
+                    required
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] transition-all"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
+                    Téléphone entreprise*
+                  </label>
+                  <input
+                    name="companyPhone"
+                    value={form.companyPhone}
+                    onChange={handleFormChange}
+                    required
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] transition-all"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
+                    Email entreprise*
+                  </label>
+                  <input
+                    name="companyEmail"
+                    value={form.companyEmail}
+                    onChange={handleFormChange}
+                    required
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] transition-all"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
+                    Forme juridique*
+                  </label>
+                  <input
+                    name="companyLegalForm"
+                    value={form.companyLegalForm}
+                    onChange={handleFormChange}
+                    required
+                    placeholder="SARL, SAS..."
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] transition-all"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
+                    SIRET*
+                  </label>
+                  <input
+                    name="siret"
+                    value={form.siret}
+                    onChange={handleFormChange}
+                    required
+                    placeholder="123 456 789 00012"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] transition-all"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
+                    RCS*
+                  </label>
+                  <input
+                    name="rcs"
+                    value={form.rcs}
+                    onChange={handleFormChange}
+                    required
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] transition-all"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
+                    Code APE/NAF*
+                  </label>
+                  <input
+                    name="companyApe"
+                    value={form.companyApe}
+                    onChange={handleFormChange}
+                    required
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] transition-all"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
+                    Numéro de TVA*
+                  </label>
+                  <input
+                    name="companyTva"
+                    value={form.companyTva}
+                    onChange={handleFormChange}
+                    required
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] transition-all"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
+                    Capital social*
+                  </label>
+                  <input
+                    name="companyCapital"
+                    value={form.companyCapital}
+                    onChange={handleFormChange}
+                    required
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] transition-all"
+                  />
+                </div>
                 <div className="space-y-1 col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">
+                    Logo de l'entreprise*
+                  </label>
+                  <div className="flex items-center justify-center w-full">
+                    <label className="flex flex-col w-full border border-dashed border-gray-200 hover:border-[#f26755] rounded-xl cursor-pointer transition-all p-4 bg-gray-50 hover:bg-orange-50 group">
+                      <div className="flex items-center gap-2 text-gray-400 group-hover:text-[#f26755] transition-colors">
+                        <Upload className="h-5 w-5" />
+                        <span className="text-sm">
+                          Cliquez pour uploader (JPG, PNG)
+                        </span>
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleFileChange(e, setCompanyLogoUrl)}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* --- SECTION DOCUMENTS --- */}
+              <h3 className="text-base font-bold text-[#f26755] uppercase tracking-wider col-span-2 mt-10 mb-2 border-t border-gray-100 pt-6">Documents administratifs</h3>
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-1 ">
+                  <label className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">
                     Attestation fiscale*
                   </label>
                   <div className="flex items-center justify-center w-full">
-                    <label className="flex flex-col w-full border border-gray-200 hover:border-[#f26755] rounded-md cursor-pointer transition-all p-3">
-                      <div className="flex items-center gap-2 text-gray-500">
+                    <label className="flex flex-col w-full border border-dashed border-gray-200 hover:border-[#f26755] rounded-xl cursor-pointer transition-all p-4 bg-gray-50 hover:bg-orange-50 group">
+                      <div className="flex items-center gap-2 text-gray-400 group-hover:text-[#f26755] transition-colors">
                         <Upload className="h-5 w-5" />
                         <span className="text-sm">
                           Cliquez pour uploader (PDF, JPG, PNG)
@@ -571,14 +673,13 @@ export default function CourtierArtisans() {
                     </label>
                   </div>
                 </div>
-
-                <div className="space-y-1 col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                <div className="space-y-1">
+                  <label className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">
                     Kbis*
                   </label>
                   <div className="flex items-center justify-center w-full">
-                    <label className="flex flex-col w-full border border-gray-200 hover:border-[#f26755] rounded-md cursor-pointer transition-all p-3">
-                      <div className="flex items-center gap-2 text-gray-500">
+                    <label className="flex flex-col w-full border border-dashed border-gray-200 hover:border-[#f26755] rounded-xl cursor-pointer transition-all p-4 bg-gray-50 hover:bg-orange-50 group">
+                      <div className="flex items-center gap-2 text-gray-400 group-hover:text-[#f26755] transition-colors">
                         <Upload className="h-5 w-5" />
                         <span className="text-sm">
                           Cliquez pour uploader (PDF, JPG, PNG)
@@ -597,24 +698,23 @@ export default function CourtierArtisans() {
 
               {/* Messages d'erreur/succès */}
               {formError && (
-                <div className="mt-2 p-3 bg-red-50 text-red-600 text-sm rounded-md flex items-start gap-2">
+                <div className="mt-4 p-4 bg-red-50 text-red-600 text-base rounded-xl flex items-start gap-3 shadow border border-red-100">
                   <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
                   <div>{formError}</div>
                 </div>
               )}
-
               {formSuccess && (
-                <div className="mt-2 p-3 bg-green-50 text-green-600 text-sm rounded-md flex items-start gap-2">
+                <div className="mt-4 p-4 bg-green-50 text-green-600 text-base rounded-xl flex items-start gap-3 shadow border border-green-100">
                   <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0" />
                   <div>{formSuccess}</div>
                 </div>
               )}
 
-              <div className="flex justify-end pt-4">
+              <div className="flex justify-end pt-6">
                 <button
                   type="submit"
                   disabled={formLoading || cloudinaryLoading}
-                  className="inline-flex items-center px-4 py-2 bg-[#f26755] text-white text-sm font-medium rounded-md hover:bg-[#f26755]/90 focus:outline-none focus:ring-1 focus:ring-[#f26755] transition-all disabled:opacity-50"
+                  className="inline-flex items-center px-6 py-3 bg-[#f26755] text-white text-base font-semibold rounded-xl shadow hover:bg-[#e55a4a] focus:outline-none focus:ring-2 focus:ring-[#f26755]/40 transition-all duration-200 disabled:opacity-50 active:scale-95"
                 >
                   {formLoading ? (
                     <>
@@ -624,7 +724,7 @@ export default function CourtierArtisans() {
                   ) : (
                     <>
                       <Plus className="h-4 w-4 mr-2" />
-                      Ajouter l&aposartisan
+                      Ajouter l&apos;artisan
                     </>
                   )}
                 </button>
