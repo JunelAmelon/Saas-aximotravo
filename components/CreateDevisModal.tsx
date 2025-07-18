@@ -11,6 +11,7 @@ import { X, FileText, Percent } from 'lucide-react';
 import { Loader } from './ui/Loader';
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { useParams } from 'next/navigation';
+import { serverTimestamp } from 'firebase/firestore';
 
 interface CreateDevisModalProps {
   open: boolean;
@@ -60,6 +61,7 @@ export function CreateDevisModal({ open, onOpenChange, onCreateDevis }: CreateDe
           selected: false,
           nombre: 1,
         })),
+        createdAt: serverTimestamp(),
       };
       const { id } = await import('@/lib/firebase/firestore').then(mod => mod.addDocument('devisConfig', devisConfigData));
       // Ajoute l'id dans le document Firestore juste après création

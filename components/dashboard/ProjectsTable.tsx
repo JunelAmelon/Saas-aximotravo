@@ -12,7 +12,7 @@ interface Project {
   name: string;
   client: string;
   status: "En cours" | "Terminé" | "En attente";
-  deadline: Date;
+  estimatedEndDate: string;
   amoIncluded: boolean;
 }
 
@@ -115,7 +115,7 @@ export default function ProjectsTable({ projects }: ProjectsTableProps) {
               {/* Échéance */}
               <td className="px-0 md:px-6 py-2 md:py-4 md:whitespace-nowrap">
                 <div className="md:hidden text-xs font-bold text-gray-500 uppercase mb-1">Échéance</div>
-                <div className="text-sm font-medium text-gray-500">{project.deadline ? new Date(project.deadline).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Non renseignée'}</div>
+                <div className="text-sm font-medium text-gray-500">{project.estimatedEndDate ? new Date(project.estimatedEndDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Non renseignée'}</div>
               </td>
               {/* Action */}
               <td className="px-0 md:px-6 py-2 md:py-4 md:whitespace-nowrap">

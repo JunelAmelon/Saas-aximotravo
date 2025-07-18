@@ -128,7 +128,7 @@ export const getProjectDetail = async (
     const docRef = doc(db, "projects", id);
     const docSnap = await getDoc(docRef);
     if (!docSnap.exists()) {
-      console.warn("Aucun projet trouvé avec l'ID Firestore :", id);
+      console.warn("Aucun projet trouvé dans Firestore");
       return null;
     }
     const projectData = docSnap.data();

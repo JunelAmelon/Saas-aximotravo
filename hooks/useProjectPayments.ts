@@ -26,6 +26,7 @@ export interface ProjectPayment {
   project?: string;
   dateValidation: string;
   localisation?: string;
+  amoIncluded?: boolean;
   client?: {
     id: string;
     firstName?: string;
@@ -57,10 +58,35 @@ export interface ProjectPayment {
  * @returns L'id du document créé
  */
 export async function addPayment(payment: Omit<ProjectPayment, 'id'>): Promise<string> {
+  // 1. Récupérer le projet pour avoir le budget
+  const projectRef = doc(db, "projects", payment.projectId);
+  const projectSnap = await getDoc(projectRef);
+  if (!projectSnap.exists()) throw new Error("Projet introuvable");
+  const project = projectSnap.data();
+  const budget = typeof project.budget === "number" ? project.budget : Number(project.budget);
+
+  // 2. Récupérer tous les paiements du projet
   const paymentsRef = collection(db, "payments");
+  const q = query(paymentsRef, where("projectId", "==", payment.projectId));
+  const querySnapshot = await getDocs(q);
+  const totalPaid = querySnapshot.docs.reduce((sum, doc) => {
+    const data = doc.data();
+    return sum + (typeof data.amount === "number" ? data.amount : Number(data.amount) || 0);
+  }, 0);
+
+  // 3. Vérifier la règle métier
+  if (totalPaid >= budget) {
+    throw new Error("Le budget du projet est déjà atteint.");
+  }
+  if ((totalPaid + payment.amount) > budget) {
+    throw new Error("Ce paiement dépasserait le budget du projet.");
+  }
+
+  // 4. Ajouter le paiement si OK
   const docRef = await addDoc(paymentsRef, payment);
   return docRef.id;
 }
+
 
 /**
  * Met à jour le statut d'un paiement dans Firestore.

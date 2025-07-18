@@ -3,12 +3,14 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Euro, Check, X, Clock, Mail, Upload, Send, ChevronRight } from 'lucide-react';
+import { Euro, Check, X, Clock, Mail, Upload, Send, ChevronRight, Download, Eye } from 'lucide-react';
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from '@/components/ui/button';
+import { Modal } from '@/components/ui/modal';
 
 import type { ProjectPayment } from "@/hooks/useProjectPayments";
 
@@ -27,6 +29,7 @@ import { CLOUDINARY_UPLOAD_PRESET } from '@/lib/cloudinary';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
+import { getProjectById, Project } from '@/lib/firebase/projects';
 
 const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/auto/upload`;
 
@@ -53,13 +56,20 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
   const params = useParams() ?? {};
   const resolvedProjectId = projectId || (Array.isArray(params.id) ? params.id[0] : params.id as string);
   const { payments: requests, loading, error } = useProjectPayments(resolvedProjectId);
+  const [project, setProject] = useState<Project | null>(null);
 
   const [selectedRequest, setSelectedRequest] = useState<ProjectPayment | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isValidationDrawerOpen, setIsValidationDrawerOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [message, setMessage] = useState('');
   const [isNotificationSent, setIsNotificationSent] = useState(false);
+
+  const handleViewDetails = (request: ProjectPayment) => {
+    setSelectedRequest(request);
+    setIsDetailModalOpen(true);
+  };
 
   const [recipients] = useState<Recipient[]>([
     {
@@ -102,6 +112,23 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
         return <Check className="h-4 w-4" />;
       default:
         return <Clock className="h-4 w-4" />;
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('fr-FR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const getStatusText = (status: ProjectPayment["status"]) => {
+    switch (status) {
+      case "validé":
+        return "Validé";
+      default:
+        return "En attente";
     }
   };
 
@@ -153,6 +180,10 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
     setForm(f => ({ ...f, [name]: value }));
   };
 
+  const totalAmount = requests.reduce((sum, req) => sum + req.amount, 0);
+  const approvedAmount = requests.filter(req => req.status === 'validé').reduce((sum, req) => sum + req.amount, 0);
+  const pendingAmount = requests.filter(req => req.status === 'en_attente').reduce((sum, req) => sum + req.amount, 0);
+
   const handleAddPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
@@ -201,6 +232,14 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
     }
   };
 
+  useEffect(() => {
+    async function fetchProject() {
+      const data = await getProjectById(resolvedProjectId);
+      setProject(data);
+    }
+    fetchProject();
+  }, [resolvedProjectId]);
+
   if (loading) {
     return <div className="py-8 text-center text-gray-500">Chargement des acomptes...</div>;
   }
@@ -215,7 +254,7 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
             <Euro className="h-12 w-12 text-gray-400" />
             <h3 className="text-lg font-medium text-gray-900">Aucun acompte enregistré</h3>
             <p className="text-sm text-gray-500">Aucune demande d&apos;acompte n&apos;a été effectuée pour ce projet.</p>
-            {userRole === 'artisan' && (
+            {userRole === 'artisan' && project?.amoIncluded === false && (
               <button
                 className="mt-4 inline-flex items-center px-4 py-2 bg-[#f26755] text-white rounded-lg font-medium hover:bg-[#f26755]/90 transition-colors"
                 onClick={() => setOpenAddModal(true)}
@@ -231,25 +270,45 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
   }
 
   return (
-    <div className="space-y-6">
-      <Dialog open={openAddModal} onOpenChange={setOpenAddModal}>
-        <DialogContent className="max-w-lg w-full">
-          <DialogTitle>Nouvelle écriture comptable</DialogTitle>
-          <form onSubmit={handleAddPayment} className="flex flex-col gap-3">
-            {formError && <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">{formError}</div>}
-            <div className="flex flex-col gap-2 sm:flex-row">
+    <div className="space-y-8">
+      {/* Modales/drawers existantes (validation, détails, etc.) */}
+      {/* ... Garde le code existant pour validation/détail, mais harmonise leur style si besoin ... */}
+      <Modal
+        isOpen={openAddModal}
+        onClose={() => setOpenAddModal(false)}
+        title="Nouvelle demande d'acompte"
+        maxWidth="max-w-3xl"
+      >
+        <form onSubmit={handleAddPayment} className="space-y-6 max-h-[70vh] overflow-y-auto p-2">
+          {formError && (
+            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+              {formError}
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Type de versement
+              </label>
               <select
                 name="title"
                 required
                 value={form.title}
                 onChange={handleSelectChange}
-                className="w-full sm:w-1/3 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-[#f26755] focus:border-[#f26755]"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#f26755] focus:border-[#f26755]"
               >
-                <option value="" disabled>Sélectionnez un type de versement</option>
+                <option value="" disabled>Sélectionnez un type</option>
                 <option value="Versement au démarrage">Versement au démarrage</option>
                 <option value="Versement mi chantier">Versement mi chantier</option>
                 <option value="A la fin des travaux">A la fin des travaux</option>
               </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Montant (€)
+              </label>
               <input
                 name="amount"
                 type="number"
@@ -258,59 +317,81 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
                 step="0.01"
                 value={form.amount}
                 onChange={handleFormChange}
-                placeholder="Montant (€)"
-                className="w-full sm:w-1/4 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-[#f26755] focus:border-[#f26755]"
+                placeholder="0.00"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#f26755] focus:border-[#f26755]"
               />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Description
+            </label>
             <textarea
               name="description"
               value={form.description}
               onChange={handleFormChange}
-              placeholder="Description"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-[#f26755] focus:border-[#f26755]"
-              rows={2}
+              rows={4}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#f26755] focus:border-[#f26755]"
+              placeholder="Décrivez la raison de cette demande d'acompte..."
+              required
             />
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <div className="flex-1">
-                <label className="block text-xs mb-1 font-medium text-gray-700">Images justificatives</label>
-                <input
-                  name="files"
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleFormChange}
-                  className="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
-                />
-              </div>
-              <div className="flex-1">
-                <label className="block text-xs mb-1 font-medium text-gray-700">Documents (PDF, DOC, etc.)</label>
-                <input
-                  name="documents"
-                  type="file"
-                  accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                  multiple
-                  onChange={e => setDocumentFiles(e.target.files ? Array.from(e.target.files) : [])}
-                  className="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
-                />
-              </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Images justificatives
+              </label>
+              <input
+                name="files"
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleFormChange}
+                className="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#f26755]/10 file:text-[#f26755] hover:file:bg-[#f26755]/20"
+              />
             </div>
-            <div className="flex justify-end pt-2">
-              <button
-                type="submit"
-                className="inline-flex items-center px-4 py-2 bg-[#f26755] text-white rounded-lg text-sm font-medium hover:bg-[#f26755]/90 transition-colors disabled:opacity-50"
-                disabled={formLoading}
-              >
-                {formLoading ? (
-                  <span className="loader mr-2"></span>
-                ) : (
-                  <Send className="h-4 w-4 mr-2" aria-hidden="true" />
-                )}
-                Ajouter un acompte
-              </button>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Documents (PDF, DOC, etc.)
+              </label>
+              <input
+                name="documents"
+                type="file"
+                accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                multiple
+                onChange={e => setDocumentFiles(e.target.files ? Array.from(e.target.files) : [])}
+                className="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#f26755]/10 file:text-[#f26755] hover:file:bg-[#f26755]/20"
+              />
             </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-6">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpenAddModal(false)}
+            >
+              Annuler
+            </Button>
+            <Button type="submit" disabled={formLoading} className="bg-[#f26755] hover:bg-[#e55a4a]">
+              {formLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Création...
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4" />
+                  Ajouter un acompte
+                </>
+              )}
+            </Button>
+          </div>
+        </form>
+      </Modal>
 
       <div className="flex flex-wrap items-center gap-2 sm:gap-4 justify-between w-full mb-2">
         <div className="flex items-center flex-shrink-0">
@@ -325,118 +406,305 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
         </div>
         <h2 className="text-xl font-semibold text-gray-800 flex-1 text-center min-w-[160px] truncate order-2 sm:order-none">Demandes d&apos;acompte</h2>
         <div className="flex items-center flex-shrink-0">
-          {userRole !== 'admin' && (
+          {userRole !== 'admin' && project?.amoIncluded === false && (
             <button
               className="flex items-center gap-2 px-4 py-2 bg-[#f26755] text-white rounded-lg font-semibold shadow hover:opacity-90 transition"
               onClick={() => setOpenAddModal(true)}
               type="button"
             >
-            <Upload className="h-4 w-4" /> Demande d&apos;acompte
+              <Upload className="h-4 w-4" /> Demande d&apos;acompte
             </button>
           )}
         </div>
       </div>
 
-      <div className="grid gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-600 text-sm font-medium mb-1">Total demandé</p>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-2xl font-bold text-gray-900">{totalAmount.toLocaleString('fr-FR')}</span>
+                  <span className="text-lg font-medium text-gray-600">€</span>
+                </div>
+              </div>
+              <div className="w-12 h-12 bg-[#f26755]/10 rounded-xl flex items-center justify-center">
+                <Euro className="h-6 w-6 text-[#f26755]" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-600 text-sm font-medium mb-1">Approuvé</p>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-2xl font-bold text-gray-900">{approvedAmount.toLocaleString('fr-FR')}</span>
+                  <span className="text-lg font-medium text-gray-600">€</span>
+                </div>
+              </div>
+              <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
+                <Check className="h-6 w-6 text-emerald-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-600 text-sm font-medium mb-1">En attente</p>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-2xl font-bold text-gray-900">{pendingAmount.toLocaleString('fr-FR')}</span>
+                  <span className="text-lg font-medium text-gray-600">€</span>
+                </div>
+              </div>
+              <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
+                <Clock className="h-6 w-6 text-amber-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Paiements - Grille moderne */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {requests.map((request) => (
           <div
             key={request.id}
-            className="group relative bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow overflow-hidden"
+            className="group relative bg-white rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 overflow-hidden"
           >
-            <div className="absolute inset-y-0 left-0 w-1.5 bg-gradient-to-b from-[#f26755] to-[#f26755]/70"></div>
-
-            <div className="p-5">
-              <div className="flex justify-between items-start">
-                <div className="flex-1 min-w-0">
+            <div className="relative p-6">
+              {/* Header */}
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">
+                    {request.title}
+                  </h3>
                   <div className="flex items-center gap-3">
-                    <h3 className="text-lg font-semibold text-gray-900 truncate">
-                      {request.title}
-                    </h3>
-                    <span className={`inline-flex items-center gap-1 text-xs font-medium rounded-full px-2.5 py-0.5 border ${getStatusStyle(request.status)}`}>
+                    <span className={`inline-flex items-center gap-1.5 text-xs font-medium rounded-full px-3 py-1.5 border ${getStatusStyle(request.status)}`}>
                       {getStatusIcon(request.status)}
                       {request.status === 'validé' ? 'Validé' : 'En attente'}
                     </span>
-                  </div>
-
-                  <div className="mt-1 flex items-center text-sm text-gray-500">
-                    <span>{format(new Date(request.date), "PPP", { locale: fr })}</span>
+                    <div className="flex items-center gap-1 text-sm text-gray-500">
+                      <Clock className="h-4 w-4 text-[#f26755]" />
+                      {format(new Date(request.date), 'd MMMM yyyy', { locale: fr })}
+                    </div>
                   </div>
                 </div>
-
-                <div className="ml-4 flex-shrink-0">
-                  <div className="text-xl font-bold text-[#f26755]">
-                    {request.amount.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
+                <div className="text-right">
+                  <div className="bg-gradient-to-r from-[#f26755] to-[#e55a4a] bg-clip-text text-transparent">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl font-bold">{request.amount.toLocaleString('fr-FR')}</span>
+                      <span className="text-lg font-medium">€</span>
+                    </div>
                   </div>
+                  {request.status === 'validé' && (
+                    <div className="flex items-center justify-end gap-1 text-emerald-600 text-sm font-medium mt-1">
+                      <Check className="h-3 w-3" />
+                      Versé
+                    </div>
+                  )}
                 </div>
               </div>
-
-              {request.description && (
-                <div className="mt-3 text-sm text-gray-700">
-                  {request.description}
-                </div>
-              )}
-
-              {request.images && request.images.length > 0 && (
-                <div className="mt-4">
-                  <div className="flex gap-3 overflow-x-auto pb-2 -mx-5 px-5">
-                    {request.images.map((img, idx) => (
-                      <div key={idx} className="relative flex-shrink-0">
+              {/* Description */}
+              <p className="text-gray-600 text-sm leading-relaxed mb-4 line-clamp-2">
+                {request.description}
+              </p>
+              {/* Images & Docs */}
+              <div className="space-y-3 mb-6">
+                {request.images && request.images.length > 0 && (
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1 text-[#f26755]">
+                      <Upload className="h-4 w-4" />
+                      <span className="text-sm font-medium">{request.images.length}</span>
+                    </div>
+                    <div className="flex gap-2">
+                      {request.images.slice(0, 3).map((img, idx) => (
                         <Image
+                          key={idx}
                           src={img}
                           alt={`Justificatif ${idx + 1}`}
-                          width={160}
-                          height={120}
-                          className="h-32 w-40 object-cover rounded-lg border border-gray-200 cursor-pointer hover:ring-2 hover:ring-[#f26755] transition-all"
+                          width={12}
+                          height={12}
+                          className="w-12 h-12 object-cover rounded-lg border-2 border-gray-200 cursor-pointer hover:border-[#f26755] transition-colors"
                           onClick={() => setSelectedImage(img)}
                         />
-                      </div>
-                    ))}
+                      ))}
+                      {request.images.length > 3 && (
+                        <div className="w-12 h-12 bg-gray-100 rounded-lg border-2 border-gray-200 flex items-center justify-center text-xs font-medium text-gray-600">
+                          +{request.images.length - 3}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
-
-              {request.documents && request.documents.length > 0 && (
-                <div className="mt-4">
-                  <div className="flex flex-col gap-2 px-5">
-                    {request.documents.map((docUrl, idx) => {
-                      const fileName = decodeURIComponent(docUrl.split('/').pop()?.split('?')[0] || `Document_${idx+1}`);
-                      return (
-                        <a
-                          key={idx}
-                          href={docUrl}
-                          download
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 text-sm text-[#f26755] hover:underline hover:text-[#c24f3a] group"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#f26755] group-hover:text-[#c24f3a]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" /></svg>
-                          <span className="truncate max-w-xs">{fileName}</span>
-                        </a>
-                      );
-                    })}
+                )}
+                {request.documents && request.documents.length > 0 && (
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1 text-[#f26755]">
+                      <Upload className="h-4 w-4" />
+                      <span className="text-sm font-medium">{request.documents.length}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {request.documents.map((docUrl, idx) => {
+                        const fileName = decodeURIComponent(docUrl.split('/').pop()?.split('?')[0] || `Doc ${idx + 1}`);
+                        return (
+                          <a
+                            key={idx}
+                            href={docUrl}
+                            download
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 hover:bg-[#f26755]/10 rounded-lg text-xs text-gray-700 hover:text-[#f26755] transition-colors"
+                          >
+                            <Upload className="h-3 w-3" />
+                            <span className="truncate max-w-20">{fileName.split('.')[0]}</span>
+                          </a>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
+              {/* Actions */}
+              <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                <button
+                  className="text-sm font-medium text-[#f26755] hover:text-[#f26755]/80 flex items-center gap-1 transition-colors"
+                  onClick={() => handleViewDetails(request)}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                  Voir les détails
+                </button>
+                {request.status === 'en_attente' && (
+                  <button className="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 flex items-center gap-1 transition-colors">
+                    <Send className="h-3 w-3" />
+                    Relancer
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         ))}
       </div>
 
-      <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
-        <DialogContent className="max-w-4xl p-0">
-          {selectedImage && (
-            <div className="relative aspect-video">
-              <Image
-                src={selectedImage}
-                alt="Image agrandie"
-                width={800}
-                height={600}
-                className="w-full h-full object-contain"
-              />
+      <Modal
+        isOpen={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
+        title={selectedRequest?.title || ''}
+        maxWidth="max-w-6xl"
+      >
+        {selectedRequest && (
+          <div className="space-y-6 max-h-[80vh] overflow-y-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <h4 className="font-semibold text-gray-900 text-lg">Informations générales</h4>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <span className="text-gray-600 font-medium">Montant:</span>
+                    <div className="bg-gradient-to-r from-[#f26755] to-[#e55a4a] bg-clip-text text-transparent">
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-lg font-bold">{selectedRequest.amount.toLocaleString('fr-FR')}</span>
+                        <span className="text-sm font-medium">€</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <span className="text-gray-600 font-medium">Date:</span>
+                    <span className="font-semibold">{formatDate(selectedRequest.date)}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <span className="text-gray-600 font-medium">Statut:</span>
+                    <span className={`inline-flex items-center gap-1 text-xs font-medium rounded-full px-2.5 py-0.5 border ${getStatusStyle(selectedRequest.status)}`}>
+                      {getStatusIcon(selectedRequest.status)}
+                      {getStatusText(selectedRequest.status)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="font-semibold text-gray-900 text-lg">Description</h4>
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <p className="text-gray-700 leading-relaxed">{selectedRequest.description}</p>
+                </div>
+              </div>
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
+
+            {selectedRequest.images && selectedRequest.images.length > 0 && (
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-4 text-lg">Justificatifs</h4>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {selectedRequest.images.map((img, idx) => (
+                    <div key={idx} className="relative group">
+                      <Image
+                        src={img}
+                        width={500}
+                        height={500}
+                        alt={`Justificatif ${idx + 1}`}
+                        className="w-full h-24 sm:h-32 object-cover rounded-lg border border-gray-200 cursor-pointer hover:shadow-md transition-shadow"
+                        onClick={() => setSelectedImage(img)}
+                      />
+                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all rounded-lg flex items-center justify-center">
+                        <Eye className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {selectedRequest.documents && selectedRequest.documents.length > 0 && (
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-4 text-lg">Documents</h4>
+                <div className="grid grid-cols-1 gap-3">
+                  {selectedRequest.documents.map((docUrl, idx) => {
+                    const fileName = decodeURIComponent(docUrl.split('/').pop()?.split('?')[0] || `Document_${idx + 1}`);
+                    return (
+                      <a
+                        key={idx}
+                        href={docUrl}
+                        download
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 p-4 bg-gray-50 hover:bg-[#f26755]/10 rounded-xl border border-gray-200 hover:border-[#f26755] transition-all group"
+                      >
+                        <div className="w-10 h-10 bg-[#f26755]/10 rounded-lg flex items-center justify-center group-hover:bg-[#f26755]/20 transition-colors">
+                          <Download className="h-5 w-5 text-[#f26755]" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-gray-900 truncate">{fileName}</p>
+                          <p className="text-sm text-gray-500">Cliquez pour télécharger</p>
+                        </div>
+                      </a>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        isOpen={!!selectedImage}
+        onClose={() => setSelectedImage(null)}
+        title="Aperçu de l'image"
+        maxWidth="max-w-6xl"
+      >
+        {selectedImage && (
+          <div className="text-center p-4">
+            <Image
+              src={selectedImage}
+              width={500}
+              height={500}
+              alt="Aperçu"
+              className="max-w-full max-h-[70vh] w-auto h-auto mx-auto rounded-lg shadow-lg object-contain"
+            />
+          </div>
+        )}
+      </Modal>
 
       <Sheet open={isValidationDrawerOpen} onOpenChange={setIsValidationDrawerOpen}>
         <SheetContent className="w-full sm:w-[540px] overflow-y-auto">
@@ -571,8 +839,8 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
                 type="submit"
                 disabled={isNotificationSent}
                 className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${isNotificationSent
-                    ? 'bg-green-100 text-green-700 cursor-not-allowed'
-                    : 'bg-[#f26755] text-white hover:bg-[#f26755]/90'
+                  ? 'bg-green-100 text-green-700 cursor-not-allowed'
+                  : 'bg-[#f26755] text-white hover:bg-[#f26755]/90'
                   }`}
               >
                 {isNotificationSent ? (
