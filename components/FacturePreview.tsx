@@ -12,7 +12,7 @@ export const FacturePreview: React.FC<FacturePreviewProps> = ({
   onClose,
   isModal = false,
 }) => {
-  const totalHT = devis.selectedItems.reduce(
+  const totalHT = (devis.selectedItems ?? []).reduce(
     (sum, item) => sum + item.prix_ht * item.quantite,
     0
   );
@@ -100,7 +100,7 @@ export const FacturePreview: React.FC<FacturePreviewProps> = ({
             </tr>
           </thead>
           <tbody>
-            {devis.selectedItems.map((item, idx) => (
+            {(devis.selectedItems ?? []).map((item, idx) => (
               <tr
                 key={item.id}
                 className={idx % 2 === 0 ? "bg-white" : "bg-orange-50/40"}

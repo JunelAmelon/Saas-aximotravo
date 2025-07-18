@@ -34,7 +34,8 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
-
+import { FacturePreview } from "./FacturePreview";
+import { FactureModal } from "./FacturePreview";
 // ====================
 // Types et Interfaces
 // ====================
@@ -89,10 +90,8 @@ interface ModernDevisSectionProps {
       setItems:
         | React.Dispatch<React.SetStateAction<DevisItem[]>>
         | (() => void);
-      filtered: DevisItem[];
       currentPage: number;
       setCurrentPage: (page: number) => void;
-      totalPages: number;
       itemsPerPage: number;
       type: "devis" | "devisConfig";
     };
@@ -114,13 +113,13 @@ interface ModernDevisSectionProps {
   currentUserId: string | null;
 }
 
+// Hook utilitaire : filtrage + pagination pour tous les onglets
+import { useMemo } from "react";
+import { Devis } from "@/types/devis";
+
 // ====================
 // Composant principal : ModernDevisSection
 // ====================
-
-/**
- * Affiche et gère les devis/factures (créés, importés, validés) avec filtres, pagination, et attribution à un artisan.
- */
 export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
   activeDevisTab,
   setActiveDevisTab,
@@ -142,6 +141,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
   // Récupération des paramètres d'URL (ex: projectId)
   const params = useParams() || {};
   const [selectedArtisanId, setSelectedArtisanId] = useState<string>("");
+  const [facturePreview, setFacturePreview] = useState<Devis | null>(null);
 
   // ====================
   // Effet : Récupération des artisans acceptés pour le projet courant
@@ -277,6 +277,130 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
       </select>
     );
   };
+
+  function useFilteredPaginatedDevis({
+    items,
+    userRole,
+    currentUserId,
+    itemsPerPage,
+    currentPage,
+    extraFilter, // optionnel : pour appliquer d'autres filtres (recherche, statut, etc.)
+  }: {
+    items: any[];
+    userRole: string;
+    currentUserId: string | null;
+    itemsPerPage: number;
+    currentPage: number;
+    extraFilter?: (item: any) => boolean;
+  }) {
+    // Filtrage selon le rôle + filtre supplémentaire éventuel
+    const filtered = useMemo(() => {
+      let arr = items;
+      if (userRole === "artisan" && currentUserId) {
+        arr = arr.filter(
+          (devis) => devis.attribution?.artisanId === currentUserId
+        );
+      }
+      if (extraFilter) {
+        arr = arr.filter(extraFilter);
+      }
+      return arr;
+    }, [items, userRole, currentUserId, extraFilter]);
+
+    // Pagination
+    const totalItems = filtered.length;
+    const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+    const startIdx = (currentPage - 1) * itemsPerPage;
+    const endIdx = startIdx + itemsPerPage;
+    const paginated = filtered.slice(startIdx, endIdx);
+
+    return { paginated, totalPages, totalItems };
+  }
+
+  const filteredUploades = devisTabsData["uploades"].items.filter(
+    (devis) => devis.attribution?.artisanId === currentUserId
+  );
+
+  //Uploade
+  const {
+    paginated: paginatedUploades,
+    totalPages: totalPagesUploades,
+    totalItems: totalItemsUploades,
+  } = useFilteredPaginatedDevis({
+    items: devisTabsData["uploades"].items,
+    userRole,
+    currentUserId,
+    itemsPerPage: devisTabsData["uploades"].itemsPerPage,
+    currentPage: devisTabsData["uploades"].currentPage,
+    extraFilter: (item) => {
+      // Filtre par titre
+      const titreOk = filters.titre
+        ? (item.titre || "").toLowerCase().includes(filters.titre.toLowerCase())
+        : true;
+      // Filtre par statut
+      const statutOk = filters.status
+        ? (item.status || "").toLowerCase() === filters.status.toLowerCase()
+        : true;
+      return titreOk && statutOk;
+    },
+  });
+
+  const filteredGeneres = devisTabsData["generes"].items.filter(
+    (devis) => devis.attribution?.artisanId === currentUserId
+  );
+
+  //Generer
+  const {
+    paginated: paginatedGeneres,
+    totalPages: totalPagesGeneres,
+    totalItems: totalItemsGeneres,
+  } = useFilteredPaginatedDevis({
+    items: devisTabsData["generes"].items,
+    userRole,
+    currentUserId,
+    itemsPerPage: devisTabsData["generes"].itemsPerPage,
+    currentPage: devisTabsData["generes"].currentPage,
+    extraFilter: (item) => {
+      // Filtre par titre
+      const titreOk = filters.titre
+        ? (item.titre || "").toLowerCase().includes(filters.titre.toLowerCase())
+        : true;
+
+      // Filtre par statut
+      const statutOk = filters.status
+        ? (item.status || "").toLowerCase() === filters.status.toLowerCase()
+        : true;
+      return titreOk && statutOk;
+    },
+  });
+
+  //Factures
+  const {
+    paginated: paginatedFactures,
+    totalPages: totalPagesFactures,
+    totalItems: totalItemsFactures,
+  } = useFilteredPaginatedDevis({
+    items: devisTabsData["Factures"].items,
+    userRole,
+    currentUserId,
+    itemsPerPage: devisTabsData["Factures"].itemsPerPage,
+    currentPage: devisTabsData["Factures"].currentPage,
+    extraFilter: (item) => {
+      // Filtre par titre
+      const titreOk = filters.titre
+        ? (item.titre || "").toLowerCase().includes(filters.titre.toLowerCase())
+        : true;
+      // Filtre par statut
+      const statutOk = filters.status
+        ? (item.status || "").toLowerCase() === filters.status.toLowerCase()
+        : true;
+      return titreOk && statutOk;
+    },
+  });
+
+  console.log(devisTabsData["uploades"].items);
+  console.log(devisTabsData["generes"].items);
+  console.log(devisTabsData["Factures"].items);
 
   // ====================
   // Pagination générique
@@ -471,7 +595,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                   onChange={handleFilterChange}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f26755]/20 focus:border-[#f26755] transition-colors"
                 >
-                  <option value="">Tous les statuss</option>
+                  <option value="">Tous les status</option>
                   <option value="Validé">Validé</option>
                   <option value="En attente">En attente</option>
                   <option value="À modifier">À modifier</option>
@@ -507,7 +631,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {devisTabsData["uploades"].items.length === 0 ? (
+                {paginatedUploades.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-6 py-12 text-center">
                       <div className="flex flex-col items-center gap-3">
@@ -522,13 +646,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                     </td>
                   </tr>
                 ) : (
-                  (userRole === "artisan" && currentUserId
-                    ? devisTabsData["uploades"].items.filter(
-                        (devisItem) =>
-                          devisItem.attribution?.artisanId === currentUserId
-                      )
-                    : devisTabsData["uploades"].items
-                  ).map((devisItem) => (
+                  paginatedUploades.map((devisItem) => (
                     <tr
                       key={devisItem.id}
                       className="hover:bg-gray-50 transition-colors"
@@ -634,12 +752,12 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
           </div>
 
           {/* Pagination */}
-          {devisTabsData["uploades"].items.length > 0 && (
+          {paginatedUploades.length > 0 && (
             <Pagination
               currentPage={devisTabsData["uploades"].currentPage}
-              totalPages={devisTabsData["uploades"].totalPages}
+              totalPages={totalPagesUploades}
               onPageChange={devisTabsData["uploades"].setCurrentPage}
-              totalItems={devisTabsData["uploades"].filtered.length}
+              totalItems={totalItemsUploades}
               itemsPerPage={devisTabsData["uploades"].itemsPerPage}
             />
           )}
@@ -688,7 +806,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                   />
                 </div>
                 <select
-                  name="statut"
+                  name="status"
                   value={filters.status}
                   onChange={handleFilterChange}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f26755]/20 focus:border-[#f26755] transition-colors"
@@ -728,13 +846,8 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {devisTabsData["generes"].items.length > 0 ? (
-                  (userRole === "artisan" && currentUserId
-                    ? devisTabsData["generes"].items.filter(
-                        (doc) => doc.attribution?.artisanId === currentUserId
-                      )
-                    : devisTabsData["generes"].items
-                  ).map((doc) => (
+                {paginatedGeneres.length > 0 ? (
+                  paginatedGeneres.map((doc) => (
                     <tr
                       key={doc.id}
                       className="hover:bg-gray-50 transition-colors"
@@ -846,12 +959,12 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
           </div>
 
           {/* Pagination */}
-          {devisTabsData["generes"].items.length > 0 && (
+          {paginatedGeneres.length > 0 && (
             <Pagination
               currentPage={devisTabsData["generes"].currentPage}
-              totalPages={devisTabsData["generes"].totalPages}
+              totalPages={totalPagesGeneres}
               onPageChange={devisTabsData["generes"].setCurrentPage}
-              totalItems={devisTabsData["generes"].filtered.length}
+              totalItems={totalItemsGeneres}
               itemsPerPage={devisTabsData["generes"].itemsPerPage}
             />
           )}
@@ -895,12 +1008,8 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {devisTabsData["Factures"].items.length > 0 ? ( 
-                    (userRole === "artisan" && currentUserId
-                    ? devisTabsData["Factures"].items.filter(
-                        (doc) => doc.attribution?.artisanId === currentUserId
-                      )
-                    : devisTabsData["Factures"].items).map((doc) => (
+                  {paginatedFactures.length > 0 ? (
+                    paginatedFactures.map((doc) => (
                       <tr
                         key={doc.id}
                         className="hover:bg-gray-50 transition-colors"
@@ -965,6 +1074,9 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className="flex items-center gap-3 w-full"
+                                      onClick={() => {
+                                        setFacturePreview(doc);
+                                      }}
                                     >
                                       <FileText className="w-4 h-4 mr-2" />{" "}
                                       Visualiser PDF
@@ -1007,12 +1119,12 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                 </tbody>
               </table>
               {/* --- Pagination des factures validées --- */}
-              {devisTabsData["Factures"] && devisTabsData["Factures"].items.length > 0 && (
+              {paginatedFactures.length > 0 && (
                 <Pagination
                   currentPage={devisTabsData["Factures"].currentPage}
-                  totalPages={devisTabsData["Factures"].totalPages}
+                  totalPages={totalPagesFactures}
                   onPageChange={devisTabsData["Factures"].setCurrentPage}
-                  totalItems={devisTabsData["Factures"].filtered.length}
+                  totalItems={totalItemsFactures}
                   itemsPerPage={devisTabsData["Factures"].itemsPerPage}
                 />
               )}
@@ -1021,6 +1133,12 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
         </div>
       )}
 
+      {facturePreview && (
+        <FactureModal
+          facturePreview={facturePreview}
+          setFacturePreview={setFacturePreview}
+        />
+      )}
       {/*
           ====================
           Modal d'attribution d'un devis à un artisan
