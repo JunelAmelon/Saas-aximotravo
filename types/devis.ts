@@ -1,4 +1,7 @@
+import { Timestamp } from "firebase/firestore";
+
 export interface Devis {
+  projectId: string;
   id: string;
   titre: string;
   numero: string;
@@ -9,6 +12,10 @@ export interface Devis {
   createdAt: Date;
   clientInfo?: ClientInfo;
   companyInfo?: CompanyInfo;
+  attribution?: {
+    artisanId: string;
+    artisanName: string;
+  };
 }
 
 export interface ClientInfo {

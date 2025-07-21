@@ -316,6 +316,8 @@ export default function ProjectDetails() {
     });
   }, [id, currentUser?.uid]);
 
+
+
   // --- Filtres et pagination mutualisés ---
   const filterDevis = (items: any[]) =>
     items.filter(
@@ -362,6 +364,7 @@ export default function ProjectDetails() {
   } as const;
 
   const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
+
 
   const handleFilterChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>

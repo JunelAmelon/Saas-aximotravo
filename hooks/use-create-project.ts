@@ -150,7 +150,7 @@ export function useCreateProject() {
               projectsCount: (brokerUser as any).projectsCount || null,
               specialties: (brokerUser as any).specialties || [],
               image: brokerUser.image || "",
-              phone: brokerUser.phone || "",
+              phone: brokerUser.phoneNumber || "",
             }
           : null;
       }
