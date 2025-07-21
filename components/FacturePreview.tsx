@@ -53,8 +53,8 @@ export const FacturePreview: React.FC<FacturePreviewProps> = ({
     fetchProjectAndClient();
   }, [devis.projectId]);
 
-  console.log(project);
-  console.log(client);
+console.log(devis.createdAt);
+console.log(devis.id);
 
 
   
