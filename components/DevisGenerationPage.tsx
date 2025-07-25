@@ -75,7 +75,6 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
   onOpenChange,
   onBack,
 }) => {
-  if (!open) return null;
   const router = useRouter();
   const params = useParams();
 
@@ -98,6 +97,7 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
   const [furnitureDiscount, setFurnitureDiscount] = useState(0);
   const [showCreateCustomModal, setShowCreateCustomModal] = useState(false);
 
+  if (!open) return null;
   if (!devis) {
     return (
       <div className="p-8 text-center text-gray-500">Chargement du devis…</div>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { QontoTransaction, QontoTransactionsResponse } from "@/lib/qonto/types";
+import { extractErrorMessage } from "@/lib/utils/error-formatter";
 
 interface UseQontoTransactionsResult {
   transactions: QontoTransaction[] | null;
@@ -24,19 +25,7 @@ export function useQontoTransactions(): UseQontoTransactionsResult {
       setTransactions(response.data.transactions);
       setMeta(response.data.meta);
     } catch (err: any) {
-      // Gestion robuste des erreurs pour s'assurer qu'on retourne toujours une chaîne
-      let errorMessage = "Erreur lors du chargement des transactions Qonto";
-      
-      if (err?.response?.data?.error) {
-        errorMessage = typeof err.response.data.error === 'string' 
-          ? err.response.data.error 
-          : JSON.stringify(err.response.data.error);
-      } else if (err?.response?.data?.message) {
-        errorMessage = err.response.data.message;
-      } else if (err?.message) {
-        errorMessage = err.message;
-      }
-      
+      const errorMessage = extractErrorMessage(err, "Erreur lors du chargement des transactions Qonto");
       setError(errorMessage);
     } finally {
       setLoading(false);

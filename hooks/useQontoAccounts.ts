@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
+import { extractErrorMessage } from "@/lib/utils/error-formatter";
 
 interface QontoBankAccount {
   id: string;
@@ -46,19 +47,7 @@ export function useQontoAccounts(): UseQontoAccountsResult {
       setAccounts(response.data.bank_accounts);
       setMeta(response.data.meta);
     } catch (err: any) {
-      // Gestion robuste des erreurs pour s'assurer qu'on retourne toujours une chaîne
-      let errorMessage = "Erreur lors du chargement des comptes Qonto";
-      
-      if (err?.response?.data?.error) {
-        errorMessage = typeof err.response.data.error === 'string' 
-          ? err.response.data.error 
-          : JSON.stringify(err.response.data.error);
-      } else if (err?.response?.data?.message) {
-        errorMessage = err.response.data.message;
-      } else if (err?.message) {
-        errorMessage = err.message;
-      }
-      
+      const errorMessage = extractErrorMessage(err, "Erreur lors du chargement des comptes Qonto");
       setError(errorMessage);
     } finally {
       setLoading(false);

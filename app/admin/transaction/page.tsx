@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { useQontoTransactions } from "@/hooks/useQontoTransactions";
+import { formatError } from "@/lib/utils/error-formatter";
 import { collection, getDocs, orderBy, query } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 import { ProjectPayment, updatePaymentStatus } from "@/hooks/useProjectPayments";
@@ -102,14 +103,7 @@ export default function TransactionsAdminPage() {
                   {errorTx ? (
                     <div className="p-8 text-center">
                       <p className="mb-4 text-red-600">Erreur lors du chargement des transactions Qonto :</p>
-                      <p className="text-gray-600">
-                        {typeof errorTx === 'string' 
-                          ? errorTx 
-                          : typeof errorTx === 'object' && errorTx.errors 
-                            ? JSON.stringify(errorTx.errors) 
-                            : 'Erreur inconnue'
-                        }
-                      </p>
+                      <p className="text-gray-600">{formatError(errorTx)}</p>
                       <button
                         onClick={refetch}
                         className="mt-4 inline-block bg-[#f26755] hover:bg-[#e55a4a] text-white font-semibold px-6 py-3 rounded transition"
