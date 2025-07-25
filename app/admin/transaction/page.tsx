@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { useRevolutTransactions } from "@/hooks/useRevolutTransactions";
+import { useQontoTransactions } from "@/hooks/useQontoTransactions";
 import { collection, getDocs, orderBy, query } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 import { ProjectPayment, updatePaymentStatus } from "@/hooks/useProjectPayments";
@@ -20,13 +20,10 @@ export default function TransactionsAdminPage() {
     // ...
     const [loadingValidatingId, setLoadingValidatingId] = useState<string | null>(null);
     // ...
-    // Liste des transactions Revolut
-    const { transactions, loading: loadingTx, error: errorTx, refetch } = useRevolutTransactions();
+    // Liste des transactions Qonto
+    const { transactions, loading: loadingTx, error: errorTx, refetch } = useQontoTransactions();
 
-    // Prépare l'URL d'autorisation Revolut
-    const clientId = process.env.NEXT_PUBLIC_REVOLUT_CLIENT_ID;
-    const redirectUri = typeof window !== "undefined" ? window.location.origin + "/revolut/callback" : "";
-    const revolutAuthUrl = clientId && redirectUri ? `https://business.revolut.com/app-confirm?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code` : "";
+    // Note: Qonto utilise une authentification par clé API, pas d'URL d'autorisation nécessaire
 
     // Liste des paiements Firestore
     const [payments, setPayments] = useState<ProjectPayment[]>([]);
@@ -89,7 +86,7 @@ export default function TransactionsAdminPage() {
                     className={`px-5 py-2.5 font-medium rounded-t-lg transition-all ${activeTab === 0 ? "bg-white border-x border-t border-gray-200 -mb-px text-[#f26755]" : "text-gray-500 hover:text-[#f26755]"}`}
                     onClick={() => setActiveTab(0)}
                 >
-                    Transactions Revolut
+                    Transactions Qonto
                 </button>
                 <button
                     className={`px-5 py-2.5 font-medium rounded-t-lg transition-all ${activeTab === 1 ? "bg-white border-x border-t border-gray-200 -mb-px text-[#f26755]" : "text-gray-500 hover:text-[#f26755]"}`}
@@ -99,20 +96,26 @@ export default function TransactionsAdminPage() {
                 </button>
             </div>
 
-            {/* Tableau Transactions Revolut */}
+            {/* Tableau Transactions Qonto */}
             {activeTab === 0 && (
                 <>
-                  {errorTx && errorTx.includes("Code d'autorisation OAuth manquant") ? (
+                  {errorTx ? (
                     <div className="p-8 text-center">
-                      <p className="mb-4 text-gray-600">Connexion Revolut requise pour afficher les transactions.</p>
-                      {revolutAuthUrl && (
-                        <a
-                          href={revolutAuthUrl}
-                          className="inline-block bg-[#f26755] hover:bg-[#e55a4a] text-white font-semibold px-6 py-3 rounded transition"
-                        >
-                          Connecter Revolut
-                        </a>
-                      )}
+                      <p className="mb-4 text-red-600">Erreur lors du chargement des transactions Qonto :</p>
+                      <p className="text-gray-600">
+                        {typeof errorTx === 'string' 
+                          ? errorTx 
+                          : typeof errorTx === 'object' && errorTx.errors 
+                            ? JSON.stringify(errorTx.errors) 
+                            : 'Erreur inconnue'
+                        }
+                      </p>
+                      <button
+                        onClick={refetch}
+                        className="mt-4 inline-block bg-[#f26755] hover:bg-[#e55a4a] text-white font-semibold px-6 py-3 rounded transition"
+                      >
+                        Réessayer
+                      </button>
                     </div>
                   ) : (
                     <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
@@ -120,33 +123,56 @@ export default function TransactionsAdminPage() {
                         <thead className="bg-gray-50 sticky top-0 z-10">
                           <tr>
                             <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Type</th>
-                            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">État</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Date</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Montant</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Devise</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Description</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Référence</th>
+                            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Statut</th>
+                            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Sens</th>
+                            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Date</th>
+                            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Montant</th>
+                            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Devise</th>
+                            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Libellé</th>
+                            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Référence</th>
                           </tr>
                         </thead>
                         <tbody>
-                            {transactions && transactions.length > 0 ? (
-                                transactions.map((tx: any) => {
-                                    const leg = tx.legs?.[0];
-                                    return (
-                                        <tr key={tx.id} className="border-t hover:bg-gray-50 transition-colors">
-                                            <td className="px-6 py-4">{tx.type}</td>
-                                            <td className="px-6 py-4 capitalize">{tx.state}</td>
-                                            <td className="px-6 py-4">{tx.updated_at ? new Date(tx.updated_at).toLocaleString("fr-FR") : "-"}</td>
-                                            <td className="px-6 py-4">{leg?.amount ?? "-"}</td>
-                                            <td className="px-6 py-4">{leg?.currency ?? "-"}</td>
-                                            <td className="px-6 py-4">{leg?.description ?? "-"}</td>
-                                            <td className="px-6 py-4">{tx.reference ?? "-"}</td>
-                                        </tr>
-                                    );
-                                })
+                            {loadingTx ? (
+                                <tr>
+                                    <td colSpan={8} className="px-6 py-16 text-center text-gray-400">
+                                        <div className="flex items-center justify-center">
+                                            <svg className="animate-spin h-5 w-5 mr-3 text-gray-400" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                                            </svg>
+                                            Chargement des transactions...
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : transactions && transactions.length > 0 ? (
+                                transactions.map((tx) => (
+                                    <tr key={tx.transaction_id} className="border-t hover:bg-gray-50 transition-colors">
+                                        <td className="px-6 py-4">{tx.operation_type}</td>
+                                        <td className="px-6 py-4">
+                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                                tx.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                                            }`}>
+                                                {tx.status}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                                tx.side === 'credit' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                            }`}>
+                                                {tx.side === 'credit' ? 'Crédit' : 'Débit'}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4">{tx.settled_at ? new Date(tx.settled_at).toLocaleString("fr-FR") : "-"}</td>
+                                        <td className="px-6 py-4 font-medium">{tx.amount.toFixed(2)}</td>
+                                        <td className="px-6 py-4">{tx.currency}</td>
+                                        <td className="px-6 py-4">{tx.label || "-"}</td>
+                                        <td className="px-6 py-4">{tx.reference || "-"}</td>
+                                    </tr>
+                                ))
                             ) : (
                                 <tr>
-                                    <td colSpan={7} className="px-6 py-16 text-center text-gray-400">Aucune transaction trouvée</td>
+                                    <td colSpan={8} className="px-6 py-16 text-center text-gray-400">Aucune transaction trouvée</td>
                                 </tr>
                             )}
                         </tbody>
