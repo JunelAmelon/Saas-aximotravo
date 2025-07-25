@@ -41,6 +41,16 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ devis }) => {
     }
     loadClient();
   }, [projectId]);
+  
+  // Vérification de sécurité pour éviter les erreurs lors du chargement
+  if (!devis || !devis.selectedItems) {
+    return (
+      <div className="w-full max-w-4xl mx-auto bg-white p-10 text-center">
+        <p className="text-gray-500">Chargement du devis...</p>
+      </div>
+    );
+  }
+
   // Calcul des totaux avec gestion de la TVA variable et des prestations offertes
   let totalHT = 0;
   let totalTVA = 0;
@@ -89,7 +99,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ devis }) => {
     if (!groups[item.lotName]) groups[item.lotName] = [];
     groups[item.lotName].push(item);
     return groups;
-  }, {} as Record<string, typeof devis.selectedItems>);
+  }, {} as Record<string, any[]>);
 
   const payments = [
     { label: "Acompte à la signature", percent: 40, amount: totalTTC * 0.4 },
@@ -399,7 +409,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ devis }) => {
                       Pièces concernées:
                     </div>
                     <div className="flex flex-wrap gap-1">
-                      {item.pieces.map((piece, pieceIndex) => (
+                      {item.pieces.map((piece: string, pieceIndex: number) => (
                         <span
                           key={pieceIndex}
                           className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-base md:text-lg"
@@ -417,7 +427,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ devis }) => {
                     <div className="text-gray-500 mb-2 text-base md:text-lg truncate">
                       Pièces incluses:
                     </div>
-                    {item.selectedPieces.map((piece, pieceIndex) => (
+                    {item.selectedPieces.map((piece: any, pieceIndex: number) => (
                       <div key={pieceIndex} className="flex items-center mb-1">
                         <div className="w-1 h-1 bg-[#F26755] rounded-full mr-2"></div>
                         <span className="font-semibold text-base md:text-lg">
