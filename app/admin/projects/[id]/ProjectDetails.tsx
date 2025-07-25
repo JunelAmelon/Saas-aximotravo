@@ -78,7 +78,7 @@ export const getProjectDetail = async (id: string): Promise<ProjectDetails | nul
     const docRef = doc(db, "projects", id);
     const docSnap = await getDoc(docRef);
     if (!docSnap.exists()) {
-      console.warn("Aucun projet trouvé avec l'ID Firestore :", id);
+      console.warn("Aucun projet trouvé avec dans Firestore");
       return null;
     }
     const projectData = docSnap.data();
@@ -128,7 +128,6 @@ export const getDevisForProject = async (projectId: string) => {
 };
 
 export default function ProjectDetails({ id, currentTab }: { id: string; currentTab?: string }) {
-  console.log('[ProjectDetails] ID reçu via props :', id);
   const [project, setProject] = useState<ProjectDetails | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

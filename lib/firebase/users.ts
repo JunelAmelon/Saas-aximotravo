@@ -12,12 +12,12 @@ export interface BaseUser {
   firstName?: string;
   displayName?: string;
   phoneNumber?: string;
+  phone?: string;
   role: UserRole;
   createdAt: Date | null;
   updatedAt: Date | null;
   photoURL?: string;
   image?: string;
-  phone?: string;
 }
 
 export interface ArtisanUser extends BaseUser {
@@ -27,6 +27,24 @@ export interface ArtisanUser extends BaseUser {
   secteur: string;
   courtierId?: string;
   specialite?: string;
+  companyAddress?: string;
+  companyPostalCode?: string;
+  companyCity?: string;
+  companyPhone?: string;
+  companyEmail?: string;
+  companyLegalForm?: string;
+  siret?: string;
+  rcs?: string;
+  companyApe?: string;
+  companyTva?: string;
+  companyCapital?: string;
+  hasCertification?: string;
+  certificationUrl?: string | null;
+  insuranceDate?: string;
+  insuranceUrl?: string | null;
+  fiscalUrl?: string | null;
+  kbisUrl?: string | null;
+  companyLogoUrl?: string;
 }
 
 export interface CourtierUser extends BaseUser {

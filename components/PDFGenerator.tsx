@@ -11,6 +11,10 @@ import { DevisPDFDocument } from './DevisPDFDocument';
 import { PDFPreview } from './PDFPreview';
 import { pdf } from '@react-pdf/renderer';
 import { Devis } from '@/types/devis';
+import { useEffect, useState } from 'react';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase/config';
+import { Project, getProjectById } from '@/lib/firebase/projects';
 
 export const PDFGenerator: React.FC<{ className?: string; iconOnly?: boolean }> = ({
   className,
@@ -22,13 +26,44 @@ export const PDFGenerator: React.FC<{ className?: string; iconOnly?: boolean }> 
   const { devisConfig } = useDevisConfig();
   const devis = devisConfig as Devis;
 
+  const projectId = params?.id as string;
+  const [client, setClient] = useState<any>(null);
+  
+  const [project, setProject] = useState<Project | null>(null);
+  useEffect(() => {
+      async function loadProject() {
+        if (!projectId) return;
+        const project = await getProjectById(projectId);
+        setProject(project);
+      }
+      loadProject();
+    }, [projectId]);
+  
+    useEffect(() => {
+      async function loadClient() {
+        if (!projectId) return;
+        // Charger le projet
+        const projectRef = doc(db, "projects", projectId);
+        const projectSnap = await getDoc(projectRef);
+        if (!projectSnap.exists()) return;
+        const project = projectSnap.data();
+        // Charger le client
+        if (project.client_id) {
+          const clientRef = doc(db, "users", project.client_id);
+          const clientSnap = await getDoc(clientRef);
+          if (clientSnap.exists()) setClient(clientSnap.data());
+        }
+      }
+      loadClient();
+    }, [projectId]);
+
   const generatePDF = async () => {
     if (!devis) return;
     setLoading(true);
 
     try {
       // 1. Générer le blob PDF avec react-pdf
-      const pdfBlob = await pdf(<DevisPDFDocument devis={devis} />).toBlob();
+      const pdfBlob = await pdf(<DevisPDFDocument devis={devis} client={client} project={project!} />).toBlob();
       const fileName = `Devis_${devis.numero}_${new Date().toLocaleDateString('fr-FR').replace(/\//g, '-')}.pdf`;
 
       // Fonction d'upload Cloudinary avec cloud_name et endpoint /auto/upload

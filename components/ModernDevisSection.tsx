@@ -36,7 +36,6 @@ import {
 import { db } from "@/lib/firebase/config";
 import { FacturePreview } from "./FacturePreview";
 import { FactureModal } from "./FacturePreview";
-
 // ====================
 // Types et Interfaces
 // ====================
@@ -114,11 +113,10 @@ interface ModernDevisSectionProps {
   currentUserId: string | null;
 }
 
-// ====================
 // Hook utilitaire : filtrage + pagination pour tous les onglets
-// ====================
 import { useMemo } from "react";
 import { Devis } from "@/types/devis";
+import { GenerateFacturePDF } from "./GenerateFacturePDF";
 
 // ====================
 // Composant principal : ModernDevisSection
@@ -144,7 +142,6 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
   // Récupération des paramètres d'URL (ex: projectId)
   const params = useParams() || {};
   const [selectedArtisanId, setSelectedArtisanId] = useState<string>("");
-
   const [facturePreview, setFacturePreview] = useState<Devis | null>(null);
 
   // ====================
@@ -377,10 +374,6 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
       return titreOk && statutOk;
     },
   });
-
-  const filteredFactures = devisTabsData["Factures"].items.filter(
-    (devis) => devis.attribution?.artisanId === currentUserId
-  );
 
   //Factures
   const {
@@ -1088,10 +1081,15 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                                   </DropdownMenuItem>
                                   <DropdownMenuItem asChild>
                                     <a
-                                      href={doc.pdfUrl}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      download
+                                      href="#"
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        GenerateFacturePDF({
+                                          devis: doc,
+                                          artisanId:
+                                            doc.attribution?.artisanId || "",
+                                        });
+                                      }}
                                       className="flex items-center gap-3 w-full"
                                     >
                                       <Download className="w-4 h-4 mr-2" />{" "}
@@ -1143,7 +1141,6 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
           setFacturePreview={setFacturePreview}
         />
       )}
-
       {/*
           ====================
           Modal d'attribution d'un devis à un artisan

@@ -136,11 +136,6 @@ export default function ArtisanProjects() {
     currentPage * projectsPerPage
   );
 
-  console.log("sortedProjects", sortedProjects.map(p => ({
-    name: p.name,
-    acceptedAt: p.acceptedAt
-  })));
-
   const hasActiveFilters = searchTerm !== "" || statusFilter !== "";
 
   if (loading) {

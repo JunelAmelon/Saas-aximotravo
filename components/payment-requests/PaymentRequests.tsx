@@ -4,8 +4,12 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Modal } from '@/components/ui/modal';
 import { Badge } from '@/components/ui/badge';
+import { useProjectPayments, addPayment } from "@/hooks/useProjectPayments";
 import { Button } from '@/components/ui/button';
+import { CLOUDINARY_UPLOAD_PRESET } from '@/lib/cloudinary';
+import { useParams } from 'next/navigation';
 import { Euro, Check, X, Clock, Mail, Upload, Send, ChevronRight, ArrowLeft, Plus, Eye, Calendar, FileText, Download, Image as ImageIcon } from 'lucide-react';
+import Image from 'next/image';
 
 // Mock types to match your existing structure
 interface ProjectPayment {
@@ -28,52 +32,6 @@ interface Recipient {
   required?: boolean;
 }
 
-// Mock data for demonstration with documents
-const mockRequests: ProjectPayment[] = [
-  {
-    id: '1',
-    title: 'Versement au démarrage',
-    description: 'Premier versement pour le démarrage du projet de rénovation',
-    amount: 5000,
-    date: '2024-01-15',
-    status: 'validé',
-    images: [
-      'https://images.pexels.com/photos/1181263/pexels-photo-1181263.jpeg?auto=compress&cs=tinysrgb&w=800',
-      'https://images.pexels.com/photos/1181248/pexels-photo-1181248.jpeg?auto=compress&cs=tinysrgb&w=800'
-    ],
-    documents: [
-      'https://example.com/devis-renovation.pdf',
-      'https://example.com/contrat-travaux.pdf'
-    ]
-  },
-  {
-    id: '2',
-    title: 'Versement mi chantier',
-    description: 'Versement intermédiaire pour les travaux en cours',
-    amount: 7500,
-    date: '2024-01-20',
-    status: 'en_attente',
-    images: [
-      'https://images.pexels.com/photos/1181406/pexels-photo-1181406.jpeg?auto=compress&cs=tinysrgb&w=800'
-    ],
-    documents: [
-      'https://example.com/facture-intermediaire.pdf'
-    ]
-  },
-  {
-    id: '3',
-    title: 'A la fin des travaux',
-    description: 'Versement final pour la finalisation du projet',
-    amount: 3000,
-    date: '2024-01-25',
-    status: 'en_attente',
-    documents: [
-      'https://example.com/rapport-final.pdf',
-      'https://example.com/garantie-travaux.pdf'
-    ]
-  }
-];
-
 interface PaymentRequestsProps {
   projectId?: string;
 }
@@ -81,11 +39,13 @@ interface PaymentRequestsProps {
 export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
   // Mock user role - replace with your actual auth logic
   const [userRole, setUserRole] = useState<string | null>('client');
-  
-  // Mock data - replace with your actual data fetching
-  const requests = mockRequests;
-  const loading = false;
-  const error = null;
+  const params = useParams() ?? {};
+  const resolvedProjectId = projectId || (Array.isArray(params.id) ? params.id[0] : params.id as string);
+  const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/auto/upload`;
+
+  // Affichage des paiements Firestore
+  const { payments, loading, error } = useProjectPayments(resolvedProjectId);
+  const requests = payments; // Pour compatibilité avec le reste du code
 
   const [selectedRequest, setSelectedRequest] = useState<ProjectPayment | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -205,14 +165,49 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
     e.preventDefault();
     setFormError(null);
     setFormLoading(true);
-    
-    // Simulate API call
-    setTimeout(() => {
+
+    try {
+      let imageUrls: string[] = [];
+      if (form.files && form.files.length > 0) {
+        for (const file of form.files) {
+          const data = new FormData();
+          data.append('file', file);
+          data.append('upload_preset', CLOUDINARY_UPLOAD_PRESET as string);
+          const res = await fetch(CLOUDINARY_UPLOAD_URL, { method: 'POST', body: data });
+          const result = await res.json();
+          if (result.secure_url) imageUrls.push(result.secure_url);
+        }
+      }
+      let documentUrls: string[] = [];
+      if (documentFiles && documentFiles.length > 0) {
+        for (const file of documentFiles) {
+          const data = new FormData();
+          data.append('file', file);
+          data.append('upload_preset', CLOUDINARY_UPLOAD_PRESET as string);
+          const res = await fetch(CLOUDINARY_UPLOAD_URL, { method: 'POST', body: data });
+          const result = await res.json();
+          if (result.secure_url) documentUrls.push(result.secure_url);
+        }
+      }
+      await addPayment({
+        projectId: resolvedProjectId,
+        title: form.title,
+        description: form.description,
+        amount: parseFloat(form.amount),
+        date: new Date().toISOString(),
+        status: 'en_attente',
+        images: imageUrls,
+        documents: documentUrls,
+        dateValidation: '',
+      });
       setForm({ title: '', description: '', amount: '', files: [] });
       setDocumentFiles([]);
-      setOpenAddModal(false);
+      if (typeof window !== 'undefined') window.location.reload();
+    } catch (err: any) {
+      setFormError("Erreur lors de l'ajout de l'acompte: " + err.message);
+    } finally {
       setFormLoading(false);
-    }, 1000);
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -282,7 +277,7 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
             </div>
           </div>
         </div>
-        
+
         <div className="flex items-center justify-center min-h-96">
           <Card className="text-center py-16 max-w-md mx-auto shadow-lg">
             <CardContent>
@@ -416,7 +411,7 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Price Display */}
                 <div className="text-right">
                   <div className="bg-gradient-to-r from-[#f26755] to-[#e55a4a] bg-clip-text text-transparent">
@@ -450,10 +445,12 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
                     </div>
                     <div className="flex gap-2">
                       {request.images.slice(0, 3).map((img, idx) => (
-                        <img
+                        <Image
                           key={idx}
                           src={img}
                           alt={`Justificatif ${idx + 1}`}
+                          width={12}
+                          height={12}
                           className="w-12 h-12 object-cover rounded-lg border-2 border-gray-200 cursor-pointer hover:border-[#f26755] transition-colors"
                           onClick={() => setSelectedImage(img)}
                         />
@@ -476,7 +473,7 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {request.documents.map((docUrl, idx) => {
-                        const fileName = decodeURIComponent(docUrl.split('/').pop()?.split('?')[0] || `Doc ${idx+1}`);
+                        const fileName = decodeURIComponent(docUrl.split('/').pop()?.split('?')[0] || `Doc ${idx + 1}`);
                         return (
                           <a
                             key={idx}
@@ -506,7 +503,7 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
                   Voir les détails
                   <ChevronRight className="h-4 w-4" />
                 </button>
-                
+
                 {request.status === 'en_attente' && (
                   <button className="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 flex items-center gap-1 transition-colors">
                     <Send className="h-3 w-3" />
@@ -526,13 +523,13 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
         title="Nouvelle demande d'acompte"
         maxWidth="max-w-3xl"
       >
-        <form onSubmit={handleAddPayment} className="space-y-6">
+        <form onSubmit={handleAddPayment} className="space-y-6 max-h-[70vh] overflow-y-auto p-2">
           {formError && (
             <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
               {formError}
             </div>
           )}
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -675,7 +672,7 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
                   </div>
                 </div>
               </div>
-              
+
               <div className="space-y-4">
                 <h4 className="font-semibold text-gray-900 text-lg">Description</h4>
                 <div className="p-4 bg-gray-50 rounded-lg">
@@ -690,9 +687,11 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                   {selectedRequest.images.map((img, idx) => (
                     <div key={idx} className="relative group">
-                      <img
+                      <Image
                         src={img}
                         alt={`Justificatif ${idx + 1}`}
+                        width={500}
+                        height={500}
                         className="w-full h-24 sm:h-32 object-cover rounded-lg border border-gray-200 cursor-pointer hover:shadow-md transition-shadow"
                         onClick={() => setSelectedImage(img)}
                       />
@@ -710,7 +709,7 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
                 <h4 className="font-semibold text-gray-900 mb-4 text-lg">Documents</h4>
                 <div className="grid grid-cols-1 gap-3">
                   {selectedRequest.documents.map((docUrl, idx) => {
-                    const fileName = decodeURIComponent(docUrl.split('/').pop()?.split('?')[0] || `Document_${idx+1}`);
+                    const fileName = decodeURIComponent(docUrl.split('/').pop()?.split('?')[0] || `Document_${idx + 1}`);
                     return (
                       <a
                         key={idx}
@@ -746,8 +745,10 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
       >
         {selectedImage && (
           <div className="text-center p-4">
-            <img
+            <Image
               src={selectedImage}
+              width={500}
+              height={500}
               alt="Aperçu"
               className="max-w-full max-h-[70vh] w-auto h-auto mx-auto rounded-lg shadow-lg object-contain"
             />
@@ -804,4 +805,3 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
   );
 }
 
- 

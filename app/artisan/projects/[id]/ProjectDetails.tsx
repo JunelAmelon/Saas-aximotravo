@@ -128,7 +128,7 @@ export const getProjectDetail = async (
     const docRef = doc(db, "projects", id);
     const docSnap = await getDoc(docRef);
     if (!docSnap.exists()) {
-      console.warn("Aucun projet trouvé avec l'ID Firestore :", id);
+      console.warn("Aucun projet trouvé dans Firestore");
       return null;
     }
     const projectData = docSnap.data();
@@ -316,6 +316,8 @@ export default function ProjectDetails() {
     });
   }, [id, currentUser?.uid]);
 
+
+
   // --- Filtres et pagination mutualisés ---
   const filterDevis = (items: any[]) =>
     items.filter(
@@ -324,21 +326,15 @@ export default function ProjectDetails() {
           item.titre?.toLowerCase().includes(filters.titre.toLowerCase())) &&
         (!filters.status || item.status === filters.status)
     );
-
   const filteredFactures = filterDevis(
     devisGeneres.filter((d) => d.status?.toLowerCase() === "validé")
   );
-
-
 
   const paginatedFactures = filteredFactures.slice(
     (currentPageFactures - 1) * itemsPerPage,
     currentPageFactures * itemsPerPage
   );
 
- console.log("paginatedImportes", devisImportes);
- console.log("paginatedGeneres", devisGeneres);
- console.log("paginatedFactures", devisFactures);
   // --- Centralisation pour ModernDevisSection ---
   const devisTabsData = {
     uploades: {
@@ -368,6 +364,7 @@ export default function ProjectDetails() {
   } as const;
 
   const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
+
 
   const handleFilterChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
