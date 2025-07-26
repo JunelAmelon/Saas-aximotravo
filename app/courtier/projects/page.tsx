@@ -1,20 +1,27 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Search, ChevronLeft, ChevronRight, PlusCircle, User, Calendar, MapPin } from "lucide-react";
+import {
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  PlusCircle,
+  User,
+  Calendar,
+  MapPin,
+} from "lucide-react";
 import Image from "next/image";
 import { BadgeAmo } from "@/components/BadgeAmo";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/contexts/AuthContext";
-import { getProjectsByCourtier, Project as FirebaseProject } from "@/lib/firebase/projects";
+import {
+  getProjectsByCourtier,
+  Project as FirebaseProject,
+} from "@/lib/firebase/projects";
 import { getUserById } from "@/lib/firebase/users";
 
-type ProjectStatus =
-  | "En attente"
-  | "En cours"
-  | "Terminé"
- 
+type ProjectStatus = "En attente" | "En cours" | "Terminé";
 
 interface Project {
   id: string;
@@ -32,30 +39,30 @@ interface Project {
 const statusConfig = {
   "En attente": {
     label: "En attente",
-    className: "bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-200",
-    icon: "⏳"
+    className:
+      "bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-200",
+    icon: "⏳",
   },
   "En cours": {
     label: "En cours",
     className: "bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200",
-    icon: "🚧"
+    icon: "🚧",
   },
-  "Terminé": {
+  Terminé: {
     label: "Terminé",
-    className: "bg-green-100 text-green-800 border-green-200 hover:bg-green-200",
-    icon: "✅"
+    className:
+      "bg-green-100 text-green-800 border-green-200 hover:bg-green-200",
+    icon: "✅",
   },
-
 };
 
 function convertFirebaseProject(project: FirebaseProject): Project {
-  const validStatuses: ProjectStatus[] = [
-    "En attente", "En cours", "Terminé",
-   
-  ];
+  const validStatuses: ProjectStatus[] = ["En attente", "En cours", "Terminé"];
 
-  const status: ProjectStatus = validStatuses.includes(project.status as ProjectStatus)
-    ? project.status as ProjectStatus
+  const status: ProjectStatus = validStatuses.includes(
+    project.status as ProjectStatus
+  )
+    ? (project.status as ProjectStatus)
     : "En attente";
 
   return {
@@ -66,9 +73,11 @@ function convertFirebaseProject(project: FirebaseProject): Project {
     status,
     amount: project.budget || 0,
     image: project.image || "/default-project.jpg",
-    date: project.createdAt?.toDate?.()?.toLocaleDateString('fr-FR') || "Non spécifiée",
+    date:
+      project.createdAt?.toDate?.()?.toLocaleDateString("fr-FR") ||
+      "Non spécifiée",
     location: project.location || "Non spécifié",
-    amoIncluded: project.amoIncluded || false
+    amoIncluded: project.amoIncluded || false,
   };
 }
 
@@ -113,8 +122,8 @@ export default function CourtierProjects() {
 
       setProjects(projectsWithClientNames);
     } catch (err) {
-      console.error('Erreur:', err);
-      setError('Impossible de charger les projets');
+      console.error("Erreur:", err);
+      setError("Impossible de charger les projets");
     } finally {
       setLoading(false);
     }
@@ -124,10 +133,11 @@ export default function CourtierProjects() {
     loadProjects();
   }, [loadProjects]);
 
-  const filteredProjects = projects.filter(project => {
+  const filteredProjects = projects.filter((project) => {
     // Correction : vérification que clientName existe avant toLowerCase()
     const clientName = project.clientName || "";
-    const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch =
+      project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       clientName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = !statusFilter || project.status === statusFilter;
     return matchesSearch && matchesStatus;
@@ -141,18 +151,25 @@ export default function CourtierProjects() {
   const totalPages = Math.ceil(filteredProjects.length / projectsPerPage);
 
   if (loading) {
-    return <div className="flex justify-center items-center h-64">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#f21515]"></div>
-    </div>;
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#f21515]"></div>
+      </div>
+    );
   }
 
   if (error) {
-    return <div className="p-4 bg-red-50 text-red-600 rounded-lg">
-      <p>{error}</p>
-      <button onClick={loadProjects} className="mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
-        Réessayer
-      </button>
-    </div>;
+    return (
+      <div className="p-4 bg-red-50 text-red-600 rounded-lg">
+        <p>{error}</p>
+        <button
+          onClick={loadProjects}
+          className="mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+        >
+          Réessayer
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -160,7 +177,7 @@ export default function CourtierProjects() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-gray-900">Liste des projets</h1>
         <button
-          onClick={() => router.push('/courtier/projects/new')}
+          onClick={() => router.push("/courtier/projects/new")}
           className="flex items-center gap-2 px-4 py-2 bg-[#f26755] text-white rounded-md hover:bg-[#f26755]/90 transition-all"
         >
           <PlusCircle className="h-5 w-5" />
@@ -186,15 +203,32 @@ export default function CourtierProjects() {
             onClick={() => setIsStatusDropdownOpen(!isStatusDropdownOpen)}
             className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all"
           >
-            <span>Statut: {statusFilter ? (
-              <span className="flex items-center">
-                <span
-                  className={`w-3 h-3 rounded-full mr-2 ${statusConfig[statusFilter as keyof typeof statusConfig]?.className.split(' ')[0]}`}
-                ></span>
-                {statusConfig[statusFilter as keyof typeof statusConfig]?.label}
-              </span>
-            ) : "Tous"}</span>
-            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <span>
+              Statut:{" "}
+              {statusFilter ? (
+                <span className="flex items-center">
+                  <span
+                    className={`w-3 h-3 rounded-full mr-2 ${
+                      statusConfig[
+                        statusFilter as keyof typeof statusConfig
+                      ]?.className.split(" ")[0]
+                    }`}
+                  ></span>
+                  {
+                    statusConfig[statusFilter as keyof typeof statusConfig]
+                      ?.label
+                  }
+                </span>
+              ) : (
+                "Tous"
+              )}
+            </span>
+            <svg
+              className="h-4 w-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+            >
               <path d="m6 9 6 6 6-6" strokeWidth="2" strokeLinecap="round" />
             </svg>
           </button>
@@ -205,7 +239,9 @@ export default function CourtierProjects() {
                   setStatusFilter("");
                   setIsStatusDropdownOpen(false);
                 }}
-                className={`w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center ${!statusFilter ? 'bg-gray-100' : ''}`}
+                className={`w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center ${
+                  !statusFilter ? "bg-gray-100" : ""
+                }`}
               >
                 <span className="w-3 h-3 rounded-full mr-2 bg-gray-300"></span>
                 Tous les statuts
@@ -217,10 +253,14 @@ export default function CourtierProjects() {
                     setStatusFilter(statusKey as ProjectStatus);
                     setIsStatusDropdownOpen(false);
                   }}
-                  className={`w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center ${statusFilter === statusKey ? 'bg-gray-100' : ''}`}
+                  className={`w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center ${
+                    statusFilter === statusKey ? "bg-gray-100" : ""
+                  }`}
                 >
                   <span
-                    className={`w-3 h-3 rounded-full mr-2 ${config.className.split(' ')[0]}`}
+                    className={`w-3 h-3 rounded-full mr-2 ${
+                      config.className.split(" ")[0]
+                    }`}
                   ></span>
                   {config.label}
                 </button>
@@ -234,7 +274,7 @@ export default function CourtierProjects() {
         <div className="bg-white p-8 rounded-lg shadow-sm text-center">
           <p className="text-gray-500 mb-4">Aucun projet trouvé</p>
           <button
-            onClick={() => router.push('/courtier/projects/new')}
+            onClick={() => router.push("/courtier/projects/new")}
             className="px-4 py-2 bg-[#f26755] text-white rounded-lg hover:bg-[#f26755]/90 transition-all"
           >
             Créer un nouveau projet
@@ -243,9 +283,13 @@ export default function CourtierProjects() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {paginatedProjects.map((project) => {
-            const statusInfo = statusConfig[project.status as keyof typeof statusConfig];
+            const statusInfo =
+              statusConfig[project.status as keyof typeof statusConfig];
             return (
-              <div key={project.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 hover:shadow-md transition-all">
+              <div
+                key={project.id}
+                className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 hover:shadow-md transition-all"
+              >
                 <div className="flex items-start gap-4 mb-4">
                   <div className="relative w-16 h-16 flex-shrink-0 rounded-full overflow-hidden border-2 border-[#f26755] group-hover:border-[#f26755]/80 transition-colors duration-200">
                     <Image
@@ -258,18 +302,18 @@ export default function CourtierProjects() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <h3 className="text-lg font-medium text-gray-900 truncate">{project.name}</h3>
+                      <h3 className="text-lg font-medium text-gray-900 truncate">
+                        {project.name}
+                      </h3>
                       {project.amoIncluded && <BadgeAmo />}
                     </div>
-
-
-
-
                   </div>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
                   <User className="h-4 w-4 text-[#f26755]" />
-                  <p className="text-sm text-gray-600 truncate">{project.clientName || "Non spécifié"}</p>
+                  <p className="text-sm text-gray-600 truncate">
+                    {project.clientName || "Non spécifié"}
+                  </p>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
                   <Calendar className="h-4 w-4 text-[#f26755]" />
@@ -284,7 +328,10 @@ export default function CourtierProjects() {
                   <p className="text-xs text-gray-500 mb-1">Budget total</p>
                   <div className="flex items-center gap-2">
                     <span className="text-2xl font-extrabold text-[#f26755] drop-shadow-sm">
-                      {project.amount?.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
+                      {project.amount?.toLocaleString("fr-FR", {
+                        style: "currency",
+                        currency: "EUR",
+                      })}
                     </span>
                   </div>
                 </div>
@@ -307,19 +354,27 @@ export default function CourtierProjects() {
                       strokeLinejoin="round"
                       className="transition-transform group-hover:-translate-y-1 group-hover:translate-x-1 rotate-45 origin-center"
                     >
-                      <path d="M5 12h14" /> {/* Ligne horizontale (corps de l'avion) */}
-                      <path d="M12 5l7 7-7 7" /> {/* Flèche pointant vers le haut */}
+                      <path d="M5 12h14" />{" "}
+                      {/* Ligne horizontale (corps de l'avion) */}
+                      <path d="M12 5l7 7-7 7" />{" "}
+                      {/* Flèche pointant vers le haut */}
                     </svg>
                   </Link>
                   {(() => {
-  const statusInfo = statusConfig[project.status as keyof typeof statusConfig] || { label: project.status, className: '', icon: '' };
-  return (
-    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${statusInfo.className}`}>
-      {statusInfo.icon && <span className="mr-1">{statusInfo.icon}</span>}
-      {statusInfo.label}
-    </span>
-  );
-})()}
+                    const statusInfo = statusConfig[
+                      project.status as keyof typeof statusConfig
+                    ] || { label: project.status, className: "", icon: "" };
+                    return (
+                      <span
+                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${statusInfo.className}`}
+                      >
+                        {statusInfo.icon && (
+                          <span className="mr-1">{statusInfo.icon}</span>
+                        )}
+                        {statusInfo.label}
+                      </span>
+                    );
+                  })()}
                 </div>
               </div>
             );
@@ -330,7 +385,7 @@ export default function CourtierProjects() {
         <div className="flex justify-center gap-2 mt-8">
           <button
             aria-label="CurrentPage"
-            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
             disabled={currentPage === 1}
             className="p-2 rounded-full border border-gray-200 hover:bg-gray-50 disabled:opacity-50 transition-all"
           >
@@ -340,14 +395,18 @@ export default function CourtierProjects() {
             <button
               key={i}
               onClick={() => setCurrentPage(i + 1)}
-              className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${currentPage === i + 1 ? 'bg-[#f26755] text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+              className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                currentPage === i + 1
+                  ? "bg-[#f26755] text-white"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
             >
               {i + 1}
             </button>
           ))}
           <button
             aria-label="CurrentPage"
-            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
             className="p-2 rounded-full border border-gray-200 hover:bg-gray-50 disabled:opacity-50 transition-all"
           >

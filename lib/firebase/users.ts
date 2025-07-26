@@ -39,11 +39,12 @@ export interface ArtisanUser extends BaseUser {
   companyTva?: string;
   companyCapital?: string;
   hasCertification?: string;
-  certificationFile?: string | null;
+  certificationUrl?: string | null;
   insuranceDate?: string;
-  insuranceFile?: string | null;
-  fiscalFile?: string | null;
-  kbisFile?: string | null;
+  insuranceUrl?: string | null;
+  fiscalUrl?: string | null;
+  kbisUrl?: string | null;
+  companyLogoUrl?: string;
 }
 
 export interface CourtierUser extends BaseUser {

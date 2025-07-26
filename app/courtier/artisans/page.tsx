@@ -15,6 +15,8 @@ import {
   AlertCircle,
   CheckCircle2,
   Loader2,
+  FileText,
+  X,
 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useCreateArtisan } from "@/hooks/useCreateArtisan";
@@ -61,10 +63,15 @@ export default function CourtierArtisans() {
     companyCapital: "",
   });
   const [certificationFile, setCertificationFile] = useState<File | null>(null);
+  const [certificationUrl, setCertificationUrl] = useState<string | null>(null);
   const [insuranceFile, setInsuranceFile] = useState<File | null>(null);
+  const [insuranceUrl, setInsuranceUrl] = useState<string | null>(null);
   const [fiscalFile, setFiscalFile] = useState<File | null>(null);
+  const [fiscalUrl, setFiscalUrl] = useState<string | null>(null);
   const [kbisFile, setKbisFile] = useState<File | null>(null);
-  const [companyLogoUrl, setCompanyLogoUrl] = useState<File | null>(null);
+  const [kbisUrl, setKbisUrl] = useState<string | null>(null);
+  const [companyLogoFile, setCompanyLogoFile] = useState<File | null>(null);
+  const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null);
   const {
     createArtisan,
     loading: formLoading,
@@ -86,12 +93,16 @@ export default function CourtierArtisans() {
   };
   const handleFileChange = (
     e: React.ChangeEvent<HTMLInputElement>,
-    setter: (f: File | null) => void
+    setFile: (file: File | null) => void,
+    setUrl?: (url: string | null) => void
   ) => {
     if (e.target.files && e.target.files[0]) {
-      setter(e.target.files[0]);
+      const file = e.target.files[0];
+      setFile(file);
+      if (setUrl) setUrl(URL.createObjectURL(file));
     } else {
-      setter(null);
+      setFile(null);
+      if (setUrl) setUrl(null);
     }
   };
 
@@ -283,12 +294,18 @@ export default function CourtierArtisans() {
             >
               {/* TITRE */}
               <div className="border-b border-gray-100">
-                <h2 className="text-3xl font-extrabold text-[#f26755] tracking-wide uppercase mb-1">Ajouter un artisan</h2>
-                <p className="text-base text-gray-400 font-medium">Tous les champs sont obligatoires</p>
+                <h2 className="text-3xl font-extrabold text-[#f26755] tracking-wide uppercase mb-1">
+                  Ajouter un artisan
+                </h2>
+                <p className="text-base text-gray-400 font-medium">
+                  Tous les champs sont obligatoires
+                </p>
               </div>
 
               {/* --- SECTION ARTISAN --- */}
-              <h3 className="text-base font-bold text-[#f26755] uppercase tracking-wider col-span-2 mt-1 mb-1">Informations sur l'artisan</h3>
+              <h3 className="text-base font-bold text-[#f26755] uppercase tracking-wider col-span-2 mt-1 mb-1">
+                Informations sur l'artisan
+              </h3>
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-1">
                   <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
@@ -432,10 +449,48 @@ export default function CourtierArtisans() {
                             type="file"
                             accept="application/pdf,image/*"
                             onChange={(e) =>
-                              handleFileChange(e, setCertificationFile)
+                              handleFileChange(
+                                e,
+                                setCertificationFile,
+                                setCertificationUrl
+                              )
                             }
                             className="hidden"
+                            disabled={!!certificationFile}
                           />
+                          {certificationUrl && (
+                            <div className="mt-4 flex justify-center items-center gap-2">
+                              {certificationFile &&
+                              certificationFile.type.startsWith("image/") ? (
+                                <img
+                                  src={certificationUrl}
+                                  alt="Aperçu certification"
+                                  className="max-h-24 rounded-lg border"
+                                />
+                              ) : (
+                                <a
+                                  href={certificationUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-2 text-blue-600 underline"
+                                >
+                                  <FileText className="h-5 w-5 text-blue-500" />
+                                  {certificationFile?.name || "Voir le fichier"}
+                                </a>
+                              )}
+                              <button
+                                type="button"
+                                className="ml-2 p-1 rounded hover:bg-gray-200"
+                                onClick={() => {
+                                  setCertificationFile(null);
+                                  setCertificationUrl(null);
+                                }}
+                                aria-label="Supprimer le fichier"
+                              >
+                                <X className="h-5 w-5 text-gray-500" />
+                              </button>
+                            </div>
+                          )}
                         </label>
                       </div>
                     </div>
@@ -456,9 +511,45 @@ export default function CourtierArtisans() {
                       <input
                         type="file"
                         accept="application/pdf,image/*"
-                        onChange={(e) => handleFileChange(e, setInsuranceFile)}
+                        onChange={(e) =>
+                          handleFileChange(e, setInsuranceFile, setInsuranceUrl)
+                        }
                         className="hidden"
+                        disabled={!!insuranceFile}
                       />
+                      {insuranceUrl && (
+                        <div className="mt-4 flex justify-center items-center gap-2">
+                          {insuranceFile &&
+                          insuranceFile.type.startsWith("image/") ? (
+                            <img
+                              src={insuranceUrl}
+                              alt="Aperçu assurance"
+                              className="max-h-24 rounded-lg border"
+                            />
+                          ) : (
+                            <a
+                              href={insuranceUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2 text-blue-600 underline"
+                            >
+                              <FileText className="h-5 w-5 text-blue-500" />
+                              {insuranceFile?.name || "Voir le fichier"}
+                            </a>
+                          )}
+                          <button
+                            type="button"
+                            className="ml-2 p-1 rounded hover:bg-gray-200"
+                            onClick={() => {
+                              setInsuranceFile(null);
+                              setInsuranceUrl(null);
+                            }}
+                            aria-label="Supprimer le fichier"
+                          >
+                            <X className="h-5 w-5 text-gray-500" />
+                          </button>
+                        </div>
+                      )}
                     </label>
                   </div>
                 </div>
@@ -478,7 +569,9 @@ export default function CourtierArtisans() {
               </div>
 
               {/* --- SECTION ENTREPRISE --- */}
-              <h3 className="text-base font-bold text-[#f26755] uppercase tracking-wider col-span-2 mt-10 mb-2 border-t border-gray-100 pt-6">Informations sur l'entreprise</h3>
+              <h3 className="text-base font-bold text-[#f26755] uppercase tracking-wider col-span-2 mt-10 mb-2 border-t border-gray-100 pt-6">
+                Informations sur l'entreprise
+              </h3>
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-1">
                   <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
@@ -641,16 +734,45 @@ export default function CourtierArtisans() {
                       <input
                         type="file"
                         accept="image/*"
-                        onChange={(e) => handleFileChange(e, setCompanyLogoUrl)}
+                        onChange={(e) =>
+                          handleFileChange(
+                            e,
+                            setCompanyLogoFile,
+                            setCompanyLogoUrl
+                          )
+                        }
                         className="hidden"
+                        disabled={!!companyLogoFile}
                       />
+                      {companyLogoUrl && (
+                        <div className="mt-4 flex justify-center items-center gap-2">
+                          <img
+                            src={companyLogoUrl}
+                            alt="Logo de l'entreprise"
+                            className="max-h-24 rounded-lg border"
+                          />
+                          <button
+                            type="button"
+                            className="ml-2 p-1 rounded hover:bg-gray-200"
+                            onClick={() => {
+                              setCompanyLogoFile(null);
+                              setCompanyLogoUrl(null);
+                            }}
+                            aria-label="Supprimer le fichier"
+                          >
+                            <X className="h-5 w-5 text-gray-500" />
+                          </button>
+                        </div>
+                      )}
                     </label>
                   </div>
                 </div>
               </div>
 
               {/* --- SECTION DOCUMENTS --- */}
-              <h3 className="text-base font-bold text-[#f26755] uppercase tracking-wider col-span-2 mt-10 mb-2 border-t border-gray-100 pt-6">Documents administratifs</h3>
+              <h3 className="text-base font-bold text-[#f26755] uppercase tracking-wider col-span-2 mt-10 mb-2 border-t border-gray-100 pt-6">
+                Documents administratifs
+              </h3>
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-1 ">
                   <label className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">
@@ -667,9 +789,45 @@ export default function CourtierArtisans() {
                       <input
                         type="file"
                         accept="application/pdf,image/*"
-                        onChange={(e) => handleFileChange(e, setFiscalFile)}
+                        onChange={(e) =>
+                          handleFileChange(e, setFiscalFile, setFiscalUrl)
+                        }
                         className="hidden"
+                        disabled={!!fiscalFile}
                       />
+                      {fiscalUrl && (
+                        <div className="mt-4 flex justify-center items-center gap-2">
+                          {fiscalFile &&
+                          fiscalFile.type.startsWith("image/") ? (
+                            <img
+                              src={fiscalUrl}
+                              alt="Aperçu fiscal"
+                              className="max-h-24 rounded-lg border"
+                            />
+                          ) : (
+                            <a
+                              href={fiscalUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2 text-[#f26755] underline"
+                            >
+                              <FileText className="h-5 w-5 text-[#f26755]" />
+                              {fiscalFile?.name || "Voir le fichier"}
+                            </a>
+                          )}
+                          <button
+                            type="button"
+                            className="ml-2 p-1 rounded hover:bg-gray-200"
+                            onClick={() => {
+                              setFiscalFile(null);
+                              setFiscalUrl(null);
+                            }}
+                            aria-label="Supprimer le fichier"
+                          >
+                            <X className="h-5 w-5 text-gray-500" />
+                          </button>
+                        </div>
+                      )}
                     </label>
                   </div>
                 </div>
@@ -688,9 +846,44 @@ export default function CourtierArtisans() {
                       <input
                         type="file"
                         accept="application/pdf,image/*"
-                        onChange={(e) => handleFileChange(e, setKbisFile)}
+                        onChange={(e) =>
+                          handleFileChange(e, setKbisFile, setKbisUrl)
+                        }
                         className="hidden"
+                        disabled={!!kbisFile}
                       />
+                      {kbisUrl && (
+                        <div className="mt-4 flex justify-center items-center gap-2">
+                          {kbisFile && kbisFile.type.startsWith("image/") ? (
+                            <img
+                              src={kbisUrl}
+                              alt="Aperçu kbis"
+                              className="max-h-24 rounded-lg border"
+                            />
+                          ) : (
+                            <a
+                              href={kbisUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2 text-[#f26755] underline"
+                            >
+                              <FileText className="h-5 w-5 text-[#f26755]" />
+                              {kbisFile?.name || "Voir le fichier"}
+                            </a>
+                          )}
+                          <button
+                            type="button"
+                            className="ml-2 p-1 rounded hover:bg-gray-200"
+                            onClick={() => {
+                              setKbisFile(null);
+                              setKbisUrl(null);
+                            }}
+                            aria-label="Supprimer le fichier"
+                          >
+                            <X className="h-5 w-5 text-gray-500" />
+                          </button>
+                        </div>
+                      )}
                     </label>
                   </div>
                 </div>
