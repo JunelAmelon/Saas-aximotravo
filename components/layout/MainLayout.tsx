@@ -2,9 +2,9 @@
 import { ReactNode, useState, useEffect } from "react";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from "@/lib/contexts/AuthContext";
 import {getUserById} from "@/lib/firebase/users";
-import { useRouter } from "next/navigation";
 interface MainLayoutProps {
   children: ReactNode;
   userRole: "artisan" | "courtier" | "admin";
@@ -21,15 +21,15 @@ export default function MainLayout({
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const pathname = usePathname();
 
   // Bloque l'accès si non connecté (hors page de login)
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const isLoginPage = window.location.pathname === '/auth/login';
+    const isLoginPage = pathname === '/auth/login';
     if (!currentUser && !isLoginPage) {
       router.push('/auth/login');
     }
-  }, [currentUser, router]);
+  }, [currentUser, router, pathname]);
 
   useEffect(() => {
     if (!currentUser?.uid) {
