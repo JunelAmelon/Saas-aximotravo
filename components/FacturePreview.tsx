@@ -7,7 +7,7 @@ import { getProjectById, Project } from "@/lib/firebase/projects";
 import { pdf } from "@react-pdf/renderer";
 import { FacturePDFDocument } from "./FacturePDFDocument";
 import { Button } from "@/components/ui/button";
-import { Building, Download, Edit, User as UserIcon } from "lucide-react";
+import { Download } from "lucide-react";
 import { GenerateFacturePDF } from "./GenerateFacturePDF";
 
 interface FacturePreviewProps {
@@ -26,63 +26,27 @@ export const FacturePreview: React.FC<FacturePreviewProps> = ({
   const [artisan, setArtisan] = useState<ArtisanUser | null>(null);
   const [project, setProject] = useState<Project | null>(null);
   const [client, setClient] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
 
-  // Chargement des données artisan
   useEffect(() => {
-    const loadArtisan = async () => {
-      try {
-        const artisanData = (await getUserById(artisanId)) as ArtisanUser;
-        setArtisan(artisanData);
-      } catch (error) {
-        console.error("Erreur lors du chargement de l'artisan:", error);
+    getUserById(artisanId).then((user) => {
+      if (user && user.role === "artisan") {
+        setArtisan(user as ArtisanUser);
+      } else {
+        setArtisan(null); // ou gérer l'erreur différemment si besoin
       }
-    };
-
-    if (artisanId) {
-      loadArtisan();
-    }
+    });
   }, [artisanId]);
 
-  // Chargement des données projet
-  useEffect(() => {
-    const loadProject = async () => {
-      try {
-        if (devis.projectId) {
-          const projectData = await getProjectById(devis.projectId);
-          setProject(projectData);
-        }
-      } catch (error) {
-        console.error("Erreur lors du chargement du projet:", error);
-      }
-    };
+  // const totalHT = (devis.selectedItems ?? []).reduce(
+  //   (sum, item) => sum + item.prix_ht * item.quantite,
+  //   0
+  // );
+  // const tvaRate =
+  //   typeof devis.tva === "string" ? parseFloat(devis.tva) : devis.tva;
+  // const totalTVA = totalHT * (tvaRate / 100);
+  // const totalTTC = totalHT + totalTVA;
 
-    loadProject();
-  }, [devis.projectId]);
-
-  // Chargement des données client
-  useEffect(() => {
-    const loadClient = async () => {
-      try {
-        if (project?.client_id) {
-          const clientData = await getUserById(project.client_id);
-          setClient(clientData);
-        }
-      } catch (error) {
-        console.error("Erreur lors du chargement du client:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (project) {
-      loadClient();
-    } else if (!devis.projectId) {
-      // Si pas de projet, on arrête le loading
-      setLoading(false);
-    }
-  }, [project]);
-
+  // --- LOGIQUE DE GROUPAGE ET CALCULS ---
   const lotsMap = new Map();
   (devis.selectedItems ?? []).forEach((item) => {
     const lotKey = item.lotName || "Autre";
@@ -103,7 +67,8 @@ export const FacturePreview: React.FC<FacturePreviewProps> = ({
 
   lotsMap.forEach((items, lotName) => {
     let lotHT = 0,
-      lotTVA = 0;
+      lotTVA = 0,
+      lotTTC = 0;
     items.forEach(
       (item: { prix_ht: number; quantite: number; tva: number }) => {
         const itemHT = item.prix_ht * item.quantite;
@@ -112,7 +77,7 @@ export const FacturePreview: React.FC<FacturePreviewProps> = ({
         lotTVA += itemTVA;
       }
     );
-    const lotTTC = lotHT + lotTVA;
+    lotTTC = lotHT + lotTVA;
     lotsTotals.push({
       lotName,
       items,
@@ -126,561 +91,293 @@ export const FacturePreview: React.FC<FacturePreviewProps> = ({
   });
   const totalTTCGeneral = totalHTGeneral + totalTVAGeneral;
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("fr-FR", {
-      style: "currency",
-      currency: "EUR",
-    }).format(price);
-  };
+  useEffect(() => {
+    async function fetchProjectAndClient() {
+      if (!devis.projectId) return;
+      const proj = await getProjectById(devis.projectId);
+      setProject(proj);
+      if (proj?.client_id) {
+        const cli = await getUserById(proj.client_id);
+        setClient(cli);
+      }
+    }
+    fetchProjectAndClient();
+  }, [devis.projectId]);
 
-  console.log(devis);
-  console.log (artisan?.companyLogoUrl)
-
-  // Affichage du loader pendant le chargement
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-2 sm:p-4 lg:p-6 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#F26755] mx-auto mb-4"></div>
-          <p className="text-gray-600">Chargement des données...</p>
-        </div>
-      </div>
-    );
-  }
+  console.log(devis.selectedItems);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-2 sm:p-4 lg:p-6">
-      <div
-        className="max-w-6xl mx-auto bg-white shadow-2xl rounded-2xl overflow-hidden"
-        style={{ borderColor: "#F26755", borderWidth: "1px" }}
-      >
-        {/* En-tête avec dégradé */}
-        <div
-          className="p-3 sm:p-6 lg:p-8"
-          style={{ background: "linear-gradient(to right, #F26755, #E55145)" }}
-        >
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-0">
-            {/* Logo entreprise */}
-            <div className="flex-shrink-0 w-full sm:w-auto flex justify-center sm:justify-start">
-              {artisan?.companyLogoUrl ? (
-                <img
-                  src={artisan.companyLogoUrl}
-                  alt={artisan.companyName}
-                  className="h-16 sm:h-20 lg:h-32 w-auto max-w-[200px] sm:max-w-[250px] lg:max-w-[300px] object-contain bg-white p-2 sm:p-3 rounded-xl shadow-lg"
-                />
-              ) : (
-                <div
-                  className="h-16 sm:h-20 w-32 sm:w-40 bg-white bg-opacity-95 rounded-xl flex items-center justify-center border-2 border-white shadow-lg"
-                  style={{ color: "#F26755" }}
-                >
-                  <span className="text-sm sm:text-lg font-bold text-center px-2 leading-tight">
-                    {artisan?.companyName || "Entreprise"}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Numéro de facture */}
-            <div className="bg-white bg-opacity-95 p-3 sm:p-6 rounded-2xl shadow-lg w-full sm:min-w-[320px] sm:w-auto">
-              <div className="text-center">
-                <h2
-                  className="text-lg sm:text-2xl font-bold mb-2 sm:mb-3"
-                  style={{ color: "#F26755" }}
-                >
-                  FACTURE N° {devis.numero}
-                </h2>
-                <div className="text-gray-700">
-                  <p className="text-sm sm:text-base font-medium">
-                    Date:{" "}
-                    {devis.createdAt
-                      ? devis.createdAt instanceof Timestamp
-                        ? devis.createdAt.toDate().toLocaleDateString("fr-FR")
-                        : devis.createdAt instanceof Date
-                        ? devis.createdAt.toLocaleDateString("fr-FR")
-                        : "-"
-                      : "-"}
-                  </p>
-                </div>
-              </div>
-            </div>
+    <div
+      className={`bg-white ${
+        isModal ? "rounded-none" : "mx-auto rounded-2xl shadow-2xl"
+      } border border-[#F26755] p-6 md:p-12 font-sans text-base`}
+    >
+      {/* En-tête */}
+      <div className="flex flex-col md:flex-row justify-between items-start gap-8 mb-10">
+        <div className="flex items-center gap-4">
+          <div className="h-40 w-50 flex items-start justify-center rounded-xl text-3xl font-bold text-[#F26755]">
+            {artisan?.companyLogoUrl ? (
+              <img
+                src={artisan.companyLogoUrl}
+                alt={artisan.companyName}
+                className="h-full object-contain"
+              />
+            ) : (
+              artisan?.companyName || "Entreprise"
+            )}
           </div>
         </div>
+        <div className="border-2 border-[#F26755] rounded-2xl px-8 py-4 text-center bg-white shadow-lg min-w-[260px]">
+          <div className="font-bold text-xl mb-1 text-[#F26755]">
+            FACTURE N° {devis.numero}
+          </div>
+          <div className="mt-6 text-gray-700">
+            Date :{" "}
+            {devis.createdAt
+              ? devis.createdAt instanceof Timestamp
+                ? devis.createdAt.toDate().toLocaleDateString("fr-FR")
+                : devis.createdAt instanceof Date
+                ? devis.createdAt.toLocaleDateString("fr-FR")
+                : "-"
+              : "-"}
+          </div>
+        </div>
+      </div>
 
-        {/* Informations client */}
-        <div
-          className="p-3 sm:p-6 lg:p-8 border-b-4"
-          style={{ borderColor: "#F26755" }}
-        >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-8">
-            {/* Informations entreprise */}
-            <div
-              className="p-4 sm:p-6 rounded-2xl border-l-4"
-              style={{ backgroundColor: "#F2675520", borderColor: "#F26755" }}
-            >
-              <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-                <Building
-                  className="w-5 h-5 sm:w-6 sm:h-6"
-                  style={{ color: "#F26755" }}
-                />
-                <h3
-                  className="text-base sm:text-lg font-bold"
-                  style={{ color: "#C5453A" }}
-                >
-                  PRESTATAIRE
-                </h3>
-              </div>
-              <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm">
-                <p className="font-semibold text-gray-800">
-                  {artisan?.companyName}
-                </p>
-                <p className="text-gray-600">{artisan?.companyAddress}</p>
-                <p className="text-gray-600">
-                  {artisan?.companyPostalCode} {artisan?.companyCity}
-                </p>
-                <p className="text-gray-600">Tél: {artisan?.companyPhone}</p>
-                <p className="text-gray-600">Email: {artisan?.companyEmail}</p>
-              </div>
+      {/* Informations entreprise et client */}
+      <div className="flex flex-col md:flex-row justify-between gap-8 mb-10">
+        <div className="md:w-1/2 space-y-1">
+          <div className="text-lg font-semibold">{artisan?.companyName}</div>
+          <div>{artisan?.companyAddress}</div>
+          <div>
+            {artisan?.companyPostalCode} {artisan?.companyCity}
+          </div>
+          <div>Tél: {artisan?.companyPhone}</div>
+          <div>Mail: {artisan?.companyEmail}</div>
+        </div>
+        <div className="md:w-1/2 flex md:justify-end">
+          <div className="border-2 border-[#F26755] rounded-2xl px-2 py-2 inline-block bg-orange-50 text-left shadow-md min-w-[250px]">
+            <div className="font-bold text-[#F26755]">Client</div>
+            <div className="text-lg font-semibold">
+              {client?.firstName} {client?.lastName}
             </div>
+            <div>{project?.location}</div>
+            <div>
+              {project?.postalCode} {project?.city}
+            </div>
+            {client?.phone && <div>Tél: {client?.phone}</div>}
+            {client?.email && <div>Mail: {client?.email}</div>}
+          </div>
+        </div>
+      </div>
 
-            {/* Informations client */}
-            <div
-              className="p-4 sm:p-6 rounded-2xl border-l-4"
-              style={{ backgroundColor: "#F2675520", borderColor: "#F26755" }}
-            >
-              <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-                <UserIcon
-                  className="w-5 h-5 sm:w-6 sm:h-6"
-                  style={{ color: "#F26755" }}
-                />
-                <h3
-                  className="text-base sm:text-lg font-bold"
-                  style={{ color: "#C5453A" }}
-                >
-                  CLIENT
-                </h3>
-              </div>
-              <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm">
-                <p className="font-semibold text-gray-800">
-                  {client?.firstName} {client?.lastName}
-                </p>
-                <p className="text-gray-600">{project?.location}</p>
-                <p className="text-gray-600">
-                  {project?.postalCode} {project?.addressDetails}
-                </p>
-                {client?.phone && (
-                  <p className="text-gray-600">Tél: {client?.phone}</p>
+      {/* Tableau des prestations */}
+      {/* <div className="mb-10 overflow-x-auto">
+        <table className="w-full border-collapse border border-[#F26755] rounded-2xl shadow-lg overflow-hidden">
+          <thead>
+            <tr className="bg-[#F26755] text-white rounded-t-2xl">
+              <th className="p-4 text-left font-bold rounded-tl-2xl">
+                Désignation
+              </th>
+              <th className="p-4 font-bold w-20">Unité</th>
+              <th className="p-4 font-bold w-20">Quantité</th>
+              <th className="p-4 font-bold w-28">Prix unitaire</th>
+              <th className="p-4 font-bold w-28 rounded-tr-2xl">Total HT</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(devis.selectedItems ?? []).map((item, idx) => (
+              <tr
+                key={item.id}
+                className={idx % 2 === 0 ? "bg-white" : "bg-orange-50/40"}
+              >
+                <td className="p-4 border-b border-[#F26755]">
+                  <div className="font-medium text-base">
+                    {item.optionLabel}
+                  </div>
+                  {item.description && (
+                    <div className="text-xs text-gray-500 mt-1">
+                      {item.description}
+                    </div>
+                  )}
+                </td>
+                <td className="p-4 text-center border-b border-[#F26755]">
+                  {item.unite}
+                </td>
+                <td className="p-4 text-center border-b border-[#F26755]">
+                  {item.quantite}
+                </td>
+                <td className="p-4 text-right border-b border-[#F26755]">
+                  {item.prix_ht.toFixed(2)} €
+                </td>
+                <td className="p-4 text-right border-b border-[#F26755]">
+                  {(item.prix_ht * item.quantite).toFixed(2)} €
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div> */}
+      {/* --- Affichage des lots et prestations --- */}
+      {lotsTotals.map((lot) => (
+        <div key={lot.lotName} className="mb-10">
+          <div className="font-bold text-lg text-[#F26755] mb-2">
+            {lot.lotName}
+          </div>
+          <div className="overflow-x-auto rounded-xl border border-[#F26755] mb-3">
+            <table className="min-w-full divide-y divide-gray-200 text-sm">
+              <thead className="bg-[#F26755] text-white">
+                <tr>
+                  <th className="px-3 py-2 text-left">Prestation</th>
+                  <th className="px-3 py-2">Quantité</th>
+                  <th className="px-3 py-2">PU HT</th>
+                  <th className="px-3 py-2">Total HT</th>
+                  <th className="px-3 py-2">TVA (%)</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white">
+                {lot.items.map(
+                  (
+                    item: {
+                      [x: string]: ReactNode;
+                      itemName: any;
+                      quantite: any;
+                      prix_ht: number;
+                    },
+                    idx: any
+                  ) => (
+                    <tr key={idx} className="border-b">
+                      <td className="px-3 py-2">{item.itemName}</td>
+                      <td className="px-3 py-2 text-center">{item.quantite}</td>
+                      <td className="px-3 py-2 text-right">
+                        {item.prix_ht.toFixed(2)} €
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        {(item.prix_ht * item.quantite).toFixed(2)} €
+                      </td>
+                      <td className="px-3 py-2 text-center">{item.tva}</td>
+                    </tr>
+                  )
                 )}
-                {client?.email && (
-                  <p className="text-gray-600">Email: {client?.email}</p>
-                )}
-              </div>
-            </div>
+              </tbody>
+              <tfoot className="bg-gray-50 font-semibold">
+                <tr>
+                  <td colSpan={3} className="px-3 py-2 text-right">
+                    Total HT du lot
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    {lot.lotHT.toFixed(2)} €
+                  </td>
+                  <td />
+                </tr>
+                <tr>
+                  <td colSpan={3} className="px-3 py-2 text-right">
+                    Total TVA du lot
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    {lot.lotTVA.toFixed(2)} €
+                  </td>
+                  <td />
+                </tr>
+                <tr>
+                  <td colSpan={3} className="px-3 py-2 text-right">
+                    Total TTC du lot
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    {lot.lotTTC.toFixed(2)} €
+                  </td>
+                  <td />
+                </tr>
+              </tfoot>
+            </table>
           </div>
         </div>
+      ))}
 
-        {/* Prestations par lot */}
-        <div className="p-3 sm:p-6 lg:p-8 space-y-6 sm:space-y-10">
-          {lotsTotals.map((lot, lotIndex) => (
-            <div key={lot.lotName} className="space-y-0">
-              {/* Titre du lot */}
-              <div className="mb-3 sm:mb-4">
-                <h2
-                  className="text-lg sm:text-xl font-bold border-b-2 pb-2"
-                  style={{ color: "#F26755", borderColor: "#F2675550" }}
-                >
-                  {lot.lotName}
-                </h2>
-              </div>
-
-              {/* Tableau responsive */}
-              <div
-                className="overflow-x-auto rounded-xl border shadow-lg"
-                style={{ borderColor: "#F26755" }}
-              >
-                <table className="w-full bg-white">
-                  {/* En-tête du tableau */}
-                  <thead
-                    className="text-white"
-                    style={{ backgroundColor: "#F26755" }}
-                  >
-                    <tr>
-                      <th className="px-2 sm:px-4 py-2 sm:py-4 text-left font-bold rounded-tl-xl text-xs sm:text-sm">
-                        Prestation
-                      </th>
-                      <th className="px-1 sm:px-4 py-2 sm:py-4 text-center font-bold min-w-[10%] sm:min-w-[10%] text-xs sm:text-sm">
-                        Qté
-                      </th>
-                      <th className="px-1 sm:px-4 py-2 sm:py-4 text-center font-bold min-w-[10%] sm:min-w-[10%] text-xs sm:text-sm">
-                        PU HT
-                      </th>
-                      <th className="px-1 sm:px-4 py-2 sm:py-4 text-center font-bold min-w-[10%] sm:min-w-[10%] text-xs sm:text-sm">
-                        Total HT
-                      </th>
-                      <th className="px-1 sm:px-4 py-2 sm:py-4 text-center font-bold min-w-[10%] sm:min-w-[10%] text-xs sm:text-sm">
-                        TVA
-                      </th>
-                      <th className="px-1 sm:px-4 py-2 sm:py-4 text-center font-bold min-w-[10%] sm:min-w-[10%] text-xs sm:text-sm">
-                        Total TTC
-                      </th>
-                    </tr>
-                  </thead>
-
-                  {/* Corps du tableau */}
-                  <tbody
-                    style={{ borderColor: "#F2675550" }}
-                    className="divide-y"
-                  >
-                    {lot.items.map((item: any, itemIndex: number) => {
-                      const montantHT = item.prix_ht * item.quantite;
-                      const montantTVA = (montantHT * item.tva) / 100;
-                      const montantTTC = montantHT + montantTVA;
-
-                      return (
-                        <tr
-                          key={itemIndex}
-                          className={`${
-                            itemIndex % 2 === 0 ? "bg-white" : ""
-                          } transition-colors`}
-                          style={{
-                            backgroundColor:
-                              itemIndex % 2 === 1 ? "#F2675510" : "white",
-                          }}
-                          onMouseEnter={(e) =>
-                            ((e.target as HTMLElement).closest(
-                              "tr"
-                            )!.style.backgroundColor = "#F2675520")
-                          }
-                          onMouseLeave={(e) =>
-                            ((e.target as HTMLElement).closest(
-                              "tr"
-                            )!.style.backgroundColor =
-                              itemIndex % 2 === 1 ? "#F2675510" : "white")
-                          }
-                        >
-                          <td
-                            className="px-2 sm:px-4 py-2 sm:py-4 border-r"
-                            style={{ borderColor: "#F2675550" }}
-                          >
-                            <div>
-                              <p className="font-semibold text-gray-800 text-xs sm:text-base leading-tight">
-                                {item.optionLabel}
-                              </p>
-                              {item.description && (
-                                <p className="hidden sm:block text-xs sm:text-sm text-gray-600 mt-1 leading-relaxed">
-                                  {item.description}
-                                </p>
-                              )}
-                            </div>
-                          </td>
-                          <td
-                            className="px-1 sm:px-4 py-2 sm:py-4 text-center border-r font-medium"
-                            style={{ borderColor: "#F2675550" }}
-                          >
-                            <div className="text-xs sm:text-sm">
-                              <div className="font-semibold">
-                                {item.quantite}
-                              </div>
-                              <div className="text-gray-500 text-xs">
-                                {item.unite}
-                              </div>
-                            </div>
-                          </td>
-                          <td
-                            className="px-1 sm:px-4 py-2 sm:py-4 text-right border-r font-medium text-xs sm:text-sm"
-                            style={{ borderColor: "#F2675550" }}
-                          >
-                            {formatPrice(item.prix_ht)}
-                          </td>
-                          <td
-                            className="px-1 sm:px-4 py-2 sm:py-4 text-right border-r font-semibold text-xs sm:text-sm"
-                            style={{ borderColor: "#F2675550" }}
-                          >
-                            {formatPrice(montantHT)}
-                          </td>
-                          <td
-                            className="px-1 sm:px-4 py-2 sm:py-4 text-center border-r"
-                            style={{ borderColor: "#F2675550" }}
-                          >
-                            <span
-                              className="px-1 sm:px-2 py-1 rounded-full text-xs sm:text-sm font-medium"
-                              style={{
-                                backgroundColor: "#F2675520",
-                                color: "#C5453A",
-                              }}
-                            >
-                              {item.tva}%
-                            </span>
-                          </td>
-                          <td
-                            className="px-1 sm:px-4 py-2 sm:py-4 text-right font-bold text-sm sm:text-lg"
-                            style={{ color: "#F26755" }}
-                          >
-                            {formatPrice(montantTTC)}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-
-                  {/* Pied du tableau avec totaux */}
-                  <tfoot>
-                    {/* Ligne Total HT */}
-                    <tr
-                      className="border-t-2"
-                      style={{
-                        backgroundColor: "#F2675520",
-                        borderColor: "#F26755",
-                      }}
-                    >
-                      <td
-                        colSpan={5}
-                        className="px-2 sm:px-4 py-2 sm:py-3 text-right font-semibold text-sm sm:text-base"
-                        style={{ color: "#C5453A" }}
-                      >
-                        Total HT du lot :
-                      </td>
-                      <td
-                        className="px-2 sm:px-4 py-2 sm:py-3 text-right font-bold text-sm sm:text-lg border-r"
-                        style={{ borderColor: "#F26755", color: "#C5453A" }}
-                      >
-                        {formatPrice(lot.lotHT)}
-                      </td>
-                    </tr>
-
-                    {/* Ligne Total TVA */}
-                    <tr style={{ backgroundColor: "#F2675520" }}>
-                      <td
-                        colSpan={5}
-                        className="px-2 sm:px-4 py-2 sm:py-3 text-right font-semibold text-sm sm:text-base"
-                        style={{ color: "#C5453A" }}
-                      >
-                        Total TVA du lot :
-                      </td>
-                      <td
-                        className="px-2 sm:px-4 py-2 sm:py-3 text-right font-bold text-sm sm:text-lg border-r"
-                        style={{ borderColor: "#F26755", color: "#C5453A" }}
-                      >
-                        {formatPrice(lot.lotTVA)}
-                      </td>
-                    </tr>
-
-                    {/* Ligne Total TTC - Mise en valeur */}
-                    <tr
-                      className="border-t-2"
-                      style={{
-                        background:
-                          "linear-gradient(to right, #F2675540, #F2675530)",
-                        borderColor: "#F26755",
-                      }}
-                    >
-                      <td
-                        colSpan={5}
-                        className="px-2 sm:px-4 py-3 sm:py-4 text-right font-bold text-lg sm:text-xl"
-                        style={{ color: "#C5453A" }}
-                      >
-                        Total TTC du lot :
-                      </td>
-                      <td className="px-2 sm:px-4 py-3 sm:py-4 text-right">
-                        <div className="flex justify-end">
-                          <span
-                            className="text-white px-6 py-3 rounded-xl font-bold text-xl shadow-lg border-2 border-white"
-                            style={{
-                              background:
-                                "linear-gradient(to right, #F26755, #E55145)",
-                            }}
-                          >
-                            {formatPrice(lot.lotTTC)}
-                          </span>
-                        </div>
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            </div>
-          ))}
+      {/* --- Totaux généraux --- */}
+      <div className="mt-10 p-4 rounded-xl border-2 border-[#F26755] bg-[#FFF7F5] text-base font-bold flex flex-col gap-2 max-w-md ml-auto">
+        <div className="flex justify-between">
+          <span>Total général HT :</span>
+          <span>{totalHTGeneral.toFixed(2)} €</span>
         </div>
+        <div className="flex justify-between">
+          <span>Total TVA :</span>
+          <span>{totalTVAGeneral.toFixed(2)} €</span>
+        </div>
+        <div className="flex justify-between text-[#F26755] text-lg">
+          <span>Total général TTC :</span>
+          <span>{totalTTCGeneral.toFixed(2)} €</span>
+        </div>
+      </div>
 
-        {/* Conditions et totaux */}
-        <div className="p-3 sm:p-6 lg:p-8 bg-gray-50">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8">
-            {/* Conditions de règlement */}
-            <div
-              className="bg-white p-4 sm:p-6 rounded-2xl border-l-4 shadow-md"
-              style={{ borderColor: "#F26755" }}
-            >
-              <h3
-                className="text-base sm:text-lg font-bold mb-3 sm:mb-4"
-                style={{ color: "#C5453A" }}
-              >
-                Conditions de règlement :
-              </h3>
-              <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm text-gray-700">
-                <p>• Acompte de 20% à la commande</p>
-                <p>• Acompte de 30% au début des travaux</p>
-                <p>• Solde à la livraison, paiement comptant dès réception</p>
-              </div>
+      {/* Conditions et totaux */}
+      <div className="flex flex-col md:flex-row justify-between gap-10 mb-12">
+        <div className="md:w-1/2">
+          <div className="bg-orange-50/60 rounded-2xl p-6 shadow-inner border border-[#F26755]/30">
+            <div className="font-bold text-[#F26755] mb-4">
+              Conditions de règlement :
             </div>
-
-            {/* Total général avec détail TVA */}
-            <div
-              className="bg-white p-4 sm:p-6 rounded-2xl border-2 shadow-lg"
-              style={{ borderColor: "#F26755" }}
-            >
-              <div className="space-y-2 sm:space-y-3">
-                <div className="flex justify-between text-base sm:text-lg">
-                  <span className="font-bold" style={{ color: "#F26755" }}>
-                    TOTAL HT :
-                  </span>
-                  <span className="font-bold">
-                    {formatPrice(totalHTGeneral)}
-                  </span>
-                </div>
-
-                {/* Détail TVA par taux */}
-                <div
-                  className="space-y-1 sm:space-y-2 border-l-2 pl-3 sm:pl-4"
-                  style={{ borderColor: "#F2675550" }}
-                >
-                  <h4
-                    className="text-xs sm:text-sm font-semibold"
-                    style={{ color: "#C5453A" }}
-                  >
-                    Détail TVA :
-                  </h4>
-                  {(() => {
-                    const tvaByRate: Record<
-                      number,
-                      { baseHT: number; montantTVA: number }
-                    > = {};
-                    devis.selectedItems.forEach((item) => {
-                      // Skip items without TVA defined
-                      if (item.tva === undefined || item.tva === null) return;
-
-                      const montantHT = item.prix_ht * item.quantite;
-                      const montantTVA = (montantHT * item.tva) / 100;
-                      if (!tvaByRate[item.tva]) {
-                        tvaByRate[item.tva] = { baseHT: 0, montantTVA: 0 };
-                      }
-                      tvaByRate[item.tva].baseHT += montantHT;
-                      tvaByRate[item.tva].montantTVA += montantTVA;
-                    });
-
-                    return Object.entries(tvaByRate).map(([taux, data]) => (
-                      <div key={taux} className="flex justify-between text-sm">
-                        <span className="text-gray-600">
-                          TVA {taux}% sur {formatPrice(data.baseHT)} :
-                        </span>
-                        <span
-                          className="font-medium"
-                          style={{ color: "#F26755" }}
-                        >
-                          {formatPrice(data.montantTVA)}
-                        </span>
-                      </div>
-                    ));
-                  })()}
-                </div>
-
-                <div
-                  className="flex justify-between text-base sm:text-lg border-t pt-2"
-                  style={{ borderColor: "#F2675550" }}
-                >
-                  <span className="font-bold" style={{ color: "#F26755" }}>
-                    TOTAL TVA :
-                  </span>
-                  <span className="font-bold">
-                    {formatPrice(totalTVAGeneral)}
-                  </span>
-                </div>
-
-                <div
-                  className="flex justify-between items-center text-lg sm:text-2xl font-bold border-t-2 pt-3 sm:pt-4"
-                  style={{ borderColor: "#F26755" }}
-                >
-                  <span style={{ color: "#F26755" }}>TOTAL TTC :</span>
-                  <span
-                    className="text-white px-3 sm:px-6 py-2 sm:py-3 rounded-2xl shadow-lg text-sm sm:text-base"
-                    style={{ backgroundColor: "#F26755" }}
-                  >
-                    {formatPrice(totalTTCGeneral)}
-                  </span>
-                </div>
-              </div>
-            </div>
+            <ul className="list-disc pl-6 space-y-1 text-sm">
+              <li>Acompte de 20% à la commande</li>
+              <li>Acompte de 30% au début des travaux</li>
+              <li>Solde à la livraison, paiement comptant dès réception</li>
+            </ul>
           </div>
         </div>
-
-        {/* Message signature */}
-        <div
-          className="p-3 sm:p-6 lg:p-8 text-center bg-white border-t-4"
-          style={{ borderColor: "#F2675550" }}
-        >
-          <p className="text-sm sm:text-lg italic text-gray-600 max-w-2xl mx-auto leading-relaxed">
-            Merci de nous retourner un exemplaire de ce devis signé avec votre
-            nom et revêtu de la mention « Bon pour accord et commande »
-          </p>
-        </div>
-
-        {/* Signatures */}
-        <div className="p-3 sm:p-6 lg:p-8 bg-white">
-          <div className="flex items-center justify-center gap-2 sm:gap-3 mb-4 sm:mb-8">
-            <Edit
-              className="w-5 h-5 sm:w-6 sm:h-6"
-              style={{ color: "#F26755" }}
-            />
-            <h3
-              className="text-lg sm:text-xl font-bold"
-              style={{ color: "#C5453A" }}
-            >
-              SIGNATURES
-            </h3>
+        {/* <div className="md:w-1/2 flex md:justify-end mt-8 md:mt-0">
+          <div className="bg-white rounded-2xl border-2 border-[#F26755] p-6 shadow-lg w-full min-w-[250px]">
+            <div className="flex justify-between mb-2 text-base">
+              <span className="font-bold text-[#F26755]">TOTAL HT :</span>
+              <span className="font-bold">{totalHT.toFixed(2)} €</span>
+            </div>
+            <div className="flex justify-between mb-2 text-base">
+              <span className="font-bold text-[#F26755]">TVA {tvaRate}% :</span>
+              <span className="font-bold">{totalTVA.toFixed(2)} €</span>
+            </div>
+            <div className="flex justify-between items-center text-xl font-bold border-t-2 border-[#F26755] pt-4 mt-2">
+              <span className="text-[#F26755]">TOTAL TTC :</span>
+              <span className="bg-[#F26755] text-white px-6 py-2 rounded-2xl shadow-lg text-xl">
+                {totalTTC.toFixed(2)} €
+              </span>
+            </div>
           </div>
+        </div> */}
+      </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8">
-            <div className="text-center">
-              <h4
-                className="font-semibold mb-3 sm:mb-4 text-sm sm:text-base"
-                style={{ color: "#C5453A" }}
-              >
+      {/* Texte signature devis, sous les deux encadrés */}
+      <div className="w-full flex justify-center mt-2">
+        <span className="text-lg italic text-gray-500 text-center max-w-xl">
+          Merci de nous retourner un exemplaire de ce devis signé avec votre nom
+          et revêtu de la mention « Bon pour accord et commande »
+        </span>
+      </div>
+
+      {/* Signatures */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-10 mt-10">
+        <div className="text-center flex-1">
+          <div>
+            <div className="w-50 pt-2 border-t border-gray-200 text-center">
+              <div className="font-bold text-[#F26755] text-base md:text-lg mb-20 truncate">
                 Signature de l'entreprise
-              </h4>
-              <div
-                className="border-2 border-dashed rounded-2xl p-4 sm:p-8 min-h-24 sm:min-h-32"
-                style={{ borderColor: "#F26755", backgroundColor: "#F2675520" }}
-              >
-                {/* Espace pour signature */}
-              </div>
-            </div>
-
-            <div className="text-center">
-              <h4
-                className="font-semibold mb-3 sm:mb-4 text-sm sm:text-base"
-                style={{ color: "#C5453A" }}
-              >
-                Signature du client
-              </h4>
-              <div
-                className="border-2 border-dashed rounded-2xl p-4 sm:p-8 min-h-24 sm:min-h-32"
-                style={{ borderColor: "#F26755", backgroundColor: "#F2675520" }}
-              >
-                {/* Espace pour signature */}
               </div>
             </div>
           </div>
         </div>
-
-        {/* Mentions légales */}
-        <div
-          className="p-4 text-center text-xs text-gray-600 border-t-4"
-          style={{ backgroundColor: "#F2675520", borderColor: "#F26755" }}
-        >
-          <p className="font-medium">
-            {artisan?.companyLegalForm} {artisan?.companyName} au Capital de{" "}
-            {artisan?.companyCapital} - Siret {artisan?.siret} - RCS{" "}
-            {artisan?.rcs} - Code APE {artisan?.companyApe}
-          </p>
+        <div className="text-center flex-1">
+          <div className="w-50 pt-2 border-t border-gray-200 text-center">
+            <div className="font-bold text-[#F26755] text-base md:text-lg mb-20 truncate">
+              Signature du client
+            </div>
+          </div>
         </div>
+      </div>
+
+      {/* Mentions légales */}
+      <div className="text-center text-xs mt-12 pt-4 border-t-2 border-[#F26755] text-gray-500">
+        {`${artisan?.companyLegalForm} ${artisan?.companyName} au Capital de ${
+          artisan?.companyCapital
+        } ${artisan?.siret ? `Siret ${artisan.siret}` : ""}
+         RCS ${artisan?.rcs} Code APE ${artisan?.companyApe}`}
       </div>
     </div>
   );
@@ -701,7 +398,7 @@ export const FactureModal: React.FC<FactureModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-7xl mx-2 my-4 relative animate-fadeIn max-h-[95vh] overflow-y-auto p-0 hide-scrollbar flex flex-col"
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl mx-4 my-8 relative animate-fadeIn max-h-[90vh] overflow-y-auto p-0 hide-scrollbar flex flex-col"
         style={{ scrollbarWidth: "none" }}
       >
         <style>{`

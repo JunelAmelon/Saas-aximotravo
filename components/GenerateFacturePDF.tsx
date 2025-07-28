@@ -40,6 +40,10 @@ export const GenerateFacturePDF = async ({
         artisan={artisan}
         client={client}
         project={project}
+        totalHT={totalHT}
+        totalTVA={totalTVA}
+        totalTTC={totalTTC}
+        tvaRate={tvaRate}
       />
     ).toBlob();
     const fileName = `Facture_${devis.numero}_${new Date().toLocaleDateString('fr-FR').replace(/\//g, '-')}.pdf`;
