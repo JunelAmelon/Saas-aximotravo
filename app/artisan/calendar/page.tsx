@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Calendar from "@/components/calendar/Calendar";
-import { getAllDocuments } from "@/lib/firebase/firestore";
+import { getAllDocuments, queryDocuments } from "@/lib/firebase/firestore";
+import { useAuth } from "@/lib/contexts/AuthContext";
 
 interface Event {
   id: string;
@@ -14,16 +15,52 @@ interface Event {
 }
 
 export default function ArtisanCalendar() {
+  const { currentUser } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchEvents = async () => {
+      if (!currentUser) {
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       try {
-        const docs = await getAllDocuments("events");
-        const mapped: Event[] = docs.map((doc: any) => ({
+        // 1. Récupérer les invitations de l'artisan (acceptées ou en attente)
+        const artisanInvitations = await queryDocuments(
+          "artisan_projet",
+          [
+            { field: "artisanId", operator: "==", value: currentUser.uid },
+            { field: "status", operator: "in", value: ["accepté"] }
+          ]
+        );
+
+        // 2. Extraire les IDs des projets
+        const projectIds = artisanInvitations.map((invitation: any) => invitation.projetId);
+
+        if (projectIds.length === 0) {
+          // Aucun projet trouvé pour cet artisan
+          setEvents([]);
+          setLoading(false);
+          return;
+        }
+
+        // 3. Récupérer les événements liés à ces projets
+        const eventsPromises = projectIds.map(projectId => 
+          queryDocuments(
+            "events",
+            [{ field: "projectId", operator: "==", value: projectId }]
+          )
+        );
+
+        const eventsArrays = await Promise.all(eventsPromises);
+        const allEvents = eventsArrays.flat();
+
+        // 4. Adapter les champs Firestore au format attendu par Calendar
+        const mapped: Event[] = allEvents.map((doc: any) => ({
           id: doc.id,
           title: doc.name || doc.title || "",
           client: doc.address || doc.client || "",
@@ -31,15 +68,17 @@ export default function ArtisanCalendar() {
           endDate: doc.end || doc.endDate,
           type: ((doc.type || "autre").toLowerCase() as Event["type"]),
         }));
+        
         setEvents(mapped);
       } catch (err: any) {
+        console.error("Erreur lors du chargement des événements:", err);
         setError("Erreur lors du chargement des événements");
       } finally {
         setLoading(false);
       }
     };
     fetchEvents();
-  }, []);
+  }, [currentUser]);
 
   return (
     <div className="space-y-6 h-full">
