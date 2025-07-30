@@ -79,22 +79,23 @@ export default function Header({ userRole }: HeaderProps) {
 
   return (
     <header className="bg-white/95 backdrop-blur-md border-b border-gray-200/60 py-4 px-6 flex items-center justify-between sticky top-0 z-50 shadow-sm">
-      {/* Logo et nom avec style moderne */}
-      <div className="flex items-center">
-        <Link href={`/${userRole}/dashboard`} className="flex items-center group">
-          {/* Logo avec animation au survol */}
-          <div className="relative">
-            <Image
-              src="/logo1.svg"
-              alt="Logo Aximotravo"
-              width={200}
-              height={32}
-              className="w-[200px] h-[32px] transition-all duration-300 group-hover:scale-105"
-            />
-            <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-[#f26755] to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-x-0 group-hover:scale-x-100"></div>
-          </div>
-        </Link>
-      </div>
+{/* Logo et nom avec style moderne */}
+<div className="flex items-center justify-start w-full">
+  <Link href={`/${userRole}/dashboard`} className="flex items-center group">
+    {/* Logo avec animation au survol */}
+    <div className="relative">
+      <Image
+        src="/logo1.svg"
+        alt="Logo Aximotravo"
+        width={200}
+        height={32}
+        className="w-[200px] h-[32px] transition-all duration-300 group-hover:scale-105"
+      />
+      <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-[#f26755] to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-x-0 group-hover:scale-x-100"></div>
+    </div>
+  </Link>
+</div>
+
 
       {/* Actions utilisateur */}
       <div className="flex items-center space-x-4">
