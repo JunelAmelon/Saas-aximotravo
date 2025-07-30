@@ -110,7 +110,7 @@ interface ModernDevisSectionProps {
   ) => void;
   updatingStatusId: string | null;
   userRole: string;
-  currentUserId: string;
+  currentUserId: string | null;
 }
 
 // Hook utilitaire : filtrage + pagination pour tous les onglets
@@ -1086,7 +1086,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                                         e.preventDefault();
                                         GenerateFacturePDF({
                                           devis: doc,
-                                          userId: currentUserId,
+                                          userId: currentUserId || "",
                                         });
                                       }}
                                       className="flex items-center gap-3 w-full"
@@ -1138,7 +1138,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
         <FactureModal
           facturePreview={facturePreview}
           setFacturePreview={setFacturePreview}
-          userId={currentUserId}
+          userId={currentUserId || ""}
         />
       )}
       {/*
