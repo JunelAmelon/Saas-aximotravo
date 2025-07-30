@@ -21,7 +21,8 @@ interface EditItemModalProps {
 export const EditItemModal: React.FC<EditItemModalProps> = ({
   open,
   onOpenChange,
-  item
+  item,
+  
 }) => {
   const { devisConfig, setDevisConfigField } = useDevisConfig();
   const [editedItem, setEditedItem] = useState<DevisItem>({ ...item });
@@ -67,7 +68,7 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
       const result = await res.json();
       if (result.secure_url) imageUrl = result.secure_url;
     }
-
+ 
     const updatedItem = {
       ...editedItem,
       customImage: imageUrl,
@@ -189,6 +190,7 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
                     <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
                     <p className="text-sm text-gray-600 mb-2">Ajouter une image pour illustrer cette prestation</p>
                     <input
+                     aria-label="file"
                       type="file"
                       accept="image/*"
                       onChange={handleImageUpload}
