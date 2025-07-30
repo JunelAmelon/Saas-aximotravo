@@ -265,7 +265,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
 
     return (
       <select
-      
+        aria-label="status"
         className={`px-3 py-1.5 text-xs font-semibold rounded-lg border-2 transition-all outline-none cursor-pointer shadow-sm hover:shadow-md ${currentConfig.bg} ${currentConfig.text} ${currentConfig.border} focus:border-[#f26755] focus:ring-2 focus:ring-[#f26755]/20`}
         value={value || "En Attente"}
         onChange={(e) => onChange(e.target.value)}
