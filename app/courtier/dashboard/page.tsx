@@ -308,68 +308,81 @@ export default function CourtierDashboard() {
                   <h3 className="text-lg font-bold text-gray-900">Projets en cours</h3>
                   <p className="text-sm mt-1 text-gray-600">Suivi de vos projets actifs</p>
                 </div>
-                <div className="flex-1 overflow-hidden">
-                  <table className="w-full">
-                    <thead className="bg-gray-50 border-b border-gray-200">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Projet</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Échéance</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {projects.map((project, index) => (
-                        <tr
-                          key={project.id}
-                          className="hover:bg-gray-50 cursor-pointer transition-colors duration-200"
-                          onClick={() => handleNavigation(`/courtier/projects/${project.id}`)}
-                        >
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <div className="w-8 h-8 rounded-full bg-[#f26755]/10 flex items-center justify-center mr-3">
-                                <Briefcase className="w-4 h-4 text-[#f26755]" />
-                              </div>
-                              <div>
-                                <div className="text-sm font-medium text-gray-900">{project.name}</div>
-                                {project.amoIncluded && (
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800 mt-1">
-                                    AMO
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">{project.client}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              project.status === 'active' ? 'bg-green-100 text-green-800' :
-                              project.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                              project.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-                              'bg-gray-100 text-gray-800'
-                            }`}>
-                              {project.status === 'active' ? 'Actif' :
-                               project.status === 'pending' ? 'En attente' :
-                               project.status === 'completed' ? 'Terminé' :
-                               project.status}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {project.estimatedEndDate}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <button className="flex items-center gap-1 text-[#f26755] hover:text-[#f26755]/80 font-semibold group">
-                              Voir
-                              <ArrowUpRight className="w-3 h-3 group-hover:scale-110 transition-transform duration-200" />
-                            </button>
-                          </td>
+                {/* Container avec scroll horizontal pour mobile */}
+                <div className="flex-1 overflow-x-auto overflow-y-auto">
+                  <div className="min-w-full">
+                    <table className="w-full min-w-[800px]">
+                      <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
+                        <tr>
+                          <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[180px]">Projet</th>
+                          <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px]">Client</th>
+                          <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">Statut</th>
+                          <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">Échéance</th>
+                          <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[80px]">Action</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {projects.map((project, index) => (
+                          <tr
+                            key={project.id}
+                            className="hover:bg-gray-50 cursor-pointer transition-colors duration-200"
+                            onClick={() => handleNavigation(`/courtier/projects/${project.id}`)}
+                          >
+                            <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <div className="w-8 h-8 rounded-full bg-[#f26755]/10 flex items-center justify-center mr-3 flex-shrink-0">
+                                  <Briefcase className="w-4 h-4 text-[#f26755]" />
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="text-sm font-medium text-gray-900 truncate">{project.name}</div>
+                                  {project.amoIncluded && (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800 mt-1">
+                                      AMO
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm text-gray-900 truncate">{project.client}</div>
+                            </td>
+                            <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                project.status === 'active' ? 'bg-green-100 text-green-800' :
+                                project.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                project.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                                'bg-gray-100 text-gray-800'
+                              }`}>
+                                {project.status === 'active' ? 'Actif' :
+                                 project.status === 'pending' ? 'En attente' :
+                                 project.status === 'completed' ? 'Terminé' :
+                                 project.status}
+                              </span>
+                            </td>
+                            <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {project.estimatedEndDate}
+                            </td>
+                            <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                              <button className="flex items-center gap-1 text-[#f26755] hover:text-[#f26755]/80 font-semibold group">
+                                Voir
+                                <ArrowUpRight className="w-3 h-3 group-hover:scale-110 transition-transform duration-200" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                {/* Indicateur de scroll sur mobile */}
+                <div className="block sm:hidden p-2 text-center">
+                  <div className="text-xs text-gray-500 bg-gray-50 rounded-lg py-2 px-4">
+                    <span className="flex items-center justify-center gap-2">
+                      <ChevronRight className="w-3 h-3" />
+                      Faites défiler horizontalement pour voir toutes les colonnes
+                      <ChevronRight className="w-3 h-3" />
+                    </span>
+                  </div>
                 </div>
               </div>
             ) : (
