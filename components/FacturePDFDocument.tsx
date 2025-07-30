@@ -4,6 +4,7 @@ import { Devis } from "@/types/devis";
 import { Document, Page, View, Text, StyleSheet } from "@react-pdf/renderer";
 import { Timestamp } from "firebase/firestore";
 import { Image } from "@react-pdf/renderer";
+import { DEFAULT_COMPANY_INFO } from "./FacturePreview";
 
 // Définition des styles
 const styles = StyleSheet.create({
@@ -194,7 +195,7 @@ const styles = StyleSheet.create({
 
 interface FacturePDFDocumentProps {
   devis: Devis;
-  artisan: ArtisanUser | null;
+  user: User | null;
   client: User | null;
   project: Project | null;
   totalHT: number;
@@ -204,7 +205,7 @@ interface FacturePDFDocumentProps {
 }
 
 export const FacturePDFDocument = ({
-  artisan,
+  user,
   devis,
   client,
   project,
@@ -218,15 +219,20 @@ export const FacturePDFDocument = ({
       {/* En-tête */}
       <View style={styles.header}>
         <View>
-          {artisan?.companyLogoUrl ? (
+          {user && user.role === "artisan" ? (
+            user?.companyLogoUrl ? (
+              <Image
+                src={user.companyLogoUrl}
+                style={{ height: 60, objectFit: "contain", marginBottom: 8 }}
+              />
+            ) : (
+              <Text style={styles.companyName}>{user?.companyName}</Text>
+            )
+          ) : (
             <Image
-              src={artisan.companyLogoUrl}
+              src={DEFAULT_COMPANY_INFO.logoUrl}
               style={{ height: 60, objectFit: "contain", marginBottom: 8 }}
             />
-          ) : (
-            <Text style={styles.companyName}>
-              {artisan?.companyName}
-            </Text>
           )}
         </View>
         <View style={styles.invoiceNumberBox}>
@@ -248,14 +254,26 @@ export const FacturePDFDocument = ({
       <View style={styles.infoSection}>
         <View style={styles.companyInfo}>
           <Text style={{ fontWeight: "bold", fontSize: 14 }}>
-            {artisan?.companyName}
+            {user?.role === "artisan"
+              ? user?.companyName
+              : DEFAULT_COMPANY_INFO.name}
           </Text>
-          <Text>{artisan?.companyAddress}</Text>
           <Text>
-            {artisan?.companyPostalCode} {artisan?.companyCity}
+            {user?.role === "artisan"
+              ? user?.companyAddress
+              : DEFAULT_COMPANY_INFO.address}
           </Text>
-          <Text>Tél: {artisan?.companyPhone}</Text>
-          <Text>Mail: {artisan?.companyEmail}</Text>
+          <Text>
+            {user?.role === "artisan"
+              ? `${user?.companyPostalCode} ${user?.companyCity}`
+              : `${DEFAULT_COMPANY_INFO.postalCode} ${DEFAULT_COMPANY_INFO.city}`}
+          </Text>
+          <Text>
+            Tél: {user?.role === "artisan" ? user?.companyPhone : user?.phone}
+          </Text>
+          <Text>
+            Mail: {user?.role === "artisan" ? user?.companyEmail : user?.email}
+          </Text>
         </View>
         <View style={styles.clientBox}>
           <Text style={styles.clientTitle}>Client</Text>
@@ -361,9 +379,21 @@ export const FacturePDFDocument = ({
 
       {/* Mentions légales */}
       <Text style={styles.legalMentionsFooter} fixed>
-        {`${artisan?.companyLegalForm} ${artisan?.companyName} ${
-          artisan?.siret ? `Siret ${artisan.siret}` : ""
-        } RCS ${artisan?.rcs} Code APE ${artisan?.companyApe}`}
+        {user && user.role === "artisan"
+          ? `${user?.companyLegalForm} ${user?.companyName} au Capital de ${
+              user?.companyCapital
+            } ${user?.siret ? `Siret ${user.siret}` : ""}
+                 RCS ${user?.rcs} Code APE ${user?.companyApe}`
+          : `${DEFAULT_COMPANY_INFO.companyLegalForm} ${
+              DEFAULT_COMPANY_INFO.name
+            } au Capital de ${DEFAULT_COMPANY_INFO.companyCapital} ${
+              DEFAULT_COMPANY_INFO.siret
+                ? `Siret ${DEFAULT_COMPANY_INFO.siret}`
+                : ""
+            }
+                 RCS ${DEFAULT_COMPANY_INFO.rcs} Code APE ${
+              DEFAULT_COMPANY_INFO.companyApe
+            }`}
       </Text>
     </Page>
   </Document>
