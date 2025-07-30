@@ -234,7 +234,7 @@ export default function CourtierDashboard() {
                 <div className="absolute -top-1 -right-2 w-3 h-3 bg-[#f26755] rounded-full animate-ping opacity-75"></div>
                 <div className="absolute -top-1 -right-2 w-3 h-3 bg-[#f26755] rounded-full"></div>
               </h1>
-              <p className="text-base sm:text-lg text-gray-600 font-medium h-6 sm:h-7 flex items-center">
+              <p className="text-base sm:text-lg text-gray-600 font-medium min-h-[1.5rem] sm:min-h-[1.75rem] flex items-center mt-3 sm:mt-2">
                 <span className="relative">
                   {displayedText}
                   <span className="inline-block w-0.5 h-5 bg-[#f26755] ml-1 animate-pulse"></span>
