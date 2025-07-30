@@ -210,16 +210,16 @@ export default function ArtisanDashboard() {
                           </td>
                           <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              project.status === 'en_cours' ? 'bg-blue-100 text-blue-800' :
-                              project.status === 'termine' ? 'bg-green-100 text-green-800' :
-                              project.status === 'en_attente' ? 'bg-yellow-100 text-yellow-800' :
-                              project.status === 'annule' ? 'bg-red-100 text-red-800' :
+                              project.status === 'active' ? 'bg-green-100 text-green-800' :
+                              project.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                              project.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                              project.status === 'cancelled' ? 'bg-red-100 text-red-800' :
                               'bg-gray-100 text-gray-800'
                             }`}>
-                              {project.status === 'en_cours' ? 'En cours' :
-                               project.status === 'termine' ? 'Terminé' :
-                               project.status === 'en_attente' ? 'En attente' :
-                               project.status === 'annule' ? 'Annulé' :
+                              {project.status === 'active' ? 'Actif' :
+                               project.status === 'pending' ? 'En attente' :
+                               project.status === 'completed' ? 'Terminé' :
+                               project.status === 'cancelled' ? 'Annulé' :
                                project.status}
                             </span>
                           </td>
