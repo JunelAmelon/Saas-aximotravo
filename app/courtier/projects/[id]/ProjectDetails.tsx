@@ -1102,7 +1102,8 @@ export default function ProjectDetails() {
               handleUpdateDevisStatus={handleUpdateDevisStatus}
               updatingStatusId={updatingStatusId}
               userRole={"courtier"}
-              currentUserId={currentUser?.uid ?? null}
+              currentUserId={currentUser?.uid ?? ""}
+
             />
 
       {/* Modals */}
