@@ -89,7 +89,16 @@ export const PIECES_DISPONIBLES = [
   'Salle d\'eau',
   'Salle de bain',
   'Salon',
-  'WC'
+  'WC',
+  'Comble',
+  'Sous-sol',
+  'Balcon',
+  'Terrasse',
+  'Garage',
+  'Verranda',
+  'Abri de jardin',
+  'Salle de jeu',
+  'Piscine'
 ];
 
 export const TVA_OPTIONS = [

@@ -1109,6 +1109,7 @@ export default function ProjectDetails() {
             itemId={selectedDevisId}
             onNext={handleCalculStep}
             onBack={handleBackToCreate}
+            onSkip={handleGenerationStep}
           />
 
           <CalculSurfaceModal
