@@ -4,6 +4,7 @@ import { Devis } from "@/types/devis";
 import { ArtisanUser, User, CourtierUser } from "@/lib/firebase/users";
 import { Project } from "@/lib/firebase/projects";
 import { Timestamp } from "firebase/firestore";
+import { DEFAULT_COMPANY_INFO } from "./FacturePreview";
 
 // Enregistrement des polices (optionnel)
 // Font.register({
@@ -11,21 +12,6 @@ import { Timestamp } from "firebase/firestore";
 //   src: 'https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-light-webfont.ttf',
 // });
 
-// Informations par défaut de l'entreprise pour les courtiers
-const DEFAULT_COMPANY_INFO = {
-  logoUrl: "https://res.cloudinary.com/djdogxq0d/image/upload/v1753677699/logo_vvpiay.jpg",
-  name: "Aximobat",
-  address: "123 Rue de l'Innovation",
-  postalCode: "75001",
-  city: "Paris",
-  phone: "01 23 45 67 89",
-  email: "contact@Aximobat.com",
-  companyLegalForm: "SAS",
-  companyCapital: "100000",
-  siret: "123456789012345",
-  rcs: "123456789",
-  companyApe: "12345",
-};
 
 // Styles pour le PDF
 const styles = StyleSheet.create({
