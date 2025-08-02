@@ -90,65 +90,46 @@ export default function Sidebar({ userRole }: SidebarProps) {
   };
 
   return (
-    <div className="relative bg-white/95 backdrop-blur-md border-b border-gray-200/60 shadow-sm">
-      {/* Ligne de gradient subtile en haut */}
-      
-      <nav className="relative flex justify-between sm:justify-center px-2 sm:px-6 py-1">
-        {navigation[userRole].map((item, index) => (
+    <div className="relative bg-white border-b border-gray-100">
+      <nav className="relative flex justify-between sm:justify-center px-4 py-2 gap-1">
+        {navigation[userRole].map((item) => (
           <Link
             key={item.name}
             href={item.href}
             className={cn(
-              "group relative flex flex-col sm:flex-row items-center px-4 sm:px-8 py-4 text-xs sm:text-sm font-medium transition-all duration-300 border-b-3 rounded-t-lg",
+              "group relative flex flex-col sm:flex-row items-center px-4 py-3 text-xs sm:text-sm font-medium transition-all duration-150",
               item.current
-                ? "border-[#f26755] text-[#f26755] bg-[#f26755]/5"
-                : "border-transparent text-gray-600 hover:text-[#f26755] hover:border-[#f26755]/60 hover:bg-gradient-to-t hover:from-[#f26755]/3 hover:to-transparent"
+                ? "text-[#f26755] after:absolute after:bottom-0 after:left-1/2 after:-translate-x-1/2 after:w-6 after:h-0.5 after:bg-[#f26755] after:rounded-full"
+                : "text-gray-500 hover:text-[#f26755]"
             )}
-            title={item.name}
+            aria-current={item.current ? "page" : undefined}
           >
-            {/* Conteneur de l'icône avec effet moderne */}
-            <div className={cn(
-              "relative flex items-center justify-center w-8 h-8 sm:w-auto sm:h-auto transition-all duration-300 sm:mr-3",
-              item.current
-                ? ""
-                : ""
-            )}>
+            {/* Icône avec transition subtile */}
+            <div className="relative sm:mr-2">
               <item.icon
                 className={cn(
-                  "h-5 w-5 transition-all duration-300",
+                  "h-4 w-4 sm:h-[1.1rem] sm:w-[1.1rem] transition-transform duration-150",
                   item.current
-                    ? "text-[#f26755]"
-                    : "text-gray-500 group-hover:text-[#f26755]"
+                    ? "text-[#f26755] scale-110"
+                    : "text-gray-400 group-hover:text-[#f26755] group-hover:scale-105"
                 )}
                 aria-hidden="true"
               />
             </div>
             
             {/* Texte desktop */}
-            <span className={cn(
-              "hidden sm:inline relative font-semibold transition-all duration-300",
-              item.current
-                ? "text-[#f26755]"
-                : "text-gray-700 group-hover:text-[#f26755]"
-            )}>
+            <span className="hidden sm:inline font-medium">
               {item.name}
             </span>
             
             {/* Texte mobile */}
-            <span className={cn(
-              "text-[10px] mt-1 sm:hidden font-medium transition-all duration-300 leading-tight text-center",
-              item.current
-                ? "text-[#f26755]"
-                : "text-gray-600 group-hover:text-[#f26755]"
-            )}>
+            <span className="text-[10px] mt-1 sm:hidden font-medium leading-tight">
               {item.name.split(' ')[0]}
             </span>
           </Link>
         ))}
       </nav>
-      
-      {/* Ombre subtile en bas */}
-      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent"></div>
     </div>
   );
+
 }

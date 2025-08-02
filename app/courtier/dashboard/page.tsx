@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { BarChart2, Briefcase, Calendar, Users, User, ChevronRight, Plus, Eye, ArrowUpRight, Activity, Target } from "lucide-react";
+import { useState, useEffect, useRef} from "react";
+import { BarChart2, Briefcase, Calendar, Users, User, ChevronRight, Plus, Eye, ArrowUpRight, Activity, Target, Clock, TrendingUp, CheckCircle2, Circle, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import StatCard from "@/components/dashboard/StatCard";
 import ProjectsTable from "@/components/dashboard/ProjectsTable";
@@ -36,7 +36,32 @@ export default function CourtierDashboard() {
     completedProjects: 0,
     pendingProjects: 0,
   });
+// Typage simplifié
+type StatusKey = "En attente" | "En cours" | "Terminé" | "Annulé";
 
+// Configuration des statuts avec assertion de type
+const statusConfig = {
+  "En attente": {
+    label: "En attente",
+    icon: <Clock className="w-3 h-3 mr-1" />,
+    className: "bg-amber-50 text-amber-700 border-amber-200"
+  },
+  "En cours": {
+    label: "En cours",
+    icon: <TrendingUp className="w-3 h-3 mr-1" />,
+    className: "bg-blue-50 text-blue-700 border-blue-200"
+  },
+  "Terminé": {
+    label: "Terminé",
+    icon: <CheckCircle2 className="w-3 h-3 mr-1" />,
+    className: "bg-green-50 text-green-700 border-green-200"
+  },
+  "Annulé": {
+    label: "Annulé",
+    icon: <X className="w-3 h-3 mr-1" />,
+    className: "bg-red-50 text-red-700 border-red-200"
+  }
+} as Record<StatusKey, { label: string; icon: JSX.Element; className: string }>;
   // Navigation helper
   const handleNavigation = (path: string) => {
     router.push(path);
@@ -186,17 +211,16 @@ export default function CourtierDashboard() {
   // Afficher un indicateur de chargement
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex justify-center items-center">
-        <div className="relative">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200"></div>
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-[#f26755] border-t-transparent absolute top-0 left-0"></div>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-6 h-6 bg-[#f26755] rounded-full animate-pulse"></div>
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#f21515]"></div>
           </div>
         </div>
       </div>
     );
   }
+
 
   // Afficher un message d'erreur
   if (error) {
@@ -228,142 +252,178 @@ export default function CourtierDashboard() {
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
             <div className="space-y-2">
-              <h1 className="text-3xl sm:text-4xl lg:text-4xl font-black text-gray-900 relative group">
+              <h1 className="text-2xl font-bold text-gray-900 relative group">
                 <span className="relative z-10">Tableau de bord</span>
                 <div className="absolute -bottom-2 left-0 w-full h-1 bg-gradient-to-r from-[#f26755] to-[#f21515] rounded-full transform scale-x-0 group-hover:scale-x-100 transition-transform duration-700 ease-out"></div>
-                <div className="absolute -top-1 -right-2 w-3 h-3 bg-[#f26755] rounded-full animate-ping opacity-75"></div>
-                <div className="absolute -top-1 -right-2 w-3 h-3 bg-[#f26755] rounded-full"></div>
               </h1>
-              <p className="text-base sm:text-lg text-gray-600 font-medium min-h-[1.5rem] sm:min-h-[1.75rem] flex items-center mt-3 sm:mt-2">
+              <p className="text-sm text-gray-600 font-medium min-h-[1.25rem] flex items-center mt-2">
                 <span className="relative">
                   {displayedText}
-                  <span className="inline-block w-0.5 h-5 bg-[#f26755] ml-1 animate-pulse"></span>
+                  <span className="inline-block w-0.5 h-4 bg-[#f26755] ml-1 animate-pulse"></span>
                 </span>
               </p>
             </div>
             
-{/* Barre d'actions rapides */}
-<div className="flex items-center justify-start sm:justify-end gap-3 p-2 sm:bg-white/60 sm:backdrop-blur-sm rounded-2xl sm:border sm:border-white/20 sm:shadow-lg">
+{/* Barre d'actions rapides - Version épurée sans arrière-plan */}
+<div className="flex items-center gap-3">
   <button 
     onClick={() => handleNavigation('/courtier/projects/new')}
-    className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-[#f26755] text-white rounded-xl hover:bg-[#f26755]/90 transition-all duration-200 shadow-sm hover:shadow-md"
+    className="flex items-center gap-2 px-4 py-2.5 bg-[#f26755] text-white rounded-xl hover:bg-[#f26755]/90 transition-all duration-200 shadow-sm hover:shadow-md group"
   >
-    <Plus className="w-4 h-4" />
+    <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" />
     <span className="text-sm font-medium whitespace-nowrap">Nouveau projet</span>
   </button>
 </div>
-
           </div>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard
             title="Total projets"
             value={stats.totalProjects.toString()}
-            icon={<Briefcase size={24} className="animate-pulse" />}
+            icon={<Briefcase size={20} />}
             trend={{ value: 12, isPositive: true }}
           />
           <StatCard
             title="Projets actifs"
             value={stats.activeProjects.toString()}
-            icon={<Activity size={24} className="animate-bounce" />}
+            icon={<Activity size={20} />}
             trend={{ value: 8, isPositive: true }}
           />
           <StatCard
             title="Projets terminés"
             value={stats.completedProjects.toString()}
-            icon={<Target size={24} className="animate-spin" style={{ animationDuration: '3s' }} />}
+            icon={<Target size={20} />}
             trend={{ value: 15, isPositive: true }}
           />
           <StatCard
             title="Artisans associés"
             value={artisans.length.toString()}
-            icon={<Users size={24} className="animate-pulse" style={{ animationDelay: '0.5s' }} />}
+            icon={<Users size={20} />}
             trend={{ value: 3, isPositive: true }}
           />
         </div>
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Projects Section */}
-          <div className="lg:col-span-2 space-y-8">
+          <div className="lg:col-span-2 space-y-6">
             <div className="flex items-center justify-between p-1">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">Projets récents</h2>
-                <p className="text-gray-600 mt-1 font-medium">Vos projets les plus actifs</p>
+                <h2 className="text-xl font-bold text-gray-900">Projets récents</h2>
+                <p className="text-sm text-gray-600 mt-1">Vos projets les plus actifs</p>
               </div>
               <button
                 onClick={() => handleNavigation('/courtier/projects')}
-                className="group flex items-center gap-2 px-4 py-2 text-sm text-[#f26755] hover:text-white bg-[#f26755]/10 hover:bg-[#f26755] rounded-xl font-semibold transition-all duration-300"
+                className="group flex items-center gap-2 px-3 py-2 text-xs text-[#f26755] hover:text-white bg-[#f26755]/10 hover:bg-[#f26755] rounded-lg font-medium transition-all duration-300"
               >
                 Voir tous les projets
-                <ArrowUpRight className="w-4 h-4 group-hover:scale-110 transition-transform duration-300" />
+                <ArrowUpRight className="w-3 h-3 group-hover:scale-110 transition-transform duration-300" />
               </button>
             </div>
 
             {projects.length > 0 ? (
-              <div className="bg-white rounded-3xl shadow-lg border border-gray-200 overflow-hidden h-[480px] flex flex-col">
-                <div className="p-6 border-b border-gray-100">
-                  <h3 className="text-lg font-bold text-gray-900">Projets en cours</h3>
-                  <p className="text-sm mt-1 text-gray-600">Suivi de vos projets actifs</p>
+              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden h-[400px] flex flex-col relative">
+                {/* Gradient overlay pour un effet premium */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white via-transparent to-gray-50/30 pointer-events-none"></div>
+                
+                <div className="relative p-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-gradient-to-br from-[#f26755]/10 to-[#f21515]/10 rounded-lg">
+                      <Briefcase className="w-4 h-4 text-[#f26755]" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold text-gray-900">Projets en cours</h3>
+                      <p className="text-xs text-gray-600">Suivi de vos projets actifs</p>
+                    </div>
+                  </div>
                 </div>
+                
                 {/* Container avec scroll horizontal pour mobile */}
-                <div className="flex-1 overflow-x-auto overflow-y-auto">
-                  <div className="min-w-full">
-                    <table className="w-full min-w-[800px]">
-                      <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
+                <div className="flex-1 overflow-x-auto overflow-y-auto relative">
+                  <div className="min-w-full h-full">
+                    <table className="w-full min-w-[900px] h-full">
+                      <thead className="bg-gradient-to-r from-gray-50 to-gray-100/50 border-b border-gray-200 sticky top-0 z-10 backdrop-blur-sm">
                         <tr>
-                          <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[180px]">Projet</th>
-                          <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px]">Client</th>
-                          <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">Statut</th>
-                          <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">Échéance</th>
-                          <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[80px]">Action</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[200px]">
+                            <div className="flex items-center gap-1">
+                              <div className="w-2 h-2 bg-[#f26755] rounded-full"></div>
+                              Projet
+                            </div>
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">
+                            <div className="flex items-center gap-1">
+                              <User className="w-3 h-3 text-gray-400" />
+                              Client
+                            </div>
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+                            <div className="flex items-center gap-1">
+                              <Activity className="w-3 h-3 text-gray-400" />
+                              Statut
+                            </div>
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px]">
+                            <div className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3 text-gray-400" />
+                              Échéance
+                            </div>
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">Action</th>
                         </tr>
                       </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
+                      <tbody className="bg-white divide-y divide-gray-100">
                         {projects.map((project, index) => (
                           <tr
                             key={project.id}
-                            className="hover:bg-gray-50 cursor-pointer transition-colors duration-200"
+                            className="group hover:bg-gray-50 cursor-pointer transition-all duration-200"
                             onClick={() => handleNavigation(`/courtier/projects/${project.id}`)}
                           >
-                            <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                            <td className="px-4 py-4 whitespace-nowrap">
                               <div className="flex items-center">
-                                <div className="w-8 h-8 rounded-full bg-[#f26755]/10 flex items-center justify-center mr-3 flex-shrink-0">
+                                <div className="w-8 h-8 rounded-lg bg-[#f26755]/10 flex items-center justify-center mr-3 flex-shrink-0">
                                   <Briefcase className="w-4 h-4 text-[#f26755]" />
                                 </div>
                                 <div className="min-w-0">
-                                  <div className="text-sm font-medium text-gray-900 truncate">{project.name}</div>
+                                  <div className="text-sm font-medium text-gray-900 truncate">
+                                    {project.name}
+                                  </div>
                                   {project.amoIncluded && (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800 mt-1">
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200 mt-1">
                                       AMO
                                     </span>
                                   )}
                                 </div>
                               </div>
                             </td>
-                            <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm text-gray-900 truncate">{project.client}</div>
+                            <td className="px-4 py-4 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center mr-3 flex-shrink-0">
+                                  <User className="w-4 h-4 text-blue-600" />
+                                </div>
+                                <div className="text-sm text-gray-900 truncate">{project.client}</div>
+                              </div>
                             </td>
-                            <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
-                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                project.status === 'active' ? 'bg-green-100 text-green-800' :
-                                project.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                project.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-                                'bg-gray-100 text-gray-800'
-                              }`}>
-                                {project.status === 'active' ? 'Actif' :
-                                 project.status === 'pending' ? 'En attente' :
-                                 project.status === 'completed' ? 'Terminé' :
-                                 project.status}
-                              </span>
-                            </td>
-                            <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <td className="px-2 py-1 whitespace-nowrap">
+  <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium border ${
+    statusConfig[project.status as StatusKey]?.className || 'bg-gray-50 text-gray-700 border-gray-200'
+  }`}>
+    {/* Icône à taille normale */}
+    <span className="w-4 h-4 mr-1 flex items-center justify-center">
+      {statusConfig[project.status as StatusKey]?.icon || <Circle className="w-4 h-4" />}
+    </span>
+    {/* Texte réduit */}
+    <span className="text-[10px] leading-none">
+      {statusConfig[project.status as StatusKey]?.label || project.status}
+    </span>
+  </span>
+</td>
+                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                               {project.estimatedEndDate}
                             </td>
-                            <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                              <button className="flex items-center gap-1 text-[#f26755] hover:text-[#f26755]/80 font-semibold group">
+                            <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
+                              <button className="flex items-center gap-1 text-[#f26755] hover:text-[#f26755]/80 font-medium group">
                                 Voir
                                 <ArrowUpRight className="w-3 h-3 group-hover:scale-110 transition-transform duration-200" />
                               </button>
@@ -374,30 +434,31 @@ export default function CourtierDashboard() {
                     </table>
                   </div>
                 </div>
-                {/* Indicateur de scroll sur mobile */}
-                <div className="block sm:hidden p-2 text-center">
+                
+                {/* Indicateur de scroll sur mobile amélioré */}
+                <div className="block lg:hidden p-2 text-center border-t border-gray-100">
                   <div className="text-xs text-gray-500 bg-gray-50 rounded-lg py-2 px-4">
                     <span className="flex items-center justify-center gap-2">
                       <ChevronRight className="w-3 h-3" />
-                      Faites défiler horizontalement pour voir toutes les colonnes
+                      Faites défiler horizontalement
                       <ChevronRight className="w-3 h-3" />
                     </span>
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="bg-white p-10 rounded-3xl shadow-lg text-center border border-gray-200 h-[480px] flex flex-col justify-center">
-                <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-[#f26755]/10 flex items-center justify-center">
-                  <Briefcase className="w-10 h-10 text-[#f26755] animate-pulse" />
+              <div className="bg-white p-8 rounded-2xl shadow-lg text-center border border-gray-200 h-[400px] flex flex-col justify-center">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[#f26755]/10 flex items-center justify-center">
+                  <Briefcase className="w-8 h-8 text-[#f26755]" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">Aucun projet trouvé</h3>
-                <p className="text-gray-600 mb-6 font-medium">Créez votre premier projet pour commencer</p>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">Aucun projet trouvé</h3>
+                <p className="text-sm text-gray-600 mb-4">Créez votre premier projet pour commencer</p>
                 <button
                   onClick={() => handleNavigation('/courtier/projects/new')}
-                  className="group px-8 py-4 bg-[#f26755] text-white rounded-2xl hover:bg-[#f26755]/90 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+                  className="group px-6 py-3 bg-[#f26755] text-white rounded-xl hover:bg-[#f26755]/90 transition-all duration-300 font-medium shadow-lg hover:shadow-xl"
                 >
                   <span className="flex items-center gap-2">
-                    <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
+                    <Plus className="w-4 h-4" />
                     Créer un projet
                   </span>
                 </button>
@@ -406,83 +467,94 @@ export default function CourtierDashboard() {
           </div>
 
           {/* Artisans Section */}
-          <div className="space-y-8">
+          <div className="space-y-6">
             <div className="flex items-center justify-between p-1">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">Mes artisans</h2>
-                <p className="text-gray-600 mt-1 font-medium">Équipe collaborative</p>
+                <h2 className="text-xl font-bold text-gray-900">Mes artisans</h2>
+                <p className="text-sm text-gray-600 mt-1">Équipe collaborative</p>
               </div>
               <button
                 onClick={() => handleNavigation('/courtier/artisans')}
-                className="group flex items-center gap-2 px-3 py-2 text-sm text-[#f26755] hover:text-white bg-[#f26755]/10 hover:bg-[#f26755] rounded-xl font-semibold transition-all duration-300"
+                className="group flex items-center gap-2 px-3 py-2 text-xs text-[#f26755] hover:text-white bg-[#f26755]/10 hover:bg-[#f26755] rounded-lg font-medium transition-all duration-300"
               >
                 Gérer
-                <ArrowUpRight className="w-4 h-4 group-hover:scale-110 transition-transform duration-300" />
+                <ArrowUpRight className="w-3 h-3 group-hover:scale-110 transition-transform duration-300" />
               </button>
             </div>
 
-            <div className="bg-white rounded-3xl shadow-lg border border-gray-200 hover:shadow-xl transition-shadow duration-500 h-[480px] flex flex-col">
-              <div className="p-6 border-b border-gray-100">
-                <h3 className="text-lg font-bold text-gray-900">Équipe</h3>
-                <p className="text-sm mt-1 text-gray-600">Vos artisans partenaires</p>
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 h-[400px] flex flex-col relative overflow-hidden">
+              {/* Gradient overlay pour un effet premium */}
+              <div className="absolute inset-0 bg-gradient-to-br from-white via-transparent to-gray-50/30 pointer-events-none"></div>
+              
+              <div className="relative p-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-gradient-to-br from-[#f26755]/10 to-[#f21515]/10 rounded-lg">
+                    <Users className="w-4 h-4 text-[#f26755]" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-gray-900">Équipe</h3>
+                    <p className="text-xs text-gray-600">Vos artisans partenaires</p>
+                  </div>
+                </div>
               </div>
+              
               {artisans.length > 0 ? (
-                <div className="flex-1 p-6 space-y-4">
+                <div className="flex-1 p-4 space-y-3 relative">
                   {artisans.slice(0, 3).map((artisan, index) => (
                     <div
                       key={artisan.uid}
-                      className="group flex items-center gap-4 p-4 rounded-2xl hover:bg-gray-50 transition-all duration-300 cursor-pointer border border-transparent hover:border-[#f26755]/20 hover:shadow-md"
+                      className="group flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-all duration-200 cursor-pointer"
                       onClick={() => handleNavigation('/courtier/artisans')}
                     >
                       <div className="relative">
-                        <div className="w-12 h-12 rounded-full bg-[#f26755]/10 flex items-center justify-center text-[#f26755] group-hover:bg-[#f26755]/20 transition-all duration-300">
+                        <div className="w-10 h-10 rounded-full bg-[#f26755]/10 flex items-center justify-center text-[#f26755]">
                           <User className="w-5 h-5" />
                         </div>
-                        <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full border-2 border-white"></div>
                       </div>
+                      
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-bold text-gray-900 group-hover:text-[#f26755] transition-colors duration-300 truncate cursor-pointer">
+                        <h4 className="font-medium text-gray-900 truncate text-sm">
                           {artisan.displayName || artisan.email.split('@')[0]}
                         </h4>
-                        <p className="text-sm text-gray-600 truncate mt-1 font-medium">
+                        <p className="text-xs text-gray-600 truncate mt-0.5">
                           {artisan.specialite || 'Spécialité non précisée'}
                         </p>
                       </div>
-                      <div className="p-2 rounded-xl bg-gray-50 group-hover:bg-[#f26755] transition-all duration-300">
-                        <ArrowUpRight className="w-4 h-4 text-gray-400 group-hover:text-white group-hover:scale-110 transition-all duration-300 flex-shrink-0" />
+                      
+                      <div className="p-2 rounded-lg bg-gray-50 group-hover:bg-[#f26755] transition-all duration-200">
+                        <ArrowUpRight className="w-3 h-3 text-gray-400 group-hover:text-white transition-all duration-200 flex-shrink-0" />
                       </div>
                     </div>
                   ))}
                   
-                  {artisans.length > 3 && (
+                  {artisans.length > 4 && (
                     <button
                       onClick={() => handleNavigation('/courtier/artisans')}
-                      className="w-full p-4 text-center text-sm text-[#f26755] hover:text-white hover:bg-[#f26755] rounded-2xl transition-all duration-300 font-semibold border-2 border-dashed border-[#f26755]/30 hover:border-transparent"
+                      className="w-full p-3 text-center text-xs text-[#f26755] hover:text-white hover:bg-[#f26755] rounded-xl transition-all duration-200 font-medium border-2 border-dashed border-[#f26755]/30 hover:border-transparent"
                     >
                       <span className="flex items-center justify-center gap-2">
-                        <Plus className="w-4 h-4" />
-                        {artisans.length - 3} autres artisans
+                        <Plus className="w-3 h-3" />
+                        {artisans.length - 4} autres artisans
                       </span>
                     </button>
                   )}
                 </div>
               ) : (
                 <div className="flex-1 flex flex-col justify-center text-center p-6 space-y-6">
-                  <div className="text-center py-10 space-y-6">
-                    <div className="w-20 h-20 mx-auto rounded-full bg-[#f26755]/10 flex items-center justify-center relative">
-                      <Users className="w-10 h-10 text-[#f26755] animate-pulse" />
-                      <div className="absolute inset-0 rounded-full bg-gradient-to-r from-[#f26755] to-[#f21515] opacity-20 animate-pulse"></div>
+                  <div className="text-center py-8 space-y-4">
+                    <div className="w-16 h-16 mx-auto rounded-full bg-[#f26755]/10 flex items-center justify-center">
+                      <Users className="w-8 h-8 text-[#f26755]" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-gray-900 mb-2 text-lg">Aucun artisan associé</h3>
-                      <p className="text-gray-600 font-medium">Ajoutez des artisans à votre équipe</p>
+                      <h3 className="font-bold text-gray-900 mb-2 text-base">Aucun artisan associé</h3>
+                      <p className="text-sm text-gray-600">Ajoutez des artisans à votre équipe</p>
                     </div>
                     <button
                       onClick={() => handleNavigation('/courtier/artisans')}
-                      className="group px-6 py-3 text-sm bg-[#f26755] text-white rounded-2xl hover:bg-[#f26755]/90 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+                      className="group px-4 py-2 text-sm bg-[#f26755] text-white rounded-xl hover:bg-[#f26755]/90 transition-all duration-200 font-medium"
                     >
                       <span className="flex items-center gap-2">
-                        <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" />
+                        <Plus className="w-4 h-4" />
                         Associer des artisans
                       </span>
                     </button>
