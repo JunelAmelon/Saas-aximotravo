@@ -471,32 +471,34 @@ export default function CourtierProjects() {
             </button>
             
             <div className="flex gap-1">
-              {Array.from({ length: Math.min(totalPages, 5) }).map((_, i) => {
-                let pageNum;
-                if (totalPages <= 5) {
-                  pageNum = i + 1;
-                } else if (currentPage <= 3) {
-                  pageNum = i + 1;
-                } else if (currentPage >= totalPages - 2) {
-                  pageNum = totalPages - 4 + i;
-                } else {
-                  pageNum = currentPage - 2 + i;
-                }
-                
-                return (
-                  <button
-                    key={pageNum}
-                    onClick={() => setCurrentPage(pageNum)}
-                    className={`w-8 h-8 rounded-lg text-sm font-medium transition-all duration-200 ${
-                      currentPage === pageNum
-                        ? "bg-[#f26755] text-white"
-                        : "text-gray-600 hover:bg-gray-100 bg-white border border-gray-200"
-                    }`}
-                  >
-                    {pageNum}
-                  </button>
-                );
-              })}
+            {Array.from({ length: Math.min(totalPages, 5) }).map((_, i) => {
+  // Ajoutez explicitement le type number
+  let pageNum: number;
+  
+  if (totalPages <= 5) {
+    pageNum = i + 1;
+  } else if (currentPage <= 3) {
+    pageNum = i + 1;
+  } else if (currentPage >= totalPages - 2) {
+    pageNum = totalPages - 4 + i;
+  } else {
+    pageNum = currentPage - 2 + i;
+  }
+  
+  return (
+    <button
+      key={pageNum}
+      onClick={() => setCurrentPage(pageNum)}
+      className={`w-8 h-8 rounded-lg text-sm font-medium transition-all duration-200 ${
+        currentPage === pageNum
+          ? "bg-[#f26755] text-white"
+          : "text-gray-600 hover:bg-gray-100 bg-white border border-gray-200"
+      }`}
+    >
+      {pageNum}
+    </button>
+  );
+})}
             </div>
             
             <button
