@@ -307,7 +307,7 @@ const statusConfig = {
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-  {/* Projects Section */}
+{/* Projects Section */}
 <div className="lg:col-span-2 space-y-6">
   <div className="flex items-center justify-between p-1">
     <div>
@@ -324,10 +324,11 @@ const statusConfig = {
   </div>
 
   {projects.length > 0 ? (
-    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden flex flex-col">
+    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden h-auto lg:h-[400px] flex flex-col relative">
       {/* Gradient overlay pour un effet premium */}
       <div className="absolute inset-0 bg-gradient-to-br from-white via-transparent to-gray-50/30 pointer-events-none"></div>
       
+      {/* EN-TÊTE ORIGINAL RESTAURÉ */}
       <div className="relative p-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
         <div className="flex items-center gap-2">
           <div className="p-1.5 bg-gradient-to-br from-[#f26755]/10 to-[#f21515]/10 rounded-lg">
@@ -335,13 +336,13 @@ const statusConfig = {
           </div>
           <div>
             <h3 className="text-base font-bold text-gray-900">Projets en cours</h3>
-            <p className="text-xs text-gray- Voulez-vous dire: gray-600">Suivi de vos projets actifs</p>
+            <p className="text-xs text-gray-600">Suivi de vos projets actifs</p>
           </div>
         </div>
       </div>
       
-      {/* Container avec scroll horizontal pour mobile, sans scroll vertical */}
-      <div className="flex-1 overflow-x-auto lg:overflow-y-auto relative">
+      {/* Container avec scroll horizontal seulement sur mobile */}
+      <div className="flex-1 overflow-x-auto overflow-y-hidden lg:overflow-y-auto relative">
         <div className="min-w-full">
           <table className="w-full min-w-[900px]">
             <thead className="bg-gradient-to-r from-gray-50 to-gray-100/50 border-b border-gray-200 sticky top-0 z-10 backdrop-blur-sm">
@@ -370,11 +371,13 @@ const statusConfig = {
                     Échéance
                   </div>
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">Action</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">
+                  Action
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-100">
-              {projects.map((project, index) => (
+              {projects.map((project) => (
                 <tr
                   key={project.id}
                   className="group hover:bg-gray-50 cursor-pointer transition-all duration-200"
@@ -433,7 +436,7 @@ const statusConfig = {
         </div>
       </div>
       
-      {/* Indicateur de scroll sur mobile amélioré */}
+      {/* Indicateur de scroll horizontal mobile */}
       <div className="block lg:hidden p-2 text-center border-t border-gray-100">
         <div className="text-xs text-gray-500 bg-gray-50 rounded-lg py-2 px-4">
           <span className="flex items-center justify-center gap-2">
@@ -445,7 +448,7 @@ const statusConfig = {
       </div>
     </div>
   ) : (
-    <div className="bg-white p-8 rounded-2xl shadow-lg text-center border border-gray-200 h-[400px] flex flex-col justify-center">
+    <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-200 text-center h-auto lg:h-[400px] flex flex-col justify-center">
       <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[#f26755]/10 flex items-center justify-center">
         <Briefcase className="w-8 h-8 text-[#f26755]" />
       </div>
