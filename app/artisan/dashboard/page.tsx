@@ -172,164 +172,162 @@ const statusConfig = {
           />
         </div>
 
-        {/* Main Content - Projects Section Only */}
-        <div className="space-y-6">
-          <div className="flex items-center justify-between p-1">
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">Projets récents</h2>
-              <p className="text-sm text-gray-600 mt-1">Vos interventions en cours</p>
-            </div>
-            <button
-              onClick={() => handleNavigation('/artisan/projects')}
-              className="group flex items-center gap-2 px-3 py-2 text-xs text-[#f26755] hover:text-white bg-[#f26755]/10 hover:bg-[#f26755] rounded-lg font-medium transition-all duration-300"
-            >
-              Voir tous les projets
-              <ArrowUpRight className="w-3 h-3 group-hover:scale-110 transition-transform duration-300" />
-            </button>
-          </div>
+{/* Main Content - Projects Section Only */}
+<div className="space-y-6">
+  <div className="flex items-center justify-between p-1">
+    <div>
+      <h2 className="text-xl font-bold text-gray-900">Projets récents</h2>
+      <p className="text-sm text-gray-600 mt-1">Vos interventions en cours</p>
+    </div>
+    <button
+      onClick={() => handleNavigation('/artisan/projects')}
+      className="group flex items-center gap-2 px-3 py-2 text-xs text-[#f26755] hover:text-white bg-[#f26755]/10 hover:bg-[#f26755] rounded-lg font-medium transition-all duration-300"
+    >
+      Voir tous les projets
+      <ArrowUpRight className="w-3 h-3 group-hover:scale-110 transition-transform duration-300" />
+    </button>
+  </div>
 
-          {recentsProjects.length > 0 ? (
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden h-[400px] flex flex-col relative">
-              {/* Gradient overlay pour un effet premium */}
-              <div className="absolute inset-0 bg-gradient-to-br from-white via-transparent to-gray-50/30 pointer-events-none"></div>
-              
-              <div className="relative p-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 bg-gradient-to-br from-[#f26755]/10 to-[#f21515]/10 rounded-lg">
-                    <Briefcase className="w-4 h-4 text-[#f26755]" />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-bold text-gray-900">Interventions actives</h3>
-                    <p className="text-xs text-gray-600">Suivi de vos projets en cours</p>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Container avec scroll horizontal pour mobile */}
-              <div className="flex-1 overflow-x-auto overflow-y-auto relative">
-                <div className="min-w-full h-full">
-                  <table className="w-full min-w-[900px] h-full">
-                    <thead className="bg-gradient-to-r from-gray-50 to-gray-100/50 border-b border-gray-200 sticky top-0 z-10 backdrop-blur-sm">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[200px]">
-                          <div className="flex items-center gap-1">
-                            <div className="w-2 h-2 bg-[#f26755] rounded-full"></div>
-                            Projet
-                          </div>
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">
-                          <div className="flex items-center gap-1">
-                            <Users className="w-3 h-3 text-gray-400" />
-                            Client
-                          </div>
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
-                          <div className="flex items-center gap-1">
-                            <Activity className="w-3 h-3 text-gray-400" />
-                            Statut
-                          </div>
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px]">
-                          <div className="flex items-center gap-1">
-                            <Calendar className="w-3 h-3 text-gray-400" />
-                            Échéance
-                          </div>
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-100">
-                      {recentsProjects.map((project, index) => (
-                        <tr
-                          key={project.id}
-                          className="group hover:bg-gray-50 cursor-pointer transition-all duration-200"
-                          onClick={() => handleNavigation(`/artisan/projects/${project.id}`)}
-                        >
-                          <td className="px-4 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <div className="w-8 h-8 rounded-lg bg-[#f26755]/10 flex items-center justify-center mr-3 flex-shrink-0">
-                                <Briefcase className="w-4 h-4 text-[#f26755]" />
-                              </div>
-                              <div className="min-w-0">
-                                <div className="text-sm font-medium text-gray-900 truncate">
-                                  {project.name}
-                                </div>
-                                {project.amoIncluded && (
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200 mt-1">
-                                    AMO
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-4 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center mr-3 flex-shrink-0">
-                                <Users className="w-4 h-4 text-blue-600" />
-                              </div>
-                              <div className="text-sm text-gray-900 truncate">{project.client}</div>
-                            </div>
-                          </td>
-                          <td className="px-2 py-1 whitespace-nowrap">
-  <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium border ${
-    statusConfig[project.status as StatusKey]?.className || 'bg-gray-50 text-gray-700 border-gray-200'
-  }`}>
-    {/* Icône à taille normale */}
-    <span className="w-4 h-4 mr-1 flex items-center justify-center">
-      {statusConfig[project.status as StatusKey]?.icon || <Circle className="w-4 h-4" />}
-    </span>
-    {/* Texte réduit */}
-    <span className="text-[10px] leading-none">
-      {statusConfig[project.status as StatusKey]?.label || project.status}
-    </span>
-  </span>
-</td>
-                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {project.estimatedEndDate || 'Non défini'}
-                          </td>
-                          <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <button className="flex items-center gap-1 text-[#f26755] hover:text-[#f26755]/80 font-medium group">
-                              Voir
-                              <ArrowUpRight className="w-3 h-3 group-hover:scale-110 transition-transform duration-200" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              
-              {/* Indicateur de scroll sur mobile amélioré */}
-              <div className="block lg:hidden p-2 text-center border-t border-gray-100">
-                <div className="text-xs text-gray-500 bg-gray-50 rounded-lg py-2 px-4">
-                  <span className="flex items-center justify-center gap-2">
-                    <ChevronRight className="w-3 h-3" />
-                    Faites défiler horizontalement
-                    <ChevronRight className="w-3 h-3" />
-                  </span>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="bg-white p-8 rounded-2xl shadow-lg text-center border border-gray-200 h-[400px] flex flex-col justify-center">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[#f26755]/10 flex items-center justify-center">
-                <Briefcase className="w-8 h-8 text-[#f26755]" />
-              </div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">Aucun projet en cours</h3>
-              <p className="text-sm text-gray-600 mb-4">Vos nouveaux projets apparaîtront ici</p>
-              <button
-                onClick={() => handleNavigation('/artisan/projects')}
-                className="group px-6 py-3 bg-[#f26755] text-white rounded-xl hover:bg-[#f26755]/90 transition-all duration-300 font-medium shadow-lg hover:shadow-xl"
-              >
-                <span className="flex items-center gap-2">
-                  <Eye className="w-4 h-4" />
-                  Voir tous les projets
-                </span>
-              </button>
-            </div>
-          )}
+  {recentsProjects.length > 0 ? (
+    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden h-auto lg:h-[400px] flex flex-col relative">
+      {/* Gradient overlay pour un effet premium */}
+      <div className="absolute inset-0 bg-gradient-to-br from-white via-transparent to-gray-50/30 pointer-events-none"></div>
+      
+      <div className="relative p-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 bg-gradient-to-br from-[#f26755]/10 to-[#f21515]/10 rounded-lg">
+            <Briefcase className="w-4 h-4 text-[#f26755]" />
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-[#f26755]">Interventions actives</h3>
+            <p className="text-xs text-gray-600">Suivi de vos projets en cours</p>
+          </div>
         </div>
+      </div>
+      
+      {/* SEULE MODIFICATION IMPORTANTE : overflow-y-hidden en mobile */}
+      <div className="flex-1 overflow-x-auto overflow-y-hidden lg:overflow-y-auto relative">
+        <div className="min-w-full h-full">
+          <table className="w-full min-w-[900px] h-full">
+            <thead className="bg-gradient-to-r from-gray-50 to-gray-100/50 border-b border-gray-200 sticky top-0 z-10 backdrop-blur-sm">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[200px]">
+                  <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 bg-[#f26755] rounded-full"></div>
+                    Projet
+                  </div>
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">
+                  <div className="flex items-center gap-1">
+                    <Users className="w-3 h-3 text-gray-400" />
+                    Client
+                  </div>
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+                  <div className="flex items-center gap-1">
+                    <Activity className="w-3 h-3 text-gray-400" />
+                    Statut
+                  </div>
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px]">
+                  <div className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3 text-gray-400" />
+                    Échéance
+                  </div>
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">Action</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-100">
+            {recentsProjects.slice(0, 5).map((project, index) => (
+                <tr
+                  key={project.id}
+                  className="group hover:bg-gray-50 cursor-pointer transition-all duration-200"
+                  onClick={() => handleNavigation(`/artisan/projects/${project.id}`)}
+                >
+                  <td className="px-4 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <div className="w-8 h-8 rounded-lg bg-[#f26755]/10 flex items-center justify-center mr-3 flex-shrink-0">
+                        <Briefcase className="w-4 h-4 text-[#f26755]" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-gray-900 truncate">
+                          {project.name}
+                        </div>
+                        {project.amoIncluded && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200 mt-1">
+                            AMO
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center mr-3 flex-shrink-0">
+                        <Users className="w-4 h-4 text-blue-600" />
+                      </div>
+                      <div className="text-sm text-gray-900 truncate">{project.client}</div>
+                    </div>
+                  </td>
+                  <td className="px-2 py-1 whitespace-nowrap">
+                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium border ${
+                      statusConfig[project.status as StatusKey]?.className || 'bg-gray-50 text-gray-700 border-gray-200'
+                    }`}>
+                      <span className="w-4 h-4 mr-1 flex items-center justify-center">
+                        {statusConfig[project.status as StatusKey]?.icon || <Circle className="w-4 h-4" />}
+                      </span>
+                      <span className="text-[10px] leading-none">
+                        {statusConfig[project.status as StatusKey]?.label || project.status}
+                      </span>
+                    </span>
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {project.estimatedEndDate || 'Non défini'}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <button className="flex items-center gap-1 text-[#f26755] hover:text-[#f26755]/80 font-medium group">
+                      Voir
+                      <ArrowUpRight className="w-3 h-3 group-hover:scale-110 transition-transform duration-200" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
+      {/* Indicateur de scroll sur mobile amélioré */}
+      <div className="block lg:hidden p-2 text-center border-t border-gray-100">
+        <div className="text-xs text-gray-500 bg-gray-50 rounded-lg py-2 px-4">
+          <span className="flex items-center justify-center gap-2">
+            <ChevronRight className="w-3 h-3" />
+            Faites défiler horizontalement
+            <ChevronRight className="w-3 h-3" />
+          </span>
+        </div>
+      </div>
+    </div>
+  ) : (
+    <div className="bg-white p-8 rounded-2xl shadow-lg text-center border border-gray-200 h-[400px] flex flex-col justify-center">
+      <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[#f26755]/10 flex items-center justify-center">
+        <Briefcase className="w-8 h-8 text-[#f26755]" />
+      </div>
+      <h3 className="text-lg font-bold text-gray-900 mb-2">Aucun projet en cours</h3>
+      <p className="text-sm text-gray-600 mb-4">Vos nouveaux projets apparaîtront ici</p>
+      <button
+        onClick={() => handleNavigation('/artisan/projects')}
+        className="group px-6 py-3 bg-[#f26755] text-white rounded-xl hover:bg-[#f26755]/90 transition-all duration-300 font-medium shadow-lg hover:shadow-xl"
+      >
+        <span className="flex items-center gap-2">
+          <Eye className="w-4 h-4" />
+          Voir tous les projets
+        </span>
+      </button>
+    </div>
+  )}
+</div>
       </div>
     </div>
   );
