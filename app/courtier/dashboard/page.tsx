@@ -335,7 +335,7 @@ const statusConfig = {
             <Briefcase className="w-4 h-4 text-[#f26755]" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-gray-900">Projets en cours</h3>
+            <h3 className="text-base font-bold text-[#f26755]">Projets en cours</h3>
             <p className="text-xs text-gray-600">Suivi de vos projets actifs</p>
           </div>
         </div>
@@ -493,7 +493,7 @@ const statusConfig = {
                     <Users className="w-4 h-4 text-[#f26755]" />
                   </div>
                   <div>
-                    <h3 className="text-base font-bold text-gray-900">Équipe</h3>
+                    <h3 className="text-base font-bold text-[#f26755]">Équipe</h3>
                     <p className="text-xs text-gray-600">Vos artisans partenaires</p>
                   </div>
                 </div>
