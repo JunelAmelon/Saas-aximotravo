@@ -404,12 +404,19 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: 'bold',
     color: '#C5453A',
-    marginBottom: 10,
+    marginBottom: 20,
   },
   
   signatureSpace: {
     height: 50,
     width: '100%',
+  },
+  
+  dateLabel: {
+    fontSize: 10,
+    color: '#374151',
+    marginBottom: 15,
+    marginTop: 15,
   },
   
   // Footer avec mentions légales
@@ -452,10 +459,11 @@ interface FacturePDFDocumentProps {
 
 // Fonction utilitaire pour formater les prix
 const formatPrice = (price: number): string => {
-  return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency: "EUR",
-  }).format(price);
+  return price.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' €';
+  // return new Intl.NumberFormat("fr-FR", {
+  //   style: "currency",
+  //   currency: "EUR",
+  // }).format(price);
 };
 
 // Fonction utilitaire pour formater les dates
@@ -667,7 +675,7 @@ export const FacturePDFDocument: React.FC<FacturePDFDocumentProps> = ({
               })}
 
               {/* Totaux du lot */}
-              <View style={styles.totalRow}>
+              <View style={styles.totalRow} >
                 <Text style={styles.totalCellLabel}>Total HT du lot :</Text>
                 <Text style={styles.totalCellValue}>{formatPrice(lot.lotHT)}</Text>
               </View>
@@ -686,7 +694,7 @@ export const FacturePDFDocument: React.FC<FacturePDFDocumentProps> = ({
         ))}
 
         {/* Section finale */}
-        <View style={styles.finalSection}>
+        <View style={styles.finalSection} wrap={false}>
           <View style={styles.conditionsBox}>
             <Text style={styles.conditionsTitle}>Conditions de règlement :</Text>
             <Text style={styles.conditionText}>• Acompte de 20% à la commande</Text>
@@ -740,6 +748,7 @@ export const FacturePDFDocument: React.FC<FacturePDFDocumentProps> = ({
             <View style={styles.signatureBox}>
               <Text style={styles.signatureLabel}>Signature du client</Text>
               <View style={styles.signatureSpace} />
+              <Text style={styles.dateLabel}>Fait le {formatDate(new Date())}</Text>
             </View>
           </View>
         </View>

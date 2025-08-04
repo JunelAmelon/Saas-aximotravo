@@ -496,7 +496,7 @@ if (!devis) {
 
   return (
     <div 
-      className="w-full min-h-screen flex flex-col p-0 m-0 bg-gradient-to-br from-gray-50 via-white to-gray-100 relative"
+      className="w-full min-h-screen flex flex-col bg-gradient-to-br from-gray-50 via-white to-gray-100 relative overflow-x-hidden"
       onClick={(e) => {
         // Fermer les menus si on clique en dehors
         if (!(e.target as Element).closest('.dropdown-menu') && !(e.target as Element).closest('.lot-button')) {
@@ -515,10 +515,10 @@ if (!devis) {
 
       {/* Header responsive avec gradient */}
       <div className="bg-gradient-to-r from-[#f26755] to-[#e55a4a] shadow-xl w-full">
-        <div className="px-3 sm:px-6 py-3 sm:py-6">
-          <div className="flex items-center justify-between gap-2">
+        <div className="px-4 sm:px-6 py-4 sm:py-6">
+          <div className="flex items-center justify-between gap-3">
             {/* Groupe gauche */}
-            <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-shrink-0">
+            <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
               <Button
                 variant="ghost"
                 size="sm"
@@ -539,10 +539,10 @@ if (!devis) {
               </Button>
 
               <div className="text-white min-w-0 flex-1">
-                <h1 className="text-sm sm:text-2xl font-bold truncate">
+                <h1 className="text-sm sm:text-2xl font-bold truncate leading-tight">
                   {devis.titre}
                 </h1>
-                <p className="text-white/90 text-xs sm:text-sm truncate">
+                <p className="text-white/90 text-xs sm:text-sm truncate mt-0.5">
                   {devis.numero} • {selectedItems.length} prestation
                   {selectedItems.length > 1 ? "s" : ""}
                 </p>
