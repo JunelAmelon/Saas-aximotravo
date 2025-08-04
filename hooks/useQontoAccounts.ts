@@ -47,8 +47,14 @@ export function useQontoAccounts(): UseQontoAccountsResult {
       setAccounts(response.data.bank_accounts);
       setMeta(response.data.meta);
     } catch (err: any) {
-      const errorMessage = extractErrorMessage(err, "Erreur lors du chargement des comptes Qonto");
-      setError(errorMessage);
+      try {
+        const errorMessage = extractErrorMessage(err, "Erreur lors du chargement des comptes Qonto");
+        setError(errorMessage);
+      } catch (formatError) {
+        // Fallback si même le formatage d'erreur échoue
+        setError("Une erreur inattendue s'est produite lors du chargement des comptes");
+        console.error('Erreur lors du formatage d\'erreur:', formatError);
+      }
     } finally {
       setLoading(false);
     }

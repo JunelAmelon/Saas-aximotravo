@@ -265,6 +265,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
 
     return (
       <select
+        aria-label="status"
         className={`px-3 py-1.5 text-xs font-semibold rounded-lg border-2 transition-all outline-none cursor-pointer shadow-sm hover:shadow-md ${currentConfig.bg} ${currentConfig.text} ${currentConfig.border} focus:border-[#f26755] focus:ring-2 focus:ring-[#f26755]/20`}
         value={value || "En Attente"}
         onChange={(e) => onChange(e.target.value)}
@@ -428,6 +429,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
 
         <div className="flex items-center gap-2">
           <button
+            aria-label="bouton"
             onClick={() => onPageChange(Math.max(currentPage - 1, 1))}
             disabled={currentPage === 1}
             className="p-2 rounded-lg border border-gray-300 bg-white text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -463,6 +465,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
           })}
 
           <button
+            aria-label="bouton"
             onClick={() => onPageChange(Math.min(currentPage + 1, totalPages))}
             disabled={currentPage === totalPages}
             className="p-2 rounded-lg border border-gray-300 bg-white text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -587,6 +590,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                   />
                 </div>
                 <select
+                  aria-label="status"
                   name="status"
                   value={filters.status}
                   onChange={handleFilterChange}
@@ -693,7 +697,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                       <td className="px-6 py-4 text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <button className="inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100">
+                            <button aria-label="bouton" className="inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100">
                               <MoreVertical className="w-5 h-5 text-gray-500" />
                             </button>
                           </DropdownMenuTrigger>
@@ -803,6 +807,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                   />
                 </div>
                 <select
+                  aria-label="status"
                   name="status"
                   value={filters.status}
                   onChange={handleFilterChange}
@@ -908,7 +913,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                       <td className="px-6 py-4 text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <button className="inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100">
+                            <button aria-label="bouton" className="inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100">
                               <MoreVertical className="w-5 h-5 text-gray-500" />
                             </button>
                           </DropdownMenuTrigger>
@@ -1058,7 +1063,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                         <td className="px-6 py-4 text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <button className="inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100">
+                              <button aria-label="bouton" className="inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100">
                                 <MoreVertical className="w-5 h-5 text-gray-500" />
                               </button>
                             </DropdownMenuTrigger>
@@ -1086,8 +1091,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                                         e.preventDefault();
                                         GenerateFacturePDF({
                                           devis: doc,
-                                          artisanId:
-                                            doc.attribution?.artisanId || "",
+                                          userId: currentUserId || "",
                                         });
                                       }}
                                       className="flex items-center gap-3 w-full"
@@ -1139,6 +1143,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
         <FactureModal
           facturePreview={facturePreview}
           setFacturePreview={setFacturePreview}
+          userId={currentUserId || ""}
         />
       )}
       {/*
@@ -1166,6 +1171,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
               Choisir un artisan
             </label>
             <select
+              aria-label="aria"
               className="w-full border rounded px-3 py-2 mb-4"
               value={selectedArtisanId}
               onChange={(e) => setSelectedArtisanId(e.target.value)}

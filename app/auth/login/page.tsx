@@ -15,6 +15,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
   const { login } = useAuth();
@@ -38,6 +39,11 @@ export default function LoginPage() {
           return;
         }
 
+        setRedirecting(true);
+        
+        // Petit délai pour montrer le message de succès
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
         switch (role) {
           case "courtier":
             await router.push("/courtier/dashboard");
@@ -46,7 +52,7 @@ export default function LoginPage() {
             await router.push("/artisan/dashboard");
             break;
           case "admin":
-            window.location.href = "/admin/dashboard";
+            await router.push("/admin/dashboard");
             break;
           default:
             router.push("/");
@@ -69,6 +75,60 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+
+  // Loader de redirection en plein écran
+  if (redirecting) {
+    return (
+      <div className="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center">
+        <div className="text-center">
+          {/* Logo */}
+          <div className="mb-8">
+            <Image
+              src="/logo1.svg"
+              alt="Logo Aximotravo"
+              width={200}
+              height={32}
+              className="mx-auto"
+            />
+          </div>
+          
+          {/* Loader animé */}
+          <div className="mb-6">
+            <div className="relative mx-auto w-16 h-16">
+              {/* Cercle principal */}
+              <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
+              {/* Cercle animé */}
+              <div className="absolute inset-0 border-4 border-[#f26755] border-t-transparent rounded-full animate-spin"></div>
+              {/* Point central */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-2 h-2 bg-[#f26755] rounded-full animate-pulse"></div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Texte */}
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Connexion réussie !</h2>
+          <p className="text-gray-600 animate-pulse">Redirection vers votre espace...</p>
+          
+          {/* Barre de progression */}
+          <div className="mt-6 w-64 mx-auto">
+            <div className="h-1 bg-gray-200 rounded-full overflow-hidden">
+              <div className="h-full bg-[#f26755] rounded-full">
+                <div className="h-full bg-gradient-to-r from-[#f26755] to-[#ff8a75] rounded-full animate-pulse"></div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Points de chargement */}
+          <div className="flex justify-center mt-4 space-x-1">
+            <div className="w-2 h-2 bg-[#f26755] rounded-full animate-bounce" style={{animationDelay: '0ms'}}></div>
+            <div className="w-2 h-2 bg-[#f26755] rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div>
+            <div className="w-2 h-2 bg-[#f26755] rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6">
@@ -188,27 +248,15 @@ export default function LoginPage() {
                 >
                   {loading ? (
                     <>
-                      <svg
-                        className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        ></path>
-                      </svg>
-                      Connexion...
+                      <div className="flex items-center justify-center">
+                        <div className="relative">
+                          {/* Spinner principal */}
+                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                          {/* Points animés */}
+                          <div className="absolute -top-1 -right-1 w-2 h-2 bg-white/60 rounded-full animate-pulse"></div>
+                        </div>
+                        <span className="ml-3 font-medium">Connexion en cours...</span>
+                      </div>
                     </>
                   ) : (
                     <>

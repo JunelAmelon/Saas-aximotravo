@@ -827,7 +827,7 @@ export default function ProjectDetails() {
                     <Image
                       src={
                         project?.client.photoURL ||
-                        "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg"
+                        "https://cdn-icons-png.flaticon.com/128/17932/17932409.png"
                       }
                       alt={
                         project?.client.firstName +
@@ -1102,7 +1102,8 @@ export default function ProjectDetails() {
               handleUpdateDevisStatus={handleUpdateDevisStatus}
               updatingStatusId={updatingStatusId}
               userRole={"courtier"}
-              currentUserId={currentUser?.uid ?? null}
+              currentUserId={currentUser?.uid ?? ""}
+
             />
 
       {/* Modals */}
@@ -1123,6 +1124,7 @@ export default function ProjectDetails() {
             itemId={selectedDevisId}
             onNext={handleCalculStep}
             onBack={handleBackToCreate}
+            onSkip={handleGenerationStep}
           />
 
           <CalculSurfaceModal

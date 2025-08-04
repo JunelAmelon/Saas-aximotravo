@@ -1,5 +1,3 @@
-"use client";
-
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from 'next/navigation';
 import Image from "next/image";
@@ -7,6 +5,8 @@ import { useDevisConfig } from "@/components/DevisConfigContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Toast } from "@/components/Toast";
+import { Tooltip } from "@/components/Tooltip";
 import {
   LOTS_TECHNIQUES,
   LotTechnique,
@@ -20,6 +20,7 @@ import { PriceAdjustmentModal } from "@/components/PriceAdjustmentModal";
 import { CreateCustomItemModal } from "@/components/CreateCustomItemModal";
 import { PDFGenerator } from "@/components/PDFGenerator";
 import { DevisConfigProvider } from "@/components/DevisConfigContext";
+ 
 import {
   ArrowLeft,
   Search,
@@ -48,6 +49,8 @@ import {
   Info,
   Percent,
   PlusCircle,
+  Sparkles,
+  Zap,
 } from "lucide-react";
 
 interface DevisGenerationPageProps {
@@ -81,68 +84,123 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
   const { devisConfig, setDevisConfigField } = useDevisConfig();
   const devis = devisConfig;
   const selectedItems = devisConfig?.selectedItems || [];
-  const [expandedLots, setExpandedLots] = useState<string[]>([]);
-  const [expandedSubcategories, setExpandedSubcategories] = useState<string[]>(
-    []
-  );
+  
   const [searchTerm, setSearchTerm] = useState("");
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<{ [key: string]: any }>({});
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [editingItemModal, setEditingItemModal] = useState<DevisItem | null>(
-    null
-  );
+  const [editingItemModal, setEditingItemModal] = useState<DevisItem | null>(null);
   const [showPriceAdjustment, setShowPriceAdjustment] = useState(false);
   const [showFurniturePrice, setShowFurniturePrice] = useState(false);
   const [furnitureDiscount, setFurnitureDiscount] = useState(0);
   const [showCreateCustomModal, setShowCreateCustomModal] = useState(false);
+  
+  // États pour les notifications toast
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  
+  // États pour les menus déroulants
+  const [openSubcategoriesMenu, setOpenSubcategoriesMenu] = useState<{
+    lot: LotTechnique;
+    position: { top: number; left: number };
+  } | null>(null);
+  
+  const [openItemsMenu, setOpenItemsMenu] = useState<{
+    lot: LotTechnique;
+    subcategory: LotSubcategory;
+    position: { top: number; left: number };
+  } | null>(null);
+  
+  const [expandedItemCategories, setExpandedItemCategories] = useState<string[]>([]);
+  
+  // Refs pour calculer les positions
+  const lotRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
+  const subcategoryRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
 
-  if (!open) return null;
-  if (!devis) {
-    return (
-      <div className="p-8 text-center text-gray-500">Chargement du devis…</div>
-    );
-  }
+// Fermer les menus quand on clique ailleurs
+useEffect(() => {
+  const handleClickOutside = (event: MouseEvent) => {
+    const target = event.target as Element;
+    if (!target.closest('.dropdown-menu') && !target.closest('.dropdown-trigger')) {
+      setOpenSubcategoriesMenu(null);
+      setOpenItemsMenu(null);
+    }
+  };
+
+  document.addEventListener('mousedown', handleClickOutside);
+  return () => document.removeEventListener('mousedown', handleClickOutside);
+}, []);
+
+if (!open) return null;
+if (!devis) {
+  return (
+    <div className="p-8 text-center text-gray-500">Chargement du devis…</div>
+  );
+}
+
+
   // Calcul automatique des quantités basé sur les surfaces
   const calculateAutoQuantity = (
     option: LotOption,
     selectedPieces: string[]
   ): number => {
+    // Si aucune pièce sélectionnée, retourner 1
     if (!devis.surfaceData || selectedPieces.length === 0) return 1;
 
     const relevantSurfaces = devis.surfaceData.filter((surface) =>
       selectedPieces.includes(surface.piece)
     );
 
+    // Si aucune surface trouvée pour les pièces sélectionnées, retourner 1
     if (relevantSurfaces.length === 0) return 1;
 
     switch (option.unite) {
       case "m²":
+        // Pour les prestations au sol (carrelage, parquet, etc.)
         if (
           option.label.toLowerCase().includes("sol") ||
           option.label.toLowerCase().includes("carrelage") ||
-          option.label.toLowerCase().includes("parquet")
+          option.label.toLowerCase().includes("parquet") ||
+          option.label.toLowerCase().includes("plancher")
         ) {
           return relevantSurfaces.reduce(
             (sum, surface) => sum + surface.surfaceAuSol,
             0
           );
-        } else {
+        } 
+        // Pour les prestations murales (peinture, enduit, etc.)
+        else if (
+          option.label.toLowerCase().includes("peinture") ||
+          option.label.toLowerCase().includes("enduit") ||
+          option.label.toLowerCase().includes("mur") ||
+          option.label.toLowerCase().includes("cloison")
+        ) {
           return relevantSurfaces.reduce(
             (sum, surface) => sum + surface.surfaceMurs,
             0
           );
         }
+        // Pour les autres prestations en m² (comme anti-poussière), utiliser surface au sol
+        else {
+          return relevantSurfaces.reduce(
+            (sum, surface) => sum + surface.surfaceAuSol,
+            0
+          );
+        }
       case "ml":
+        // Pour les prestations linéaires (plinthes, etc.)
         return relevantSurfaces.reduce(
           (sum, surface) => sum + surface.longueurMurs,
           0
         );
       case "unité":
+        // Pour les prestations à l'unité, compter le nombre de pièces
         return selectedPieces.length;
       case "forfait":
+        // Pour les forfaits, toujours 1
         return 1;
       default:
+        // Par défaut, retourner 1
         return 1;
     }
   };
@@ -168,7 +226,10 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
     };
 
     setDevisConfigField("selectedItems", [...selectedItems, newItem]);
-    setSidebarOpen(false); // Fermer la sidebar sur mobile après ajout
+    
+    // Afficher la notification de confirmation
+    setToastMessage(`"${option.label}" ajouté au devis`);
+    setToastVisible(true);
   };
 
   const addCustomItemToDevis = (item: DevisItem) => {
@@ -331,7 +392,7 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
     (item) => item.isOffered
   ).length;
 
-  // Calculer les totaux par lot comme dans l'image
+  // Calculer les totaux par lot
   const lotTotals = Object.entries(groupedItems).map(
     ([lotName, items], index) => {
       const total = items.reduce((sum, item) => {
@@ -360,19 +421,109 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
       ? devis.tva
       : parseFloat(devis.tva as string) || 20;
 
+  // Fonction pour ouvrir le menu des sous-catégories
+  const openSubcategoriesMenuHandler = (lot: LotTechnique, buttonElement: HTMLButtonElement) => {
+    const rect = buttonElement.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    
+    // Position de base
+    let left = rect.right + 8;
+    let top = Math.max(16, rect.top - 40);
+    
+    // Ajustements pour éviter les débordements
+    const menuWidth = Math.min(360, viewportWidth - 32);
+    const menuHeight = Math.min(viewportHeight - 60, viewportHeight * 0.9);
+    
+    if (left + menuWidth > viewportWidth - 16) {
+      left = viewportWidth - menuWidth - 16;
+    }
+    
+    if (top + menuHeight > viewportHeight - 20) {
+      top = Math.max(20, viewportHeight - menuHeight - 20);
+    }
+    
+    setOpenSubcategoriesMenu({
+      lot,
+      position: { top, left }
+    });
+    setOpenItemsMenu(null);
+  };
+
+  // Fonction pour ouvrir le menu des items
+  const openItemsMenuHandler = (lot: LotTechnique, subcategory: LotSubcategory, buttonElement: HTMLButtonElement) => {
+    const rect = buttonElement.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    
+    // Position de base
+    let left = rect.right + 8;
+    let top = Math.max(16, rect.top - 40);
+    
+    // Ajustements pour éviter les débordements
+    const menuWidth = Math.min(420, viewportWidth - 32);
+    const menuHeight = Math.min(viewportHeight - 60, viewportHeight * 0.9);
+    
+    if (left + menuWidth > viewportWidth - 16) {
+      left = viewportWidth - menuWidth - 16;
+    }
+    
+    if (top + menuHeight > viewportHeight - 20) {
+      top = Math.max(20, viewportHeight - menuHeight - 20);
+    }
+    
+    setOpenItemsMenu({
+      lot,
+      subcategory,
+      position: { top, left }
+    });
+  };
+
+  // Fonction pour fermer tous les menus
+  const closeAllMenus = () => {
+    setOpenSubcategoriesMenu(null);
+    setOpenItemsMenu(null);
+  };
+
+  // Fonction pour toggle les catégories d'items (accordéon)
+  const toggleItemCategory = (itemName: string) => {
+    setExpandedItemCategories(prev =>
+      prev.includes(itemName)
+        ? prev.filter(name => name !== itemName)
+        : [...prev, itemName]
+    );
+  };
+
   return (
-    <div className="w-full min-h-screen flex flex-col p-0 m-0 bg-gradient-to-br from-gray-50 via-white to-gray-100">
+    <div 
+      className="w-full min-h-screen flex flex-col bg-gradient-to-br from-gray-50 via-white to-gray-100 relative overflow-x-hidden"
+      onClick={(e) => {
+        // Fermer les menus si on clique en dehors
+        if (!(e.target as Element).closest('.dropdown-menu') && !(e.target as Element).closest('.lot-button')) {
+          closeAllMenus();
+        }
+      }}
+    >
+      {/* Toast de notification */}
+      <Toast
+        message={toastMessage}
+        type="success"
+        isVisible={toastVisible}
+        onClose={() => setToastVisible(false)}
+        duration={1500}
+      />
+
       {/* Header responsive avec gradient */}
-      <div className="bg-gradient-to-r from-[#f26755] to-[#e55a4a] shadow-xl w-full overflow-x-auto">
-        <div className="px-2 sm:px-6 py-3 sm:py-6">
-          <div className="flex flex-wrap items-center justify-between gap-y-2">
+      <div className="bg-gradient-to-r from-[#f26755] to-[#e55a4a] shadow-xl w-full">
+        <div className="px-4 sm:px-6 py-4 sm:py-6">
+          <div className="flex items-center justify-between gap-3">
             {/* Groupe gauche */}
-            <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-shrink">
+            <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() =>onOpenChange(false)}
-                className="h-9 w-9 sm:h-10 sm:w-10 p-0 text-white/80 hover:text-white hover:bg-white/20 rounded-xl transition-all duration-200"
+                onClick={() => onOpenChange(false)}
+                className="h-9 w-9 sm:h-10 sm:w-10 p-0 text-white/80 hover:text-white hover:bg-white/20 rounded-xl transition-all duration-200 flex-shrink-0"
               >
                 <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
@@ -382,16 +533,16 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
                 variant="ghost"
                 size="sm"
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="lg:hidden h-9 w-9 p-0 text-white/80 hover:text-white hover:bg-white/20 rounded-xl"
+                className="lg:hidden h-9 w-9 p-0 text-white/80 hover:text-white hover:bg-white/20 rounded-xl flex-shrink-0"
               >
                 <Menu className="h-4 w-4" />
               </Button>
 
-              <div className="text-white min-w-0">
-                <h1 className="text-base sm:text-2xl font-bold truncate max-w-[120px] sm:max-w-none">
+              <div className="text-white min-w-0 flex-1">
+                <h1 className="text-sm sm:text-2xl font-bold truncate leading-tight">
                   {devis.titre}
                 </h1>
-                <p className="text-white/90 text-xs sm:text-sm truncate">
+                <p className="text-white/90 text-xs sm:text-sm truncate mt-0.5">
                   {devis.numero} • {selectedItems.length} prestation
                   {selectedItems.length > 1 ? "s" : ""}
                 </p>
@@ -399,7 +550,7 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
             </div>
 
             {/* Groupe droite (boutons) */}
-            <div className="flex flex-wrap items-center gap-1 sm:gap-3 justify-end">
+            <div className="flex items-center gap-1 sm:gap-3 flex-shrink-0">
               {/* Boutons desktop */}
               <div className="hidden sm:flex items-center gap-2">
                 <Button
@@ -425,7 +576,6 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
                 >
                   <Settings className="h-4 w-4" />
                 </Button>
-                {/* Bouton PDF mobile - icône seulement */}
                 <PDFGenerator
                   className="bg-white text-[#f26755] hover:bg-gray-100 rounded-lg h-9 w-9 p-0 flex items-center justify-center"
                   iconOnly={true}
@@ -436,7 +586,7 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
         </div>
       </div>
 
-      <div className="flex relative">
+      <div className="flex relative flex-1 min-h-0">
         {/* Overlay mobile */}
         {sidebarOpen && (
           <div
@@ -445,21 +595,22 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
           />
         )}
 
-        {/* Sidebar responsive - Lots techniques */}
+        {/* Sidebar responsive - Lots techniques avec scroll indépendant amélioré */}
         <div
           className={`
+          sidebar-container
           ${
             sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
           }
           fixed lg:relative z-50 lg:z-auto
-          w-80 h-[calc(100vh-80px)] lg:h-auto
+          w-80 h-full lg:h-auto
           bg-white/90 backdrop-blur-sm border-r border-gray-200/50 
           flex flex-col shadow-2xl lg:shadow-lg
           transition-transform duration-300 ease-in-out
         `}
         >
           {/* Header sidebar */}
-          <div className="p-4 sm:p-6 border-b border-gray-200/50">
+          <div className="p-4 sm:p-6 border-b border-gray-200/50 flex-shrink-0">
             <div className="flex items-center justify-between lg:justify-start mb-4">
               <div>
                 <h2 className="font-bold text-gray-900 text-base sm:text-lg">
@@ -491,11 +642,17 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
             </div>
           </div>
 
-          {/* Liste des lots avec style moderne */}
-          <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-2">
+          {/* Liste des lots avec scroll indépendant amélioré */}
+          <div 
+            className="flex-1 p-3 sm:p-4 space-y-2 overflow-y-auto min-h-0" 
+            style={{ 
+              maxHeight: 'calc(100vh - 180px)',
+              scrollbarWidth: 'thin',
+              scrollbarColor: '#f26755 #f1f5f9'
+            }}
+          >
             {filteredLots.map((lot) => {
               const IconComponent = getIcon(lot.icon);
-              const isExpanded = expandedLots.includes(lot.name);
 
               return (
                 <div
@@ -503,110 +660,325 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
                   className="bg-white/60 backdrop-blur-sm rounded-xl border border-gray-200/50 shadow-sm hover:shadow-md transition-all duration-200"
                 >
                   <button
-                    onClick={() => toggleLot(lot.name)}
-                    className="w-full px-3 sm:px-4 py-3 sm:py-4 flex items-center gap-3 hover:bg-[#f26755]/5 transition-colors text-left rounded-xl"
+                    ref={(el) => lotRefs.current[lot.name] = el}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (lotRefs.current[lot.name]) {
+                        openSubcategoriesMenuHandler(lot, lotRefs.current[lot.name]!);
+                      }
+                    }}
+                    className="lot-button w-full px-3 sm:px-4 py-3 sm:py-4 flex items-center gap-3 hover:bg-[#f26755]/5 transition-colors text-left rounded-xl"
                   >
-                    <div className="p-1.5 sm:p-2 bg-gradient-to-br from-[#f26755]/20 to-[#f26755]/10 rounded-lg">
+                    <div className="p-1.5 sm:p-2 bg-gradient-to-br from-[#f26755]/20 to-[#f26755]/10 rounded-lg flex-shrink-0">
                       <IconComponent className="h-4 w-4 sm:h-5 sm:w-5 text-[#f26755]" />
                     </div>
-                    <span className="flex-1 text-xs sm:text-sm font-semibold text-gray-800">
-                      {lot.name}
-                    </span>
-                    <div
-                      className={`transition-transform duration-200 ${
-                        isExpanded ? "rotate-90" : ""
-                      }`}
-                    >
-                      <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4 text-gray-400" />
+                    <div className="min-w-0 flex-1">
+                      <Tooltip content={lot.name}>
+                        <span className="flex-1 text-xs sm:text-sm font-semibold text-gray-800 truncate block">
+                          {lot.name}
+                        </span>
+                      </Tooltip>
                     </div>
+                    <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4 text-gray-400 flex-shrink-0" />
                   </button>
-
-                  {isExpanded && (
-                    <div className="px-2 pb-2">
-                      {lot.subcategories.map((subcategory) => {
-                        const subcategoryKey = `${lot.name}-${subcategory.name}`;
-                        const isSubExpanded =
-                          expandedSubcategories.includes(subcategoryKey);
-
-                        return (
-                          <div
-                            key={subcategoryKey}
-                            className="bg-gray-50/50 rounded-lg mt-2"
-                          >
-                            <button
-                              onClick={() => toggleSubcategory(subcategoryKey)}
-                              className="w-full px-3 sm:px-4 py-2 sm:py-3 flex items-center gap-2 hover:bg-gray-100/50 transition-colors text-left rounded-lg"
-                            >
-                              <span className="flex-1 text-xs sm:text-sm font-medium text-gray-700">
-                                {subcategory.name}
-                              </span>
-                              <div
-                                className={`transition-transform duration-200 ${
-                                  isSubExpanded ? "rotate-90" : ""
-                                }`}
-                              >
-                                <ChevronRight className="h-3 w-3 text-gray-400" />
-                              </div>
-                            </button>
-
-                            {isSubExpanded && (
-                              <div className="px-2 pb-2 space-y-1">
-                                {subcategory.items.map((item) => (
-                                  <div key={item.name}>
-                                    <div className="text-xs font-medium text-gray-500 px-2 sm:px-3 py-1">
-                                      {item.name}
-                                    </div>
-                                    {item.options.map((option) => (
-                                      <button
-                                        key={option.label}
-                                        onClick={() =>
-                                          addItemToDevis(
-                                            lot,
-                                            subcategory,
-                                            item,
-                                            option
-                                          )
-                                        }
-                                        className="w-full text-left p-2 sm:p-3 rounded-lg hover:bg-white border border-transparent hover:border-[#f26755]/30 hover:shadow-sm transition-all group bg-white/50"
-                                      >
-                                        <div className="flex items-center justify-between">
-                                          <div className="flex-1 min-w-0">
-                                            <div className="text-xs font-medium text-gray-800 group-hover:text-[#f26755] truncate">
-                                              {option.label}
-                                            </div>
-                                            <div className="text-xs text-gray-500 mt-1">
-                                              <span className="font-semibold text-[#f26755]">
-                                                {option.prix_ht.toFixed(2)} €
-                                              </span>{" "}
-                                              HT / {option.unite}
-                                            </div>
-                                          </div>
-                                          <div className="ml-2 p-1 bg-[#f26755]/10 rounded-full group-hover:bg-[#f26755]/20 transition-colors">
-                                            <Plus className="h-3 w-3 text-[#f26755]" />
-                                          </div>
-                                        </div>
-                                      </button>
-                                    ))}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
                 </div>
               );
             })}
           </div>
         </div>
 
+        {/* Menu des sous-catégories (niveau 2) avec scroll indépendant amélioré */}
+        {openSubcategoriesMenu && (
+          <div
+            className="dropdown-menu subcategories-menu fixed z-50 animate-in fade-in-0 zoom-in-95 duration-300"
+            style={{
+              top: `${openSubcategoriesMenu.position.top}px`,
+              left: `${openSubcategoriesMenu.position.left}px`,
+              width: 'min(360px, calc(100vw - 32px))',
+              height: 'min(calc(100vh - 60px), 600px)',
+            }}
+          >
+            <div className="bg-white border border-gray-200 rounded-2xl shadow-2xl overflow-hidden flex flex-col" style={{ height: 'min(calc(100vh - 60px), 90vh)' }}>
+              {/* Header avec gradient coloré */}
+              <div className="bg-gradient-to-r from-[#f26755] to-[#e55a4a] p-4 sm:p-5 flex-shrink-0">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                    <div className="p-2 sm:p-2.5 bg-white/20 backdrop-blur-sm rounded-xl border border-white/30 flex-shrink-0">
+                      {(() => {
+                        const IconComponent = getIcon(openSubcategoriesMenu.lot.icon);
+                        return <IconComponent className="h-4 w-4 sm:h-5 sm:w-5 text-white" />;
+                      })()}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-bold text-white text-sm sm:text-base truncate">
+                        {openSubcategoriesMenu.lot.name}
+                      </h3>
+                      <p className="text-white/80 text-xs sm:text-sm">
+                        {openSubcategoriesMenu.lot.subcategories.length} sous-catégories
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                     aria-label="closeAllMenus"
+                    onClick={closeAllMenus}
+                    className="p-1.5 sm:p-2 hover:bg-white/20 rounded-xl transition-colors border border-white/20 flex-shrink-0"
+                  >
+                    <X className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
+                  </button>
+                </div>
+              </div>
+              
+              {/* Liste des sous-catégories avec scroll indépendant amélioré */}
+              <div 
+                className="flex-1 p-2 sm:p-3 bg-white overflow-y-auto min-h-0"
+                style={{ 
+                  scrollbarWidth: 'thin',
+                  scrollbarColor: '#f26755 #f1f5f9'
+                }}
+              >
+                <div className="space-y-1 sm:space-y-2">
+                  {openSubcategoriesMenu.lot.subcategories.map((subcategory, index) => {
+                    // Vérifier si cette sous-catégorie est active
+                    const isActive = openItemsMenu?.subcategory.name === subcategory.name;
+                    
+                    return (
+                      <button
+                        key={subcategory.name}
+                        ref={(el) => subcategoryRefs.current[`${openSubcategoriesMenu.lot.name}-${subcategory.name}`] = el}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const ref = subcategoryRefs.current[`${openSubcategoriesMenu.lot.name}-${subcategory.name}`];
+                          if (ref) {
+                            openItemsMenuHandler(openSubcategoriesMenu.lot, subcategory, ref);
+                          }
+                        }}
+                        className="w-full text-left group hover:bg-gray-50 transition-colors"
+                      >
+                        <div className={`p-3 sm:p-4 rounded-xl border transition-all duration-300 ${
+                          isActive 
+                            ? 'border-[#f26755] bg-[#f26755]/5 shadow-md' 
+                            : 'border-gray-100 hover:border-gray-300'
+                        }`}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                              <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold flex-shrink-0 ${
+                                isActive 
+                                  ? 'bg-[#f26755] text-white' 
+                                  : 'bg-[#f26755] text-white'
+                              }`}>
+                                {index + 1}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <Tooltip content={subcategory.name}>
+                                  <div className={`font-semibold text-xs sm:text-sm truncate ${
+                                    isActive ? 'text-[#f26755]' : 'text-gray-900'
+                                  }`}>
+                                    {subcategory.name}
+                                  </div>
+                                </Tooltip>
+                                <div className="text-gray-500 text-xs mt-1 flex items-center gap-1">
+                                  <Package className="h-3 w-3 flex-shrink-0" />
+                                  {subcategory.items.length} item{subcategory.items.length > 1 ? 's' : ''}
+                                  {isActive && (
+                                    <span className="ml-2 text-[#f26755] font-medium">• Actif</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            <ChevronRight className={`h-3 w-3 sm:h-4 sm:w-4 transition-colors flex-shrink-0 ${
+                              isActive 
+                                ? 'text-[#f26755]' 
+                                : 'text-gray-400 group-hover:text-[#f26755]'
+                            }`} />
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Menu des items (niveau 3) avec scroll indépendant amélioré */}
+        {openItemsMenu && (
+          <div
+            className="dropdown-menu items-menu fixed z-50 animate-in fade-in-0 zoom-in-95 duration-300"
+            style={{
+              top: `${openItemsMenu.position.top}px`,
+              left: `${openItemsMenu.position.left}px`,
+              width: 'min(420px, calc(100vw - 32px))',
+              height: 'min(calc(100vh - 60px), 700px)',
+            }}
+          >
+            <div className="bg-white border border-gray-200 rounded-2xl shadow-2xl overflow-hidden flex flex-col" style={{ height: 'min(calc(100vh - 60px), 90vh)' }}>
+              {/* Header avec gradient coloré */}
+              <div className="bg-gradient-to-r from-[#f26755] to-[#e55a4a] p-4 sm:p-5 flex-shrink-0">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                    <div className="p-2 sm:p-2.5 bg-white/20 backdrop-blur-sm rounded-xl border border-white/30 flex-shrink-0">
+                      <Zap className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <Tooltip content={openItemsMenu.subcategory.name}>
+                        <h3 className="font-bold text-white text-sm sm:text-base truncate">
+                          {openItemsMenu.subcategory.name}
+                        </h3>
+                      </Tooltip>
+                      <p className="text-white/80 text-xs sm:text-sm truncate">
+                        Prestations • {openItemsMenu.lot.name}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="px-2 sm:px-3 py-1 bg-white/20 rounded-full border border-white/30 backdrop-blur-sm">
+                      <span className="text-white text-xs font-medium">Disponible</span>
+                    </div>
+                    <button
+                      aria-label="closeAllMenus"
+                      onClick={closeAllMenus}
+                      className="p-1.5 sm:p-2 hover:bg-white/20 rounded-xl transition-colors border border-white/20"
+                    >
+                      <X className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Liste des items avec accordéon et scroll indépendant amélioré */}
+              <div 
+                aria-label="accordéon"
+                className="flex-1 p-2 sm:p-3 bg-white overflow-y-auto min-h-0"
+                style={{ 
+                  scrollbarWidth: 'thin',
+                  scrollbarColor: '#f26755 #f1f5f9'
+                }}
+              >
+                {openItemsMenu.subcategory.items.map((item, itemIndex) => {
+                  const isExpanded = expandedItemCategories.includes(item.name);
+                  
+                  return (
+                    <div key={item.name} className="mb-3 sm:mb-4">
+                      {/* Header de l'item */}
+                      <button
+                        onClick={() => toggleItemCategory(item.name)}
+                        className="w-full text-left p-3 sm:p-4 rounded-xl bg-gray-50 hover:bg-gray-100 border border-gray-200 hover:border-gray-300 transition-all duration-300 flex items-center justify-between"
+                      >
+                        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                          <div className="w-6 h-6 sm:w-8 sm:h-8 bg-[#f26755] text-white rounded-xl flex items-center justify-center text-xs sm:text-sm font-bold flex-shrink-0">
+                            {itemIndex + 1}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <Tooltip content={item.name}>
+                              <div className="text-gray-900 font-semibold text-xs sm:text-sm truncate">{item.name}</div>
+                            </Tooltip>
+                            <div className="text-gray-500 text-xs mt-1">
+                              {item.options.length} option{item.options.length > 1 ? 's' : ''}
+                            </div>
+                          </div>
+                        </div>
+                        <div className={`transition-transform duration-300 flex-shrink-0 ${isExpanded ? 'rotate-90' : ''}`}>
+                          <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4 text-gray-400" />
+                        </div>
+                      </button>
+                      
+                      {/* Options avec scroll interne si nécessaire */}
+                      {isExpanded && (
+                        <div className="mt-2 space-y-1 sm:space-y-2 pl-1 sm:pl-2 max-h-none overflow-visible">
+                          {item.options.map((option, optionIndex) => (
+                            <button
+                              key={option.label}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                addItemToDevis(openItemsMenu.lot, openItemsMenu.subcategory, item, option);
+                              }}
+                              className="w-full text-left group hover:bg-gray-50 transition-colors"
+                            >
+                              <div className="p-3 sm:p-4 rounded-xl border border-gray-100 hover:border-gray-300 transition-all duration-300">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex-1 min-w-0">
+                                    <Tooltip content={option.label}>
+                                      <div className="text-gray-900 group-hover:text-[#f26755] transition-colors font-medium text-xs sm:text-sm mb-2 flex items-center gap-2">
+                                        <div className="w-1.5 h-1.5 bg-[#f26755] rounded-full flex-shrink-0"></div>
+                                        <span className="truncate">{option.label}</span>
+                                      </div>
+                                    </Tooltip>
+                                    
+                                    <div className="flex items-center gap-2 sm:gap-3 mb-2 flex-wrap">
+                                      <div className="px-2 sm:px-3 py-1 sm:py-1.5 bg-[#f26755]/10 text-[#f26755] rounded-lg font-bold text-xs sm:text-sm">
+                                        {option.prix_ht.toFixed(2)} €
+                                      </div>
+                                      <div className="px-2 py-1 bg-gray-100 text-gray-600 rounded-lg text-xs">
+                                        HT / {option.unite}
+                                      </div>
+                                    </div>
+                                    
+                                    {option.description && (
+                                      <Tooltip content={option.description}>
+                                        <div className="text-gray-600 text-xs leading-relaxed line-clamp-2">
+                                          {option.description}
+                                        </div>
+                                      </Tooltip>
+                                    )}
+                                  </div>
+                                  
+                                  <div className="ml-3 sm:ml-4 flex-shrink-0">
+                                    <div className="w-8 h-8 bg-[#f26755]/10 rounded-full flex items-center justify-center group-hover:bg-[#f26755]/20 transition-colors">
+                                      <Plus className="h-4 w-4 text-[#f26755]" />
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Contenu principal responsive */}
         <div className="flex-1 flex flex-col min-h-0">
-          <div className="flex-1 pt-3 sm:pt-6 md:pt-0 px-3 sm:px-6 overflow-y-auto">
+          {/* Header de la section principale */}
+          <div className="pt-3 sm:pt-6 md:pt-4 px-3 sm:px-6 pb-2 flex-shrink-0">
+            {Object.keys(groupedItems).length > 0 && (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <h2 className="text-lg sm:text-xl font-bold text-gray-900">
+                  Devis en cours
+                </h2>
+                <div className="text-xs sm:text-sm text-gray-500">
+                  {selectedItems.length} ligne
+                  {selectedItems.length > 1 ? "s" : ""} •{" "}
+                  {Object.keys(groupedItems).length} lot
+                  {Object.keys(groupedItems).length > 1 ? "s" : ""}
+                  {offeredItemsCount > 0 && (
+                    <span className="ml-2 text-green-600">
+                      • {offeredItemsCount} offerte
+                      {offeredItemsCount > 1 ? "s" : ""}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Section scrollable pour les options sélectionnées */}
+          <div 
+            className="flex-1 px-3 sm:px-6 pb-24 xl:pb-6 overflow-y-auto min-h-0"
+            style={{ 
+              maxHeight: 'calc(100vh - 200px)',
+              scrollbarWidth: 'thin',
+              scrollbarColor: '#f26755 #f1f5f9'
+            }}
+          >
             {Object.keys(groupedItems).length === 0 ? (
-              <div className="h-full flex items-center justify-center p-4 md:pt-0 md:px-4 md:pb-4">
+              <div className="h-full flex items-center justify-center p-4">
                 <div className="text-center max-w-md px-4">
                   <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-[#f26755]/20 to-[#f26755]/10 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6">
                     <Calculator className="h-8 w-8 sm:h-10 sm:w-10 text-[#f26755]" />
@@ -643,24 +1015,6 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
               </div>
             ) : (
               <div className="space-y-4 sm:space-y-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <h2 className="text-lg sm:text-xl font-bold text-gray-900">
-                    Devis en cours
-                  </h2>
-                  <div className="text-xs sm:text-sm text-gray-500">
-                    {selectedItems.length} ligne
-                    {selectedItems.length > 1 ? "s" : ""} •{" "}
-                    {Object.keys(groupedItems).length} lot
-                    {Object.keys(groupedItems).length > 1 ? "s" : ""}
-                    {offeredItemsCount > 0 && (
-                      <span className="ml-2 text-green-600">
-                        • {offeredItemsCount} offerte
-                        {offeredItemsCount > 1 ? "s" : ""}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
                 {/* Affichage groupé par lots - responsive */}
                 {Object.entries(groupedItems).map(([lotName, items]) => (
                   <div
@@ -821,7 +1175,9 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
                                     )}
                                   </div>
                                   <h4 className="font-semibold text-gray-900 mb-1 text-sm sm:text-base">
-                                    {item.optionLabel}
+                                    <Tooltip content={item.optionLabel}>
+                                      <span className="truncate block">{item.optionLabel}</span>
+                                    </Tooltip>
                                   </h4>
 
                                   {item.customImage && (
@@ -837,7 +1193,9 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
                                   )}
 
                                   <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
-                                    {item.description}
+                                    <Tooltip content={item.description || ""}>
+                                      <span className="line-clamp-2 block">{item.description}</span>
+                                    </Tooltip>
                                   </p>
 
                                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-4">
@@ -922,34 +1280,25 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
                                   {availablePieces.length > 0 && (
                                     <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
                                       <label className="text-xs font-medium text-gray-700 mb-2 block">
-                                        🎯 Pièces concernées (calcul automatique
-                                        des quantités)
+                                        🎯 Pièces concernées (calcul automatique des quantités)
                                       </label>
                                       <div className="flex flex-wrap gap-2">
                                         {availablePieces.map((piece) => {
-                                          const surfaceData =
-                                            devis.surfaceData?.find(
-                                              (s) => s.piece === piece
-                                            );
+                                          const surfaceData = devis.surfaceData?.find(
+                                            (s) => s.piece === piece
+                                          );
                                           return (
                                             <label
                                               key={piece}
                                               className="flex items-center gap-2 text-xs bg-white px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg border hover:bg-blue-50 hover:border-blue-300 transition-colors cursor-pointer"
                                             >
                                               <Checkbox
-                                                checked={item.pieces.includes(
-                                                  piece
-                                                )}
+                                                checked={item.pieces.includes(piece)}
                                                 onCheckedChange={(checked) => {
                                                   const newPieces = checked
                                                     ? [...item.pieces, piece]
-                                                    : item.pieces.filter(
-                                                        (p) => p !== piece
-                                                      );
-                                                  updateItemPieces(
-                                                    item.id,
-                                                    newPieces
-                                                  );
+                                                    : item.pieces.filter((p) => p !== piece);
+                                                  updateItemPieces(item.id, newPieces);
                                                 }}
                                                 className="h-3 w-3 sm:h-4 sm:w-4 data-[state=checked]:bg-[#f26755] data-[state=checked]:border-[#f26755]"
                                               />
@@ -958,10 +1307,7 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
                                               </span>
                                               {surfaceData && (
                                                 <span className="text-gray-500 bg-gray-100 px-1.5 sm:px-2 py-0.5 rounded text-xs">
-                                                  {surfaceData.surfaceAuSol.toFixed(
-                                                    1
-                                                  )}
-                                                  m²
+                                                  {surfaceData.surfaceAuSol.toFixed(1)}m²
                                                 </span>
                                               )}
                                             </label>
@@ -1021,7 +1367,7 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
           </div>
 
           <div className="p-6 space-y-4">
-            {/* En-tête du tableau comme dans l'image */}
+            {/* En-tête du tableau */}
             <div className="grid grid-cols-3 gap-2 text-xs font-medium text-gray-600 border-b border-gray-200 pb-2">
               <span>Lots</span>
               <span className="text-center">Pièces</span>
@@ -1029,7 +1375,14 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
             </div>
 
             {/* Liste des lots avec numérotation et pièces sélectionnées */}
-            <div className="space-y-2 max-h-64 overflow-y-auto">
+            <div 
+              className="space-y-2 overflow-y-auto"
+              style={{ 
+                scrollbarWidth: 'thin',
+                scrollbarColor: '#f26755 #f1f5f9',
+                maxHeight: '400px',
+              }}
+            >
               {lotTotals.map((lot) => (
                 <div
                   key={lot.name}
@@ -1039,27 +1392,28 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
                     <span className="text-[#f26755] font-semibold">
                       {lot.index}.0
                     </span>
-                    <span
-                      className="text-gray-800 text-xs truncate"
-                      title={lot.name}
-                    >
-                      {lot.name.length > 15
-                        ? `${lot.name.substring(0, 15)}...`
-                        : lot.name}
-                    </span>
+                    <Tooltip content={lot.name}>
+                      <span className="text-gray-800 text-xs truncate">
+                        {lot.name.length > 15
+                          ? `${lot.name.substring(0, 15)}...`
+                          : lot.name}
+                      </span>
+                    </Tooltip>
                   </div>
                   <div className="text-center text-xs text-gray-600">
                     {lot.pieces.length > 0 ? (
                       <div className="flex flex-wrap gap-1 justify-center">
                         {lot.pieces.slice(0, 2).map((piece, index) => (
-                          <span
+                         <Tooltip key={piece} content={piece}>
+                           <span
                             key={piece}
                             className="bg-blue-100 text-blue-700 px-1 py-0.5 rounded text-xs"
-                          >
-                            {piece.length > 8
-                              ? `${piece.substring(0, 8)}...`
-                              : piece}
-                          </span>
+                           >
+                             {piece.length > 8
+                               ? `${piece.substring(0, 8)}...`
+                               : piece}
+                           </span>
+                         </Tooltip>
                         ))}
                         {lot.pieces.length > 2 && (
                           <span className="text-gray-500 text-xs">
@@ -1160,38 +1514,38 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
       </div>
 
       {/* Footer fixe avec récapitulatif moderne - responsive (masqué sur XL+) */}
-      <div className="xl:hidden bg-white/95 backdrop-blur-sm border-t border-gray-200/50 p-3 sm:p-6 shadow-lg">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
-          <div className="bg-gray-50 rounded-lg sm:rounded-xl p-2 sm:p-4 text-center">
-            <div className="text-xs sm:text-sm text-gray-600 mb-1">
+      <div className="xl:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-200/50 p-3 sm:p-4 shadow-lg z-30">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+          <div className="bg-gray-50 rounded-lg p-2 sm:p-3 text-center">
+            <div className="text-xs text-gray-600 mb-1">
               Total HT
             </div>
-            <div className="text-sm sm:text-xl font-bold text-gray-900">
+            <div className="text-sm sm:text-lg font-bold text-gray-900">
               {totalHT.toFixed(2)} €
             </div>
           </div>
-          <div className="bg-gray-50 rounded-lg sm:rounded-xl p-2 sm:p-4 text-center">
-            <div className="text-xs sm:text-sm text-gray-600 mb-1">
+          <div className="bg-gray-50 rounded-lg p-2 sm:p-3 text-center">
+            <div className="text-xs text-gray-600 mb-1">
               TVA ({averageTvaRate.toFixed(1)}%)
             </div>
-            <div className="text-sm sm:text-xl font-bold text-gray-900">
+            <div className="text-sm sm:text-lg font-bold text-gray-900">
               {totalTVA.toFixed(2)} €
             </div>
           </div>
-          <div className="bg-gradient-to-r from-[#f26755]/10 to-[#f26755]/5 rounded-lg sm:rounded-xl p-2 sm:p-4 text-center border border-[#f26755]/20">
-            <div className="text-xs sm:text-sm text-gray-600 mb-1">
+          <div className="bg-gradient-to-r from-[#f26755]/10 to-[#f26755]/5 rounded-lg p-2 sm:p-3 text-center border border-[#f26755]/20">
+            <div className="text-xs text-gray-600 mb-1">
               Total TTC
             </div>
-            <div className="text-lg sm:text-2xl font-bold text-[#f26755]">
+            <div className="text-lg sm:text-xl font-bold text-[#f26755]">
               {totalTTC.toFixed(2)} €
             </div>
           </div>
           <div className="flex items-center justify-center">
             <Button
               onClick={() => setShowPriceAdjustment(true)}
-              className="w-full bg-[#f26755] hover:bg-[#e55a4a] text-white rounded-lg sm:rounded-xl h-10 sm:h-12 font-semibold shadow-lg hover:shadow-xl transition-all duration-200 text-xs sm:text-sm"
+              className="w-full bg-[#f26755] hover:bg-[#e55a4a] text-white rounded-lg h-10 sm:h-11 font-semibold shadow-lg hover:shadow-xl transition-all duration-200 text-xs sm:text-sm"
             >
-              <Settings className="h-3 w-3 sm:h-5 sm:w-5 mr-1 sm:mr-2" />
+              <Settings className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
               Modifier prix
             </Button>
           </div>
@@ -1204,6 +1558,7 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
           open={!!editingItemModal}
           onOpenChange={(open) => !open && setEditingItemModal(null)}
           item={editingItemModal}
+    
         />
       )}
 
@@ -1211,27 +1566,18 @@ export const DevisGenerationPage: React.FC<DevisGenerationPageProps> = ({
         open={showPriceAdjustment}
         onOpenChange={setShowPriceAdjustment}
         items={selectedItems}
+ 
       />
 
       <CreateCustomItemModal
         open={showCreateCustomModal}
         onOpenChange={setShowCreateCustomModal}
+        
         defaultTva={defaultTva}
       />
+
     </div>
   );
-
-  function toggleLot(lotName: string) {
-    setExpandedLots((prev) =>
-      prev.includes(lotName)
-        ? prev.filter((name) => name !== lotName)
-        : [...prev, lotName]
-    );
-  }
-
-  function toggleSubcategory(key: string) {
-    setExpandedSubcategories((prev) =>
-      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
-    );
-  }
 };
+
+ 

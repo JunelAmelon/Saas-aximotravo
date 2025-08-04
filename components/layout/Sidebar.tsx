@@ -9,6 +9,12 @@ interface SidebarProps {
   userRole: "artisan" | "courtier" | "admin";
 }
 
+const roleGradients = {
+  artisan: "from-amber-500 to-orange-500",
+  courtier: "from-blue-500 to-indigo-500",
+  admin: "from-purple-500 to-pink-500",
+};
+
 export default function Sidebar({ userRole }: SidebarProps) {
   const pathname = usePathname();
   
@@ -51,7 +57,7 @@ export default function Sidebar({ userRole }: SidebarProps) {
       {
         name: "Artisans",
         href: `${roleBasePath}/artisans`,
-        icon: Users, // ou Hammer pour une icône plus métier
+        icon: Users,
         current: pathname === `${roleBasePath}/artisans`,
       },
       {
@@ -80,44 +86,50 @@ export default function Sidebar({ userRole }: SidebarProps) {
         icon: Users,
         current: pathname === `${roleBasePath}/profiles`,
       }
-      // {
-      //   name: "Gérer les transactions",
-      //   href: `${roleBasePath}/transaction`,
-      //   icon: Users,
-      //   current: pathname === `${roleBasePath}/transaction`,
-      // }
     ],
   };
 
   return (
-    <div className="bg-white border-b border-gray-200">
-      <nav className="flex justify-between sm:justify-center px-2 sm:px-4">
+    <div className="relative bg-white border-b border-gray-100">
+      <nav className="relative flex justify-between sm:justify-center px-4 py-2 gap-1">
         {navigation[userRole].map((item) => (
           <Link
             key={item.name}
             href={item.href}
             className={cn(
-              "flex flex-col sm:flex-row items-center px-3 sm:px-8 py-3 text-xs sm:text-sm font-medium transition-colors border-b-2",
+              "group relative flex flex-col sm:flex-row items-center px-4 py-3 text-xs sm:text-sm font-medium transition-all duration-150",
               item.current
-                ? "border-[#f26755] text-[#f26755]"
-                : "border-transparent text-gray-700 hover:text-[#f26755] hover:border-[#f26755]"
+                ? "text-[#f26755] after:absolute after:bottom-0 after:left-1/2 after:-translate-x-1/2 after:w-6 after:h-0.5 after:bg-[#f26755] after:rounded-full"
+                : "text-gray-500 hover:text-[#f26755]"
             )}
-            title={item.name}
+            aria-current={item.current ? "page" : undefined}
           >
-            <item.icon
-              className={cn(
-                "h-5 w-5 sm:mr-2",
-                item.current
-                  ? "text-[#f26755]"
-                  : "text-gray-400 group-hover:text-[#f26755]"
-              )}
-              aria-hidden="true"
-            />
-            <span className="hidden sm:inline">{item.name}</span>
-            <span className="text-[10px] mt-1 sm:hidden">{item.name.split(' ')[0]}</span>
+            {/* Icône avec transition subtile */}
+            <div className="relative sm:mr-2">
+              <item.icon
+                className={cn(
+                  "h-4 w-4 sm:h-[1.1rem] sm:w-[1.1rem] transition-transform duration-150",
+                  item.current
+                    ? "text-[#f26755] scale-110"
+                    : "text-gray-400 group-hover:text-[#f26755] group-hover:scale-105"
+                )}
+                aria-hidden="true"
+              />
+            </div>
+            
+            {/* Texte desktop */}
+            <span className="hidden sm:inline font-medium">
+              {item.name}
+            </span>
+            
+            {/* Texte mobile */}
+            <span className="text-[10px] mt-1 sm:hidden font-medium leading-tight">
+              {item.name.split(' ')[0]}
+            </span>
           </Link>
         ))}
       </nav>
     </div>
   );
+
 }

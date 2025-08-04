@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Calendar from "@/components/calendar/Calendar";
 import { Plus } from "lucide-react";
-import { getAllDocuments } from "@/lib/firebase/firestore";
+import { getAllDocuments, queryDocuments } from "@/lib/firebase/firestore";
+import { useAuth } from "@/lib/contexts/AuthContext";
 
 // Typage local pour les événements du calendrier
 interface Event {
@@ -16,18 +17,49 @@ interface Event {
 }
 
 export default function CourtierEventsPage() {
+  const { currentUser } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchEvents = async () => {
+      if (!currentUser) {
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       try {
-        // Récupère tous les documents de la collection 'events'
-        const docs = await getAllDocuments("events");
-        // Adapter les champs Firestore au format attendu par Calendar
-        const mapped: Event[] = docs.map((doc: any) => ({
+        // 1. Récupérer les projets du courtier connecté
+        const courtierProjects = await queryDocuments(
+          "projects",
+          [{ field: "broker.id", operator: "==", value: currentUser.uid }]
+        );
+
+        // 2. Extraire les IDs des projets
+        const projectIds = courtierProjects.map((project: any) => project.id);
+
+        if (projectIds.length === 0) {
+          // Aucun projet trouvé pour ce courtier
+          setEvents([]);
+          setLoading(false);
+          return;
+        }
+
+        // 3. Récupérer les événements liés à ces projets
+        const eventsPromises = projectIds.map(projectId => 
+          queryDocuments(
+            "events",
+            [{ field: "projectId", operator: "==", value: projectId }]
+          )
+        );
+
+        const eventsArrays = await Promise.all(eventsPromises);
+        const allEvents = eventsArrays.flat();
+
+        // 4. Adapter les champs Firestore au format attendu par Calendar
+        const mapped: Event[] = allEvents.map((doc: any) => ({
           id: doc.id,
           title: doc.name || doc.title || "",
           client: doc.address || doc.client || "",
@@ -35,15 +67,17 @@ export default function CourtierEventsPage() {
           endDate: doc.end || doc.endDate,
           type: ((doc.type || "autre").toLowerCase() as Event["type"]),
         }));
+        
         setEvents(mapped);
       } catch (err: any) {
+        console.error("Erreur lors du chargement des événements:", err);
         setError("Erreur lors du chargement des événements");
       } finally {
         setLoading(false);
       }
     };
     fetchEvents();
-  }, []);
+  }, [currentUser]);
 
   return (
     <div className="space-y-6 h-full">

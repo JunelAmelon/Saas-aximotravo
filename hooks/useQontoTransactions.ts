@@ -25,8 +25,14 @@ export function useQontoTransactions(): UseQontoTransactionsResult {
       setTransactions(response.data.transactions);
       setMeta(response.data.meta);
     } catch (err: any) {
-      const errorMessage = extractErrorMessage(err, "Erreur lors du chargement des transactions Qonto");
-      setError(errorMessage);
+      try {
+        const errorMessage = extractErrorMessage(err, "Erreur lors du chargement des transactions Qonto");
+        setError(errorMessage);
+      } catch (formatError) {
+        // Fallback si même le formatage d'erreur échoue
+        setError("Une erreur inattendue s'est produite lors du chargement des transactions");
+        console.error('Erreur lors du formatage d\'erreur:', formatError);
+      }
     } finally {
       setLoading(false);
     }

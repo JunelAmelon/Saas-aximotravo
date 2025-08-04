@@ -482,7 +482,7 @@ export default function ProjectDetails() {
     { id: string; artisan: User | null; status: string }[]
   >([]);
 
-  // Récupérer l'ID de l'utilisateur connecté (artisan)
+  // Récupérer l'ID de l'utilisateur connecté 
   const currentUserId = useCurrentUserId();
   // Vérifier s'il y a une invitation pending pour cet artisan sur ce projet
   const pendingInvitation = usePendingArtisanInvitation(
@@ -1109,6 +1109,7 @@ export default function ProjectDetails() {
             itemId={selectedDevisId}
             onNext={handleCalculStep}
             onBack={handleBackToCreate}
+            onSkip={handleGenerationStep}
           />
 
           <CalculSurfaceModal
