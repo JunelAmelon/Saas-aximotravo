@@ -17,8 +17,8 @@ export default function NewProject() {
 
   const [form, setForm] = useState({
     name: "",
-    clientFullName: "",  // ajouté
-    clientPhone: "",     // ajouté
+    clientFullName: "", // ajouté
+    clientPhone: "", // ajouté
     clientEmail: "",
     budget: 0,
     paidAmount: 0,
@@ -29,55 +29,64 @@ export default function NewProject() {
     type: "",
     location: "",
     addressDetails: "",
-    firstDepositPercent: "",
+    firstDepositPercent: 0,
     description: "",
     image: "",
-    amoIncluded: false
+    amoIncluded: false,
   });
 
   const [imageFile, setImageFile] = useState<File | null>(null);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
   ) => {
     const { name, value, type } = e.target;
     if (type === "checkbox") {
       const checked = (e.target as HTMLInputElement).checked;
-      setForm(prev => ({ ...prev, [name]: checked }));
+      setForm((prev) => ({ ...prev, [name]: checked }));
     } else {
-      setForm(prev => ({
+      setForm((prev) => ({
         ...prev,
-        [name]: type === "number" ? Number(value) : value
+        [name]: type === "number" ? Number(value) : value,
       }));
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!imageFile) {
-      alert("Veuillez sélectionner une image pour le projet.");
-      return;
+  
+    let imageUrl = form.image;
+  
+    // Upload de l'image seulement si un fichier est sélectionné
+    if (imageFile) {
+      const data = new FormData();
+      data.append("file", imageFile);
+      data.append(
+        "upload_preset",
+        process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET as string
+      );
+  
+      try {
+        const res = await fetch(CLOUDINARY_UPLOAD_URL, {
+          method: "POST",
+          body: data,
+        });
+        const cloudinary = await res.json();
+        if (!cloudinary.secure_url)
+          throw new Error("Échec de l'upload de l'image");
+        imageUrl = cloudinary.secure_url;
+      } catch (err) {
+        alert("Erreur lors de l'upload de l'image");
+        return;
+      }
     }
-
-    const data = new FormData();
-    data.append("file", imageFile);
-    data.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET as string);
-
-    let imageUrl = "";
-    try {
-      const res = await fetch(CLOUDINARY_UPLOAD_URL, {
-        method: "POST",
-        body: data
-      });
-      const cloudinary = await res.json();
-      if (!cloudinary.secure_url) throw new Error("Échec de l'upload de l'image");
-      imageUrl = cloudinary.secure_url;
-    } catch (err) {
-      alert("Erreur lors de l'upload de l'image");
-      return;
-    }
-
+  
+    // Transformez les dates en undefined si vides
+    const startDate = form.startDate || undefined;
+    const estimatedEndDate = form.estimatedEndDate || undefined;
+  
     await addProject({
       ...form,
       budget: Number(form.budget),
@@ -85,11 +94,15 @@ export default function NewProject() {
       progress: Number(form.progress),
       firstDepositPercent: Number(form.firstDepositPercent),
       image: imageUrl,
-      status: "En attente",
-      amoIncluded: form.amoIncluded
+      status: form.status as "En cours" | "En attente" | "Terminé",
+      amoIncluded: form.amoIncluded,
+      addressDetails: form.addressDetails,
+      startDate,
+      estimatedEndDate,
     });
-
+  
     if (!error) {
+      // Réinitialisez le formulaire
       setForm({
         name: "",
         clientFullName: "",
@@ -104,10 +117,10 @@ export default function NewProject() {
         type: "",
         location: "",
         addressDetails: "",
-        firstDepositPercent: "",
+        firstDepositPercent: 0,
         description: "",
         image: "",
-        amoIncluded: false
+        amoIncluded: false,
       });
       setImageFile(null);
       setTimeout(() => router.push("/courtier/projects"), 1200);
@@ -127,7 +140,10 @@ export default function NewProject() {
         </button>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-lg p-8 border border-gray-100">
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white rounded-xl shadow-lg p-8 border border-gray-100"
+      >
         {error && (
           <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-lg border border-red-200">
             {typeof error === "object" && error !== null && "message" in error
@@ -150,7 +166,10 @@ export default function NewProject() {
             onChange={handleChange}
             className="h-4 w-4 text-[#f26755] border-gray-300 rounded focus:ring-[#f26755]"
           />
-          <label htmlFor="amoIncluded" className="text-sm text-gray-700 font-medium select-none">
+          <label
+            htmlFor="amoIncluded"
+            className="text-sm text-gray-700 font-medium select-none"
+          >
             AMO inclus ?
           </label>
           <span className="text-xs text-gray-500">
@@ -161,25 +180,27 @@ export default function NewProject() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div className="space-y-3 md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Image du projet *
+              Image du projet
             </label>
             <div className="flex items-center gap-4">
               <label className="flex flex-col items-center justify-center w-full max-w-xs cursor-pointer">
                 <div className="flex flex-col items-center justify-center pt-5 pb-6 px-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-[#f26755] transition-colors group">
                   <ImageIcon className="w-8 h-8 mb-3 text-gray-400 group-hover:text-[#f26755]" />
                   <p className="mb-2 text-sm text-gray-500">
-                    <span className="font-semibold">Cliquez pour uploader</span> ou glissez-déposez
+                    <span className="font-semibold">Cliquez pour uploader</span>{" "}
+                    ou glissez-déposez
                   </p>
                   <p className="text-xs text-gray-500">PNG, JPG (MAX. 5MB)</p>
                 </div>
                 <input
                   type="file"
                   accept="image/*"
-                  onChange={e =>
-                    e.target.files && e.target.files[0] && setImageFile(e.target.files[0])
+                  onChange={(e) =>
+                    e.target.files &&
+                    e.target.files[0] &&
+                    setImageFile(e.target.files[0])
                   }
                   className="hidden"
-                  required
                 />
               </label>
               {imageFile && (
@@ -216,7 +237,12 @@ export default function NewProject() {
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Nom du projet *</label>
+            <label
+              htmlFor="name"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Nom du projet *
+            </label>
             <input
               id="name"
               name="name"
@@ -230,7 +256,12 @@ export default function NewProject() {
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="clientFullName" className="block text-sm font-medium text-gray-700 mb-1">Nom complet du client *</label>
+            <label
+              htmlFor="clientFullName"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Nom complet du client *
+            </label>
             <input
               id="clientFullName"
               name="clientFullName"
@@ -244,7 +275,12 @@ export default function NewProject() {
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="clientPhone" className="block text-sm font-medium text-gray-700 mb-1">Contact du client *</label>
+            <label
+              htmlFor="clientPhone"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Contact du client *
+            </label>
             <input
               id="clientPhone"
               name="clientPhone"
@@ -258,7 +294,12 @@ export default function NewProject() {
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="clientEmail" className="block text-sm font-medium text-gray-700 mb-1">Email du client *</label>
+            <label
+              htmlFor="clientEmail"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Email du client *
+            </label>
             <input
               id="clientEmail"
               name="clientEmail"
@@ -272,10 +313,14 @@ export default function NewProject() {
           </div>
 
           {/* Les autres champs budget, dates, type, location, description… restent inchangés — reporte ton code original ici */}
-                    <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Budget estimé (€) *</label>
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Budget estimé (€) *
+            </label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">€</span>
+              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                €
+              </span>
               <input
                 type="number"
                 name="budget"
@@ -291,7 +336,9 @@ export default function NewProject() {
           </div>
 
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-[#4CAF50] mb-1">Date de début</label>
+            <label className="block text-sm font-medium text-[#4CAF50] mb-1">
+              Date de début
+            </label>
             <div className="relative">
               <input
                 aria-label="date"
@@ -305,7 +352,9 @@ export default function NewProject() {
           </div>
 
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-[#f26755] mb-1">Date de fin estimée</label>
+            <label className="block text-sm font-medium text-[#f26755] mb-1">
+              Date de fin estimée
+            </label>
             <div className="relative">
               <input
                 aria-label="date"
@@ -319,7 +368,9 @@ export default function NewProject() {
           </div>
 
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Type de projet</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Type de projet
+            </label>
             <input
               type="text"
               name="type"
@@ -331,7 +382,9 @@ export default function NewProject() {
           </div>
 
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Localisation</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Localisation
+            </label>
             <input
               type="text"
               name="location"
@@ -343,7 +396,9 @@ export default function NewProject() {
           </div>
 
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Informations complémentaires sur l'adresse</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Informations complémentaires sur l'adresse
+            </label>
             <textarea
               name="addressDetails"
               value={form.addressDetails}
@@ -355,7 +410,9 @@ export default function NewProject() {
           </div>
 
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">% premier acompte *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              % premier acompte *
+            </label>
             <select
               aria-label="firstDepositPercent"
               name="firstDepositPercent"
@@ -368,11 +425,15 @@ export default function NewProject() {
               <option value={30}>30%</option>
               <option value={40}>40%</option>
             </select>
-            <span className="text-xs text-gray-500">Seuls 30% ou 40% sont autorisés pour le premier acompte.</span>
+            <span className="text-xs text-gray-500">
+              Seuls 30% ou 40% sont autorisés pour le premier acompte.
+            </span>
           </div>
 
           <div className="space-y-2 md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description du projet</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Description du projet
+            </label>
             <textarea
               name="description"
               value={form.description}
@@ -385,10 +446,12 @@ export default function NewProject() {
         </div>
 
         <div className="mt-8 flex justify-end border-t border-gray-100 pt-6">
-        <button
+          <button
             type="submit"
             disabled={isLoading}
-            className={`px-6 py-3 rounded-lg transition-all flex items-center gap-2 shadow-md ${isLoading ? "bg-gray-400" : "bg-[#f26755] hover:bg-[#e05a48]"} text-white font-medium`}
+            className={`px-6 py-3 rounded-lg transition-all flex items-center gap-2 shadow-md ${
+              isLoading ? "bg-gray-400" : "bg-[#f26755] hover:bg-[#e05a48]"
+            } text-white font-medium`}
           >
             {isLoading ? (
               <>

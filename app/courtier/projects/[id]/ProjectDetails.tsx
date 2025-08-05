@@ -25,6 +25,8 @@ import {
   X,
   Send,
   Check,
+  Edit,
+  Save,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -675,6 +677,112 @@ export default function ProjectDetails() {
     { id: "payment-requests", icon: Scale, label: "Demandes d'acompte" },
   ];
 
+  // Fonctions pour l'édition du projet
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    description: "",
+    type: "",
+    location: "",
+    addressDetails: "",
+    budget: 0,
+    startDate: "",
+    estimatedEndDate: "",
+  });
+
+  const initializeEditForm = (projectData: ProjectDetails) => {
+    setEditForm({
+      name: projectData.name || "",
+      description: projectData.description || "",
+      type: projectData.type || "",
+      location: projectData.location || "",
+      addressDetails: projectData.addressDetails || "",
+      budget: projectData.budget || 0,
+      startDate: projectData.startDate || "",
+      estimatedEndDate: projectData.estimatedEndDate || "",
+    });
+  };
+
+  const handleEditFormChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    const { name, value, type } = e.target;
+    setEditForm(prev => ({
+      ...prev,
+      [name]: type === "number" ? Number(value) : value,
+    }));
+  };
+
+  const handleSaveProject = async () => {
+    if (!project?.id) return;
+    
+    setIsSaving(true);
+    try {
+      // Créer un objet avec seulement les champs modifiés
+      const updates: any = {};
+      
+      // Comparer chaque champ et n'ajouter que ceux qui ont changé
+      if (editForm.name !== (project.name || "")) {
+        updates.name = editForm.name;
+      }
+      if (editForm.description !== (project.description || "")) {
+        updates.description = editForm.description;
+      }
+      if (editForm.type !== (project.type || "")) {
+        updates.type = editForm.type;
+      }
+      if (editForm.location !== (project.location || "")) {
+        updates.location = editForm.location;
+      }
+      if (editForm.addressDetails !== (project.addressDetails || "")) {
+        updates.addressDetails = editForm.addressDetails;
+      }
+      if (editForm.budget !== (project.budget || 0)) {
+        updates.budget = editForm.budget;
+      }
+      if (editForm.startDate !== (project.startDate || "")) {
+        updates.startDate = editForm.startDate;
+      }
+      if (editForm.estimatedEndDate !== (project.estimatedEndDate || "")) {
+        updates.estimatedEndDate = editForm.estimatedEndDate;
+      }
+
+      // Si aucun changement n'a été détecté, sortir sans sauvegarder
+      if (Object.keys(updates).length === 0) {
+        setIsEditing(false);
+        return;
+      }
+
+      // Ajouter la date de mise à jour seulement s'il y a des changements
+      updates.updatedAt = serverTimestamp();
+
+      const projectRef = doc(db, "projects", project.id);
+      await updateDoc(projectRef, updates);
+
+      // Mettre à jour l'état local seulement avec les champs modifiés
+      setProject(prev => prev ? {
+        ...prev,
+        ...updates,
+      } : null);
+
+      setIsEditing(false);
+      setError(null);
+    } catch (err) {
+      console.error("Erreur lors de la sauvegarde:", err);
+      setError("Erreur lors de la sauvegarde du projet");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    if (project) {
+      initializeEditForm(project);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -748,32 +856,169 @@ export default function ProjectDetails() {
 
             <div className="flex-1 w-full md:w-auto">
               <div className="flex flex-col md:flex-row items-start justify-between gap-4 mb-4">
+                <div className="flex-1">
+                  {isEditing ? (
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Nom du projet
+                        </label>
+                        <input
+                          type="text"
+                          name="name"
+                          value={editForm.name}
+                          onChange={handleEditFormChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#f26755] focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Type de projet
+                        </label>
+                        <input
+                          type="text"
+                          name="type"
+                          value={editForm.type}
+                          onChange={handleEditFormChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#f26755] focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Localisation
+                        </label>
+                        <input
+                          type="text"
+                          name="location"
+                          value={editForm.location}
+                          onChange={handleEditFormChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#f26755] focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Budget (€)
+                        </label>
+                        <input
+                          type="number"
+                          name="budget"
+                          value={editForm.budget}
+                          onChange={handleEditFormChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#f26755] focus:border-transparent"
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Date de début
+                          </label>
+                          <input
+                            type="date"
+                            name="startDate"
+                            value={editForm.startDate}
+                            onChange={handleEditFormChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#f26755] focus:border-transparent"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Date de fin estimée
+                          </label>
+                          <input
+                            type="date"
+                            name="estimatedEndDate"
+                            value={editForm.estimatedEndDate}
+                            onChange={handleEditFormChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#f26755] focus:border-transparent"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Description
+                        </label>
+                        <textarea
+                          name="description"
+                          value={editForm.description}
+                          onChange={handleEditFormChange}
+                          rows={3}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#f26755] focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Détails d'adresse
+                        </label>
+                        <textarea
+                          name="addressDetails"
+                          value={editForm.addressDetails}
+                          onChange={handleEditFormChange}
+                          rows={2}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#f26755] focus:border-transparent"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <h2 className="text-xl font-medium text-gray-900 flex items-center gap-2">
+                        {project?.name}
+                        {project?.amoIncluded && <BadgeAmo />}
+                      </h2>
+
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex px-3 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">
+                    {project?.status}
+                  </span>
+                  
+                  {isEditing ? (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleSaveProject}
+                        disabled={isSaving}
+                        className="inline-flex items-center px-3 py-1 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
+                      >
+                        <Save className="h-4 w-4 mr-1" />
+                        {isSaving ? "Sauvegarde..." : "Sauvegarder"}
+                      </button>
+                      <button
+                        onClick={handleCancelEdit}
+                        disabled={isSaving}
+                        className="inline-flex items-center px-3 py-1 bg-gray-500 text-white rounded-md text-sm font-medium hover:bg-gray-600 transition-colors disabled:opacity-50"
+                      >
+                        <X className="h-4 w-4 mr-1" />
+                        Annuler
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setIsEditing(true)}
+                      className="inline-flex items-center px-3 py-1 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#e55a47] transition-colors"
+                    >
+                      <Edit className="h-4 w-4 mr-1" />
+                      Modifier
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {!isEditing && (
                 <div>
-                  <h2 className="text-xl font-medium text-gray-900 flex items-center gap-2">
-                    {project?.name}
-                    {project?.amoIncluded && <BadgeAmo />}
-                  </h2>
-                  <p className="text-sm text-gray-600">
-                    {project?.broker.company}
+                  <p className="text-sm text-gray-500">Montant prospecté</p>
+                  <p className="text-xl font-semibold">
+                    {project?.budget.toLocaleString("fr-FR", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}{" "}
+                    €
                   </p>
                 </div>
-                <span className="inline-flex px-3 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">
-                  {project?.status}
-                </span>
-              </div>
+              )}
 
-              <div>
-                <p className="text-sm text-gray-500">Montant prospecté</p>
-                <p className="text-xl font-semibold">
-                  {project?.budget.toLocaleString("fr-FR", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}{" "}
-                  €
-                </p>
-              </div>
-
-              {project?.startDate && project?.estimatedEndDate && (
+              {!isEditing && project?.startDate && project?.estimatedEndDate && (
                 <div className="flex gap-2 mt-4">
                   <button className="inline-flex items-center px-2.5 py-1 bg-emerald-500 text-white rounded text-xs font-medium hover:bg-emerald-600 transition-colors">
                     <Calendar className="h-3 w-3 mr-1" />
@@ -790,26 +1035,6 @@ export default function ProjectDetails() {
                 </div>
               )}
             </div>
-          </div>
-        </div>
-
-        <div className="border-t border-gray-200">
-          <div className="flex overflow-x-auto">
-            {tabs.map((tab) => (
-              <Link
-                key={tab.id}
-                href={`/courtier/projects/${id}/${tab.id}`}
-                className={cn(
-                  "flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 whitespace-nowrap transition-colors",
-                  params?.tab === tab.id
-                    ? "border-[#f26755] text-[#f26755]"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                )}
-              >
-                <tab.icon className="h-5 w-5" />
-                <span>{tab.label}</span>
-              </Link>
-            ))}
           </div>
         </div>
       </div>
