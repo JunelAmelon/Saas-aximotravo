@@ -346,7 +346,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ devis }) => {
                       Quantité
                     </span>
                     <span className="font-semibold text-yellow-700 text-base md:text-lg">
-                      {item.quantite} {item.customUnit || item.unite}
+                      {Number(item.quantite).toFixed(1)} {item.customUnit || item.unite}
                     </span>
                   </div>
 

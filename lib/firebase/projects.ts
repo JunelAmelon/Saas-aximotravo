@@ -28,7 +28,8 @@ export interface Project {
   clientEmail?: string;
   status: ProjectStatus;
   progress: number;
-  estimatedEndDate: string;
+  startDate?: string;
+  estimatedEndDate?: string;
   budget?: number;
   location?: string;
   city?: string;
