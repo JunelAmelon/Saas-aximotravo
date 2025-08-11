@@ -252,143 +252,574 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
       );
 
       // Construire l'URL sécurisée pour l'espace client
-      const secureClientUrl = `${window.location.origin}/client/projects/${projectId}?devis=${devisId}`;
+      const secureClientUrl = `https://app.secureacomptetravaux.com/auth/login`;
 
       // Générer et uploader un nouveau PDF sur Cloudinary à chaque envoi
       let pdfUrl: string;
-      
+
       try {
-        console.log('🔄 Génération et upload d\'un nouveau PDF pour envoi au client...');
-        console.log('📋 Données du devis:', { 
-          devisId, 
-          projectId, 
+        console.log(
+          "🔄 Génération et upload d'un nouveau PDF pour envoi au client..."
+        );
+        console.log("📋 Données du devis:", {
+          devisId,
+          projectId,
           currentUserId,
-          devisData: devisData ? 'Présent' : 'Absent'
+          devisData: devisData ? "Présent" : "Absent",
         });
-        
-        const { generateAndUploadDevisPDF } = await import('@/utils/generateAndUploadPDF');
-        pdfUrl = await generateAndUploadDevisPDF(devisData as any, projectId, currentUserId || '');
-        
-        console.log('✅ Nouveau PDF généré et uploadé:', pdfUrl);
-        console.log('🔗 Vérification URL Cloudinary:', pdfUrl.includes('cloudinary') ? '✅ Cloudinary' : '❌ Pas Cloudinary');
-        
+
+        const { generateAndUploadDevisPDF } = await import(
+          "@/utils/generateAndUploadPDF"
+        );
+        pdfUrl = await generateAndUploadDevisPDF(
+          devisData as any,
+          projectId,
+          currentUserId || ""
+        );
+
+        console.log("✅ Nouveau PDF généré et uploadé:", pdfUrl);
+        console.log(
+          "🔗 Vérification URL Cloudinary:",
+          pdfUrl.includes("cloudinary") ? "✅ Cloudinary" : "❌ Pas Cloudinary"
+        );
+
         // Vérifier que l'URL est bien de Cloudinary
-        if (!pdfUrl.includes('cloudinary')) {
-          throw new Error('URL PDF générée n\'est pas de Cloudinary: ' + pdfUrl);
+        if (!pdfUrl.includes("cloudinary")) {
+          throw new Error("URL PDF générée n'est pas de Cloudinary: " + pdfUrl);
         }
-        
       } catch (error) {
-        console.error('❌ Erreur génération/upload PDF:', error);
-        console.error('📊 Détails de l\'erreur:', {
-          message: error instanceof Error ? error.message : 'Erreur inconnue',
-          stack: error instanceof Error ? error.stack : undefined
+        console.error("❌ Erreur génération/upload PDF:", error);
+        console.error("📊 Détails de l'erreur:", {
+          message: error instanceof Error ? error.message : "Erreur inconnue",
+          stack: error instanceof Error ? error.stack : undefined,
         });
-        
+
         // 🚫 PLUS DE FALLBACK LOCAL - Arrêter l'envoi si échec Cloudinary
         loadingToast.dismiss();
         toast({
           variant: "destructive",
           title: "❌ Erreur génération PDF",
-          description: "Impossible de générer le PDF sur Cloudinary. Veuillez réessayer.",
+          description:
+            "Impossible de générer le PDF sur Cloudinary. Veuillez réessayer.",
         });
         setSendingEmailId(null);
         return; // Arrêter l'envoi
       }
 
-      // Template d'email - différent selon si c'est le premier devis ou non
-      const emailSubject = isFirstValidatedDevis
-        ? `Votre devis est prêt - Accès à votre espace client : ${projectData.name}`
-        : `Nouveau devis validé pour votre projet : ${projectData.name}`;
+      // // Template d'email - différent selon si c'est le premier devis ou non
+      // const emailSubject = isFirstValidatedDevis
+      //   ? `Votre devis est prêt - Accès à votre espace client : ${projectData.name}`
+      //   : `Nouveau devis validé pour votre projet : ${projectData.name}`;
 
-      const loginInstructionsSection = isFirstValidatedDevis
+      // const loginInstructionsSection = isFirstValidatedDevis
+      //   ? `
+      //   <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 20px 0;">
+      //     <h4 style="color: #1976d2; margin-top: 0;">🔑 Première connexion - Vos identifiants</h4>
+      //     <p style="margin: 5px 0;"><strong>Email de connexion :</strong> ${clientData.email}</p>
+      //     ${clientData.tempPassword && !clientData.passwordRetrieved ? `
+      //       <p style="margin: 5px 0;"><strong>Mot de passe temporaire :</strong> <span style="font-family: monospace; background: #f0f0f0; padding: 2px 6px; border-radius: 4px;">${clientData.tempPassword}</span></p>
+      //       <p style="margin: 5px 0; color: #d32f2f; font-weight: bold;">⚠️ Changez ce mot de passe dès votre première connexion pour sécuriser votre compte</p>
+      //     ` : `
+      //       <p style="margin: 5px 0;">Utilisez votre mot de passe habituel pour vous connecter.</p>
+      //       <p style="margin: 5px 0; font-size: 14px; color: #666;">
+      //         Si vous avez oublié votre mot de passe, utilisez la fonction "Mot de passe oublié" sur la page de connexion.
+      //       </p>
+      //     `}
+      //     <p style="margin: 10px 0; padding: 10px; background: #fff3cd; border-left: 4px solid #ffc107; font-size: 14px;">
+      //       <strong>💡 Conseil :</strong> Ajoutez cette page à vos favoris pour un accès rapide à vos futurs devis.
+      //     </p>
+      //   </div>
+      // `
+      //   : "";
+
+      // const welcomeMessage = isFirstValidatedDevis
+      //   ? `Bienvenue ! Votre devis pour le projet <strong>"${projectData.name}"</strong> a été validé. Vous avez maintenant accès à votre espace client sécurisé.`
+      //   : `Votre nouveau devis pour le projet <strong>"${projectData.name}"</strong> a été validé et est maintenant disponible.`;
+
+      // const emailHtml = `
+      //   <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #f26755; border-radius: 8px; overflow: hidden;">
+      //     <div style="background: linear-gradient(90deg, #f26755 0%, #f28c55 100%); padding: 20px; text-align: center;">
+      //       <h1 style="color: white; margin: 0; font-size: 24px;">
+      //         ${
+      //           isFirstValidatedDevis
+      //             ? "🎉 Bienvenue sur Aximotravo"
+      //             : "Devis Validé ✅"
+      //         }
+      //       </h1>
+      //     </div>
+
+      //     <div style="padding: 30px;">
+      //       <p style="font-size: 16px; color: #333; margin-bottom: 20px;">
+      //         Bonjour ${clientData.firstName || ""} ${
+      //   clientData.lastName || ""
+      // },
+      //       </p>
+
+      //       <p style="font-size: 16px; color: #333; margin-bottom: 20px;">
+      //         ${welcomeMessage}
+      //       </p>
+
+      //       <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+      //         <h3 style="color: #f26755; margin-top: 0;">📋 Détails du devis</h3>
+      //         <p><strong>Titre :</strong> ${devisData?.titre || "Devis"}</p>
+      //         <p><strong>Projet :</strong> ${projectData.name}</p>
+      //         <p><strong>Date de validation :</strong> ${new Date().toLocaleDateString(
+      //           "fr-FR"
+      //         )}</p>
+      //       </div>
+
+      //       <div style="text-align: center; margin: 30px 0;">
+      //         <a href="${secureClientUrl}"
+      //            style="display: inline-block; background: #f26755; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 10px;">
+      //           🔐 Accéder à votre espace sécurisé
+      //         </a>
+
+      //         <a href="${pdfUrl}"
+      //            style="display: inline-block; background: #28a745; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 10px;">
+      //           📄 Télécharger le PDF
+      //         </a>
+      //       </div>
+
+      //       ${loginInstructionsSection}
+
+      //       ${comment ? `
+      //       <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f26755;">
+      //         <h4 style="color: #f26755; margin-top: 0; font-size: 16px;">💬 Message de votre courtier</h4>
+      //         <p style="font-size: 15px; color: #333; margin: 0; line-height: 1.5;">${comment}</p>
+      //       </div>
+      //       ` : ''}
+
+      //       <p style="font-size: 14px; color: #666; margin-top: 30px;">
+      //         Pour toute question, n'hésitez pas à nous contacter.
+      //       </p>
+
+      //       <p style="font-size: 14px; color: #666;">
+      //         Cordialement,<br>
+      //         L'équipe Aximotravo
+      //       </p>
+      //     </div>
+      //   </div>
+      // `;
+
+      const emailSubject = isFirstValidatedDevis
+        ? `Votre devis personnalisé est disponible - ${projectData.name}`
+        : `Nouveau devis disponible - ${projectData.name}`;
+
+      const loginInstructionsSection = (isFirstValidatedDevis && clientData.tempPassword && !clientData.passwordRetrieved)
         ? `
-        <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 20px 0;">
-          <h4 style="color: #1976d2; margin-top: 0;">🔑 Première connexion - Vos identifiants</h4>
-          <p style="margin: 5px 0;"><strong>Email de connexion :</strong> ${clientData.email}</p>
-          ${clientData.tempPassword && !clientData.passwordRetrieved ? `
-            <p style="margin: 5px 0;"><strong>Mot de passe temporaire :</strong> <span style="font-family: monospace; background: #f0f0f0; padding: 2px 6px; border-radius: 4px;">${clientData.tempPassword}</span></p>
-            <p style="margin: 5px 0; color: #d32f2f; font-weight: bold;">⚠️ Changez ce mot de passe dès votre première connexion pour sécuriser votre compte</p>
-          ` : `
-            <p style="margin: 5px 0;">Utilisez votre mot de passe habituel pour vous connecter.</p>
-            <p style="margin: 5px 0; font-size: 14px; color: #666;">
-              Si vous avez oublié votre mot de passe, utilisez la fonction "Mot de passe oublié" sur la page de connexion.
-            </p>
-          `}
-          <p style="margin: 10px 0; padding: 10px; background: #fff3cd; border-left: 4px solid #ffc107; font-size: 14px;">
-            <strong>💡 Conseil :</strong> Ajoutez cette page à vos favoris pour un accès rapide à vos futurs devis.
-          </p>
-        </div>
-      `
-        : "";
+<!-- Section identifiants -->
+<div style="border: 2px solid #e3f2fd; 
+            background: #f8fbff; 
+            border-radius: 6px; 
+            padding: 16px; 
+            margin: 24px 0;">
+  <h4 style="color: #1976d2; 
+             margin: 0 0 16px 0; 
+             font-size: 16px; 
+             font-weight: 600;
+             text-transform: uppercase;
+             letter-spacing: 0.5px;">
+    Accès à votre espace client
+  </h4>
+  
+  <p style="color: #495057; 
+            font-size: 14px; 
+            margin: 0 0 20px 0; 
+            line-height: 1.5;">
+    Voici vos identifiants de connexion pour accéder à votre espace personnel sécurisé :
+  </p>
+  
+  <div style="margin-bottom: 20px;">
+    <div style="padding: 8px 0; color: #6c757d; font-weight: 500; font-size: 14px;">
+      Identifiant :
+    </div>
+    <div style="padding: 8px 0; color: #2c3e50; font-weight: 600; font-size: 14px; word-break: break-all;">
+      ${clientData.email}
+    </div>
+    <div style="padding: 8px 0; color: #6c757d; font-weight: 500; font-size: 14px;">
+      Mot de passe temporaire :
+    </div>
+    <div style="padding: 8px 0;">
+      <code style="background: #f8f9fa; 
+                  border: 1px solid #dee2e6; 
+                  padding: 8px 12px; 
+                  border-radius: 4px; 
+                  font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace; 
+                  font-size: 14px; 
+                  color: #2c3e50;
+                  font-weight: 600;
+                  word-break: break-all;
+                  display: inline-block;
+                  max-width: 100%;">
+        ${clientData.tempPassword}
+      </code>
+    </div>
+  </div>
+  
+  <div style="background: #fff3cd; 
+              border: 1px solid #ffeaa7; 
+              border-radius: 4px; 
+              padding: 12px; 
+              margin: 16px 0 0 0;">
+    <p style="margin: 0; 
+              color: #856404; 
+              font-size: 13px; 
+              font-weight: 500;
+              line-height: 1.4;">
+      ⚠️ <strong>Important :</strong> Veuillez modifier ce mot de passe lors de votre première connexion.
+    </p>
+  </div>
+</div>
+`
+        : ""; // Section vide si pas de mot de passe temporaire ou pas le premier devis
 
       const welcomeMessage = isFirstValidatedDevis
-        ? `Bienvenue ! Votre devis pour le projet <strong>"${projectData.name}"</strong> a été validé. Vous avez maintenant accès à votre espace client sécurisé.`
-        : `Votre nouveau devis pour le projet <strong>"${projectData.name}"</strong> a été validé et est maintenant disponible.`;
+        ? `Nous avons le plaisir de vous transmettre votre devis pour le projet <strong>"${projectData.name}"</strong>. 
+   Ce document détaillé reprend l'ensemble des prestations étudiées lors de notre entretien.`
+        : `Votre nouveau devis pour le projet <strong>"${projectData.name}"</strong> est maintenant disponible dans votre espace client.`;
+
+      const headerTitle = isFirstValidatedDevis
+        ? "Votre devis personnalisé est disponible"
+        : "Nouveau devis disponible";
 
       const emailHtml = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #f26755; border-radius: 8px; overflow: hidden;">
-          <div style="background: linear-gradient(90deg, #f26755 0%, #f28c55 100%); padding: 20px; text-align: center;">
-            <h1 style="color: white; margin: 0; font-size: 24px;">
-              ${
-                isFirstValidatedDevis
-                  ? "🎉 Bienvenue sur Aximotravo"
-                  : "Devis Validé ✅"
-              }
-            </h1>
-          </div>
-          
-          <div style="padding: 30px;">
-            <p style="font-size: 16px; color: #333; margin-bottom: 20px;">
-              Bonjour ${clientData.firstName || ""} ${
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Devis Aximotravo</title>
+  <style>
+    /* Reset styles */
+    * { box-sizing: border-box; }
+    body, table, td, p, h1, h2, h3, h4 { margin: 0; padding: 0; }
+    
+    /* Responsive styles */
+    @media only screen and (max-width: 600px) {
+      .container {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+      }
+      
+      .header-content {
+        padding: 24px 20px !important;
+      }
+      
+      .main-content {
+        padding: 24px 20px !important;
+      }
+      
+      .footer-content {
+        padding: 20px !important;
+      }
+      
+      .header-flex {
+        display: block !important;
+      }
+      
+      .header-badge {
+        margin-top: 16px !important;
+        text-align: left !important;
+      }
+      
+      .header-title {
+        font-size: 20px !important;
+        line-height: 1.2 !important;
+      }
+      
+      .button-container {
+        display: block !important;
+        margin: 0 !important;
+      }
+      
+      .button {
+        display: block !important;
+        width: 100% !important;
+        margin: 8px 0 !important;
+        text-align: center !important;
+        box-sizing: border-box !important;
+      }
+      
+      .info-table {
+        display: block !important;
+      }
+      
+      .info-row {
+        display: block !important;
+        margin-bottom: 12px !important;
+      }
+      
+      .info-label {
+        display: block !important;
+        padding: 4px 0 !important;
+        width: 100% !important;
+      }
+      
+      .info-value {
+        display: block !important;
+        padding: 4px 0 !important;
+        width: 100% !important;
+      }
+      
+      .section-padding {
+        padding: 16px !important;
+        margin: 16px 0 !important;
+      }
+      
+      .hide-mobile {
+        display: none !important;
+      }
+    }
+    
+    @media only screen and (max-width: 480px) {
+      .header-title {
+        font-size: 18px !important;
+      }
+      
+      .main-content {
+        padding: 20px 16px !important;
+      }
+      
+      .section-padding {
+        padding: 12px !important;
+      }
+    }
+  </style>
+</head>
+<body style="margin: 0; padding: 20px; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;">
+
+<div class="container" style="max-width: 600px; 
+          margin: 0 auto; 
+          background: white; 
+          border-radius: 8px; 
+          overflow: hidden; 
+          box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+          border: 1px solid #e9ecef;">
+
+<!-- Header professionnel -->
+<div class="header-content" style="background: #2c3e50; 
+            padding: 32px 40px; 
+            text-align: left;">
+  
+  <div class="header-flex" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
+    <div style="color: #f26755; 
+                font-size: 24px; 
+                font-weight: 700; 
+                letter-spacing: -0.5px;">
+      AXIMOTRAVO
+    </div>
+    <div class="header-badge" style="background: rgba(242, 103, 85, 0.1); 
+                color: #f26755; 
+                padding: 6px 12px; 
+                border-radius: 4px; 
+                font-size: 12px; 
+                font-weight: 600; 
+                text-transform: uppercase; 
+                letter-spacing: 0.5px;">
+      NOUVEAU DEVIS
+    </div>
+  </div>
+  
+  <h1 class="header-title" style="color: white; 
+             margin: 0; 
+             font-size: 24px; 
+             font-weight: 600; 
+             line-height: 1.3;">
+    ${headerTitle}
+  </h1>
+  
+  <p style="color: #bdc3c7; 
+            margin: 8px 0 0 0; 
+            font-size: 16px; 
+            font-weight: 400;
+            line-height: 1.4;">
+    Réf: ${
+      devisData?.numero ||
+      "#DEV-" +
+        new Date().getFullYear() +
+        "-" +
+        Math.floor(Math.random() * 1000)
+          .toString()
+          .padStart(3, "0")
+    } <span class="hide-mobile">•</span><br class="show-mobile" style="display: none;"> ${new Date().toLocaleDateString(
+        "fr-FR"
+      )}
+  </p>
+</div>
+
+<!-- Contenu principal -->
+<div class="main-content" style="padding: 40px;">
+  
+  <!-- Salutation -->
+  <div style="margin-bottom: 32px;">
+    <p style="font-size: 16px; 
+              color: #2c3e50; 
+              margin: 0 0 16px 0; 
+              line-height: 1.5;">
+      Bonjour <strong>${clientData.firstName || ""} ${
         clientData.lastName || ""
-      },
-            </p>
-            
-            <p style="font-size: 16px; color: #333; margin-bottom: 20px;">
-              ${welcomeMessage}
-            </p>
-            
-            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <h3 style="color: #f26755; margin-top: 0;">📋 Détails du devis</h3>
-              <p><strong>Titre :</strong> ${devisData?.titre || "Devis"}</p>
-              <p><strong>Projet :</strong> ${projectData.name}</p>
-              <p><strong>Date de validation :</strong> ${new Date().toLocaleDateString(
-                "fr-FR"
-              )}</p>
-            </div>
-            
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${secureClientUrl}" 
-                 style="display: inline-block; background: #f26755; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 10px;">
-                🔐 Accéder à votre espace sécurisé
-              </a>
-              
-              <a href="${pdfUrl}" 
-                 style="display: inline-block; background: #28a745; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 10px;">
-                📄 Télécharger le PDF
-              </a>
-            </div>
-            
-            ${loginInstructionsSection}
-            
-            ${comment ? `
-            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f26755;">
-              <h4 style="color: #f26755; margin-top: 0; font-size: 16px;">💬 Message de votre courtier</h4>
-              <p style="font-size: 15px; color: #333; margin: 0; line-height: 1.5;">${comment}</p>
-            </div>
-            ` : ''}
-            
-            <p style="font-size: 14px; color: #666; margin-top: 30px;">
-              Pour toute question, n'hésitez pas à nous contacter.
-            </p>
-            
-            <p style="font-size: 14px; color: #666;">
-              Cordialement,<br>
-              L'équipe Aximotravo
-            </p>
-          </div>
-        </div>
-      `;
+      }</strong>,
+    </p>
+    
+    <p style="font-size: 16px; 
+              color: #495057; 
+              margin: 0; 
+              line-height: 1.6;">
+      ${welcomeMessage}
+    </p>
+  </div>
+  
+  <!-- Informations du devis -->
+  <div class="section-padding" style="background: #f8f9fa; 
+              border: 1px solid #e9ecef; 
+              border-radius: 6px; 
+              padding: 24px; 
+              margin: 32px 0;">
+    <h3 style="color: #2c3e50; 
+               margin: 0 0 20px 0; 
+               font-size: 18px; 
+               font-weight: 600;">
+      Informations du devis
+    </h3>
+    
+    <div class="info-table" style="width: 100%;">
+      <div class="info-row" style="display: flex; margin-bottom: 8px;">
+        <div class="info-label" style="color: #6c757d; font-weight: 500; width: 30%; font-size: 14px;">Projet :</div>
+        <div class="info-value" style="color: #2c3e50; font-weight: 600; flex: 1; font-size: 14px; word-break: break-word;">${
+          projectData.name
+        }</div>
+      </div>
+      <div class="info-row" style="display: flex; margin-bottom: 8px;">
+        <div class="info-label" style="color: #6c757d; font-weight: 500; width: 30%; font-size: 14px;">Référence :</div>
+        <div class="info-value" style="color: #2c3e50; font-weight: 600; flex: 1; font-size: 14px; word-break: break-word;">${
+          devisData?.reference ||
+          "#DEV-" +
+            new Date().getFullYear() +
+            "-" +
+            Math.floor(Math.random() * 1000)
+              .toString()
+              .padStart(3, "0")
+        }</div>
+      </div>
+      <div class="info-row" style="display: flex; margin-bottom: 8px;">
+        <div class="info-label" style="color: #6c757d; font-weight: 500; width: 30%; font-size: 14px;">Date d'envoi :</div>
+        <div class="info-value" style="color: #2c3e50; font-weight: 600; flex: 1; font-size: 14px;">${new Date().toLocaleDateString(
+          "fr-FR"
+        )}</div>
+      </div>
+      <div class="info-row" style="display: flex;">
+        <div class="info-label" style="color: #6c757d; font-weight: 500; width: 30%; font-size: 14px;">Validité :</div>
+        <div class="info-value" style="color: #2c3e50; font-weight: 600; flex: 1; font-size: 14px;">30 jours</div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Boutons d'action -->
+  <div style="text-align: center; margin: 40px 0;">
+    <div class="button-container" style="display: inline-block;">
+      <a href="${secureClientUrl}" 
+         class="button"
+         style="display: inline-block; 
+                background: #f26755; 
+                color: white; 
+                padding: 14px 28px; 
+                text-decoration: none; 
+                border-radius: 4px; 
+                font-weight: 600; 
+                font-size: 14px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                border: none;
+                margin: 0 8px;
+                min-width: 200px;">
+        CONSULTER LE DEVIS
+      </a>
+      <a href="${pdfUrl}" 
+         class="button"
+         style="display: inline-block; 
+                background: transparent; 
+                color: #6c757d; 
+                padding: 14px 28px; 
+                text-decoration: none; 
+                border-radius: 4px; 
+                font-weight: 600; 
+                font-size: 14px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                border: 2px solid #dee2e6;
+                margin: 0 8px;
+                min-width: 200px;">
+        TÉLÉCHARGER PDF
+      </a>
+    </div>
+  </div>
+  
+  ${loginInstructionsSection}
+  
+  ${
+    comment
+      ? `
+  <!-- Message courtier -->
+  <div class="section-padding" style="border-left: 4px solid #f26755; 
+              background: #fafafa; 
+              padding: 24px; 
+              margin: 32px 0;">
+    <h4 style="color: #2c3e50; 
+               margin: 0 0 12px 0; 
+               font-size: 16px; 
+               font-weight: 600;">
+      Message de votre courtier
+    </h4>
+    <p style="font-size: 15px; 
+              color: #495057; 
+              margin: 0; 
+              line-height: 1.6; 
+              font-style: italic;
+              word-break: break-word;">
+      "${comment}"
+    </p>
+    <p style="font-size: 14px; 
+              color: #6c757d; 
+              margin: 12px 0 0 0; 
+              font-weight: 500;">
+      — Votre courtier Aximotravo
+    </p>
+  </div>
+  `
+      : ""
+  }
+  
+</div>
+
+<!-- Footer -->
+<!---<div class="footer-content" style="background: #f8f9fa; 
+            padding: 24px 40px; 
+            border-top: 1px solid #e9ecef;">
+  <p style="font-size: 14px; 
+            color: #6c757d; 
+            margin: 0 0 8px 0; 
+            text-align: center;
+            line-height: 1.5;">
+    Pour toute question, contactez-nous au <strong>01 23 45 67 89</strong><br>
+    ou par email à <strong>contact@aximotravo.fr</strong>
+  </p>
+  <p style="font-size: 12px; 
+            color: #adb5bd; 
+            margin: 0; 
+            text-align: center;
+            line-height: 1.4;">
+    © 2024 Aximotravo • Société de courtage en travaux<br>
+    SIRET 123 456 789 00012
+  </p>
+</div>--->
+
+</div>
+
+</body>
+</html>
+`;
 
       // Envoyer l'email
       const response = await fetch("/api/send-email", {
@@ -410,46 +841,56 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
         // Mettre à jour le statut du devis à "Envoyé au client"
         try {
           await updateDoc(devisRef, {
-            status: "Envoyé au client"
+            status: "Envoyé au client",
           });
           console.log("Statut du devis mis à jour à 'Envoyé au client'");
-          
+
           // Mettre à jour l'état local pour rafraîchir l'interface
           const updateLocalDevisStatus = (items: DevisItem[]) => {
-            return items.map(item => 
-              item.id === devisId 
+            return items.map((item) =>
+              item.id === devisId
                 ? { ...item, status: "Envoyé au client" }
                 : item
             );
           };
-          
+
           // Mettre à jour tous les onglets qui pourraient contenir ce devis
           if (type === "devisConfig") {
-            devisTabsData["generes"].setItems((prev: DevisItem[]) => updateLocalDevisStatus(prev));
+            devisTabsData["generes"].setItems((prev: DevisItem[]) =>
+              updateLocalDevisStatus(prev)
+            );
           } else {
-            devisTabsData["uploades"].setItems((prev: DevisItem[]) => updateLocalDevisStatus(prev));
+            devisTabsData["uploades"].setItems((prev: DevisItem[]) =>
+              updateLocalDevisStatus(prev)
+            );
           }
-          
         } catch (statusUpdateError) {
-          console.error("Erreur lors de la mise à jour du statut du devis:", statusUpdateError);
+          console.error(
+            "Erreur lors de la mise à jour du statut du devis:",
+            statusUpdateError
+          );
         }
 
         // Si c'est le premier devis et qu'un mot de passe temporaire a été envoyé, le supprimer
         if (isFirstValidatedDevis && clientData.tempPassword) {
           try {
             await updateDoc(clientRef, {
-              tempPassword: null // Supprimer le mot de passe pour sécurité
+              tempPassword: null, // Supprimer le mot de passe pour sécurité
             });
             console.log("Mot de passe temporaire supprimé");
           } catch (passwordUpdateError) {
-            console.error("Erreur lors de la suppression du mot de passe temporaire:", passwordUpdateError);
+            console.error(
+              "Erreur lors de la suppression du mot de passe temporaire:",
+              passwordUpdateError
+            );
           }
         }
 
         // Afficher le toast de succès
         toast({
           title: "✅ Email envoyé !",
-          description: "L'email a été envoyé avec succès au client. Statut mis à jour.",
+          description:
+            "L'email a été envoyé avec succès au client. Statut mis à jour.",
           className: "border-green-200 bg-green-50 text-green-800",
         });
       } else {
@@ -1710,8 +2151,18 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
               onClick={handleCancelSend}
             >
               <span className="sr-only">Fermer</span>
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
 
@@ -1721,7 +2172,8 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                 📧 Envoyer le devis au client
               </h3>
               <p className="text-sm text-gray-600">
-                Vous pouvez ajouter un message personnalisé qui sera inclus dans l'email envoyé au client.
+                Vous pouvez ajouter un message personnalisé qui sera inclus dans
+                l'email envoyé au client.
               </p>
             </div>
 
@@ -1756,7 +2208,9 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                 disabled={sendingEmailId !== null}
               >
                 <Send className="w-4 h-4" />
-                {emailComment.trim() ? 'Envoyer avec message' : 'Envoyer sans message'}
+                {emailComment.trim()
+                  ? "Envoyer avec message"
+                  : "Envoyer sans message"}
               </button>
             </div>
           </div>
