@@ -14,6 +14,9 @@ import {
   Calendar,
   Euro,
   Search,
+  Loader2,
+  Mail,
+  Send,
 } from "lucide-react";
 import { MoreVertical, UserCheck } from "lucide-react";
 import {
@@ -34,8 +37,10 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
+import { useToast } from "@/hooks/use-toast";
 import { FacturePreview } from "./FacturePreview";
 import { FactureModal } from "./FacturePreview";
+import { GenerateFacturePDF } from "./GenerateFacturePDF";
 // ====================
 // Types et Interfaces
 // ====================
@@ -116,7 +121,6 @@ interface ModernDevisSectionProps {
 // Hook utilitaire : filtrage + pagination pour tous les onglets
 import { useMemo } from "react";
 import { Devis } from "@/types/devis";
-import { GenerateFacturePDF } from "./GenerateFacturePDF";
 
 // ====================
 // Composant principal : ModernDevisSection
@@ -139,10 +143,380 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
   const [acceptedArtisans, setAcceptedArtisans] = useState<User[]>([]);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [assignDevisId, setAssignDevisId] = useState<string | null>(null);
+  const [sendingEmailId, setSendingEmailId] = useState<string | null>(null);
+  // États pour la modal de commentaire avant envoi
+  const [showCommentModal, setShowCommentModal] = useState(false);
+  const [pendingSendData, setPendingSendData] = useState<{
+    devisId: string;
+    type: "devis" | "devisConfig";
+    projectId: string;
+  } | null>(null);
+  const [emailComment, setEmailComment] = useState("");
   // Récupération des paramètres d'URL (ex: projectId)
   const params = useParams() || {};
   const [selectedArtisanId, setSelectedArtisanId] = useState<string>("");
+  const { toast } = useToast();
+
   const [facturePreview, setFacturePreview] = useState<Devis | null>(null);
+
+  // Fonction pour ouvrir la modal de commentaire avant envoi
+  const handleOpenCommentModal = (
+    devisId: string,
+    type: "devis" | "devisConfig",
+    projectId: string
+  ) => {
+    setPendingSendData({ devisId, type, projectId });
+    setEmailComment("");
+    setShowCommentModal(true);
+  };
+
+  // Fonction pour confirmer l'envoi avec commentaire
+  const handleConfirmSendWithComment = () => {
+    if (pendingSendData) {
+      setShowCommentModal(false);
+      handleSendToClient(
+        pendingSendData.devisId,
+        pendingSendData.type,
+        pendingSendData.projectId,
+        emailComment
+      );
+      setPendingSendData(null);
+      setEmailComment("");
+    }
+  };
+
+  // Fonction pour annuler l'envoi
+  const handleCancelSend = () => {
+    setShowCommentModal(false);
+    setPendingSendData(null);
+    setEmailComment("");
+  };
+
+  // Fonction pour envoyer l'email au client manuellement
+  const handleSendToClient = async (
+    devisId: string,
+    type: "devis" | "devisConfig",
+    projectId: string,
+    comment?: string
+  ) => {
+    setSendingEmailId(devisId);
+
+    // Afficher le toast de chargement
+    const loadingToast = toast({
+      title: "📤 Envoi en cours...",
+      description: "Préparation et envoi de l'email au client",
+      className: "border-blue-200 bg-blue-50 text-blue-800",
+    });
+
+    try {
+      // Récupérer les informations du devis
+      const devisRef = doc(db, type, devisId);
+      const devisSnap = await getDoc(devisRef);
+      const devisData = devisSnap.data();
+
+      // Récupérer l'email du client via le projet
+      const projectRef = doc(db, "projects", projectId);
+      const projectSnap = await getDoc(projectRef);
+      const projectData = projectSnap.data();
+
+      if (!projectData?.client_id) {
+        console.error("Client ID non trouvé pour le projet");
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: "Client non trouvé pour ce projet",
+        });
+        return;
+      }
+
+      // Récupérer les informations du client
+      const clientRef = doc(db, "users", projectData.client_id);
+      const clientSnap = await getDoc(clientRef);
+      const clientData = clientSnap.data();
+
+      if (!clientData?.email) {
+        console.error("Email du client non trouvé");
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: "Email du client non trouvé",
+        });
+        return;
+      }
+
+      // Vérifier s'il s'agit du premier devis validé pour ce projet
+      const isFirstValidatedDevis = await checkIfFirstValidatedDevis(
+        projectId,
+        devisId,
+        type
+      );
+
+      // Construire l'URL sécurisée pour l'espace client
+      const secureClientUrl = `${window.location.origin}/client/projects/${projectId}?devis=${devisId}`;
+
+      // Générer et uploader un nouveau PDF sur Cloudinary à chaque envoi
+      let pdfUrl: string;
+      
+      try {
+        console.log('🔄 Génération et upload d\'un nouveau PDF pour envoi au client...');
+        console.log('📋 Données du devis:', { 
+          devisId, 
+          projectId, 
+          currentUserId,
+          devisData: devisData ? 'Présent' : 'Absent'
+        });
+        
+        const { generateAndUploadDevisPDF } = await import('@/utils/generateAndUploadPDF');
+        pdfUrl = await generateAndUploadDevisPDF(devisData as any, projectId, currentUserId || '');
+        
+        console.log('✅ Nouveau PDF généré et uploadé:', pdfUrl);
+        console.log('🔗 Vérification URL Cloudinary:', pdfUrl.includes('cloudinary') ? '✅ Cloudinary' : '❌ Pas Cloudinary');
+        
+        // Vérifier que l'URL est bien de Cloudinary
+        if (!pdfUrl.includes('cloudinary')) {
+          throw new Error('URL PDF générée n\'est pas de Cloudinary: ' + pdfUrl);
+        }
+        
+      } catch (error) {
+        console.error('❌ Erreur génération/upload PDF:', error);
+        console.error('📊 Détails de l\'erreur:', {
+          message: error instanceof Error ? error.message : 'Erreur inconnue',
+          stack: error instanceof Error ? error.stack : undefined
+        });
+        
+        // 🚫 PLUS DE FALLBACK LOCAL - Arrêter l'envoi si échec Cloudinary
+        loadingToast.dismiss();
+        toast({
+          variant: "destructive",
+          title: "❌ Erreur génération PDF",
+          description: "Impossible de générer le PDF sur Cloudinary. Veuillez réessayer.",
+        });
+        setSendingEmailId(null);
+        return; // Arrêter l'envoi
+      }
+
+      // Template d'email - différent selon si c'est le premier devis ou non
+      const emailSubject = isFirstValidatedDevis
+        ? `Votre devis est prêt - Accès à votre espace client : ${projectData.name}`
+        : `Nouveau devis validé pour votre projet : ${projectData.name}`;
+
+      const loginInstructionsSection = isFirstValidatedDevis
+        ? `
+        <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 20px 0;">
+          <h4 style="color: #1976d2; margin-top: 0;">🔑 Première connexion - Vos identifiants</h4>
+          <p style="margin: 5px 0;"><strong>Email de connexion :</strong> ${clientData.email}</p>
+          ${clientData.tempPassword && !clientData.passwordRetrieved ? `
+            <p style="margin: 5px 0;"><strong>Mot de passe temporaire :</strong> <span style="font-family: monospace; background: #f0f0f0; padding: 2px 6px; border-radius: 4px;">${clientData.tempPassword}</span></p>
+            <p style="margin: 5px 0; color: #d32f2f; font-weight: bold;">⚠️ Changez ce mot de passe dès votre première connexion pour sécuriser votre compte</p>
+          ` : `
+            <p style="margin: 5px 0;">Utilisez votre mot de passe habituel pour vous connecter.</p>
+            <p style="margin: 5px 0; font-size: 14px; color: #666;">
+              Si vous avez oublié votre mot de passe, utilisez la fonction "Mot de passe oublié" sur la page de connexion.
+            </p>
+          `}
+          <p style="margin: 10px 0; padding: 10px; background: #fff3cd; border-left: 4px solid #ffc107; font-size: 14px;">
+            <strong>💡 Conseil :</strong> Ajoutez cette page à vos favoris pour un accès rapide à vos futurs devis.
+          </p>
+        </div>
+      `
+        : "";
+
+      const welcomeMessage = isFirstValidatedDevis
+        ? `Bienvenue ! Votre devis pour le projet <strong>"${projectData.name}"</strong> a été validé. Vous avez maintenant accès à votre espace client sécurisé.`
+        : `Votre nouveau devis pour le projet <strong>"${projectData.name}"</strong> a été validé et est maintenant disponible.`;
+
+      const emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #f26755; border-radius: 8px; overflow: hidden;">
+          <div style="background: linear-gradient(90deg, #f26755 0%, #f28c55 100%); padding: 20px; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 24px;">
+              ${
+                isFirstValidatedDevis
+                  ? "🎉 Bienvenue sur Aximotravo"
+                  : "Devis Validé ✅"
+              }
+            </h1>
+          </div>
+          
+          <div style="padding: 30px;">
+            <p style="font-size: 16px; color: #333; margin-bottom: 20px;">
+              Bonjour ${clientData.firstName || ""} ${
+        clientData.lastName || ""
+      },
+            </p>
+            
+            <p style="font-size: 16px; color: #333; margin-bottom: 20px;">
+              ${welcomeMessage}
+            </p>
+            
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="color: #f26755; margin-top: 0;">📋 Détails du devis</h3>
+              <p><strong>Titre :</strong> ${devisData?.titre || "Devis"}</p>
+              <p><strong>Projet :</strong> ${projectData.name}</p>
+              <p><strong>Date de validation :</strong> ${new Date().toLocaleDateString(
+                "fr-FR"
+              )}</p>
+            </div>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${secureClientUrl}" 
+                 style="display: inline-block; background: #f26755; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 10px;">
+                🔐 Accéder à votre espace sécurisé
+              </a>
+              
+              <a href="${pdfUrl}" 
+                 style="display: inline-block; background: #28a745; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 10px;">
+                📄 Télécharger le PDF
+              </a>
+            </div>
+            
+            ${loginInstructionsSection}
+            
+            ${comment ? `
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f26755;">
+              <h4 style="color: #f26755; margin-top: 0; font-size: 16px;">💬 Message de votre courtier</h4>
+              <p style="font-size: 15px; color: #333; margin: 0; line-height: 1.5;">${comment}</p>
+            </div>
+            ` : ''}
+            
+            <p style="font-size: 14px; color: #666; margin-top: 30px;">
+              Pour toute question, n'hésitez pas à nous contacter.
+            </p>
+            
+            <p style="font-size: 14px; color: #666;">
+              Cordialement,<br>
+              L'équipe Aximotravo
+            </p>
+          </div>
+        </div>
+      `;
+
+      // Envoyer l'email
+      const response = await fetch("/api/send-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          to: clientData.email,
+          subject: emailSubject,
+          html: emailHtml,
+        }),
+      });
+
+      if (response.ok) {
+        // Fermer le toast de chargement
+        loadingToast.dismiss();
+
+        // Mettre à jour le statut du devis à "Envoyé au client"
+        try {
+          await updateDoc(devisRef, {
+            status: "Envoyé au client"
+          });
+          console.log("Statut du devis mis à jour à 'Envoyé au client'");
+          
+          // Mettre à jour l'état local pour rafraîchir l'interface
+          const updateLocalDevisStatus = (items: DevisItem[]) => {
+            return items.map(item => 
+              item.id === devisId 
+                ? { ...item, status: "Envoyé au client" }
+                : item
+            );
+          };
+          
+          // Mettre à jour tous les onglets qui pourraient contenir ce devis
+          if (type === "devisConfig") {
+            devisTabsData["generes"].setItems((prev: DevisItem[]) => updateLocalDevisStatus(prev));
+          } else {
+            devisTabsData["uploades"].setItems((prev: DevisItem[]) => updateLocalDevisStatus(prev));
+          }
+          
+        } catch (statusUpdateError) {
+          console.error("Erreur lors de la mise à jour du statut du devis:", statusUpdateError);
+        }
+
+        // Si c'est le premier devis et qu'un mot de passe temporaire a été envoyé, le supprimer
+        if (isFirstValidatedDevis && clientData.tempPassword) {
+          try {
+            await updateDoc(clientRef, {
+              tempPassword: null // Supprimer le mot de passe pour sécurité
+            });
+            console.log("Mot de passe temporaire supprimé");
+          } catch (passwordUpdateError) {
+            console.error("Erreur lors de la suppression du mot de passe temporaire:", passwordUpdateError);
+          }
+        }
+
+        // Afficher le toast de succès
+        toast({
+          title: "✅ Email envoyé !",
+          description: "L'email a été envoyé avec succès au client. Statut mis à jour.",
+          className: "border-green-200 bg-green-50 text-green-800",
+        });
+      } else {
+        throw new Error("Erreur lors de l'envoi de l'email");
+      }
+    } catch (error) {
+      console.error("Erreur lors de l'envoi de l'email:", error);
+
+      // Fermer le toast de chargement
+      loadingToast.dismiss();
+
+      // Afficher le toast d'erreur
+      toast({
+        variant: "destructive",
+        title: "❌ Erreur d'envoi",
+        description:
+          "Impossible d'envoyer l'email au client. Veuillez réessayer.",
+      });
+    } finally {
+      setSendingEmailId(null);
+    }
+  };
+
+  // Fonction pour vérifier si c'est le premier devis validé
+  const checkIfFirstValidatedDevis = async (
+    projectId: string,
+    currentDevisId: string,
+    currentType: string
+  ) => {
+    try {
+      // Vérifier dans la collection devis
+      const devisQuery = query(
+        collection(db, "devis"),
+        where("projectId", "==", projectId),
+        where("status", "in", ["Validé", "Envoyé au client"])
+      );
+      const devisSnapshot = await getDocs(devisQuery);
+
+      // Vérifier dans la collection devisConfig
+      const devisConfigQuery = query(
+        collection(db, "devisConfig"),
+        where("projectId", "==", projectId),
+        where("status", "in", ["Validé", "Envoyé au client"])
+      );
+      const devisConfigSnapshot = await getDocs(devisConfigQuery);
+
+      // Compter les devis validés en excluant le devis actuel
+      let validatedCount = 0;
+
+      devisSnapshot.docs.forEach((doc) => {
+        if (!(currentType === "devis" && doc.id === currentDevisId)) {
+          validatedCount++;
+        }
+      });
+
+      devisConfigSnapshot.docs.forEach((doc) => {
+        if (!(currentType === "devisConfig" && doc.id === currentDevisId)) {
+          validatedCount++;
+        }
+      });
+
+      return validatedCount === 0;
+    } catch (error) {
+      console.error("Erreur lors de la vérification du premier devis:", error);
+      return false;
+    }
+  };
 
   // ====================
   // Effet : Récupération des artisans acceptés pour le projet courant
@@ -244,6 +618,13 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
         bg: "bg-orange-50",
         text: "text-orange-700",
         border: "border-orange-200",
+      },
+      {
+        value: "Envoyé au client",
+        label: "Envoyé au client",
+        bg: "bg-purple-50",
+        text: "text-purple-700",
+        border: "border-purple-200",
       },
     ];
 
@@ -532,14 +913,17 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
 
         <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
           <TVAHelper />
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#f26755] hover:bg-[#e55a4a] text-white rounded-xl font-semibold text-sm shadow-lg hover:shadow-xl transition-all duration-200"
-          >
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Créer un devis</span>
-            <span className="sm:hidden">Créer</span>
-          </button>
+          {/* 🔒 Bouton de création de devis - Visible uniquement pour les courtiers */}
+          {userRole === "courtier" && (
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#f26755] hover:bg-[#e55a4a] text-white rounded-xl font-semibold text-sm shadow-lg hover:shadow-xl transition-all duration-200"
+            >
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Créer un devis</span>
+              <span className="sm:hidden">Créer</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -697,7 +1081,10 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                       <td className="px-6 py-4 text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <button aria-label="bouton" className="inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100">
+                            <button
+                              aria-label="bouton"
+                              className="inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100"
+                            >
                               <MoreVertical className="w-5 h-5 text-gray-500" />
                             </button>
                           </DropdownMenuTrigger>
@@ -741,6 +1128,21 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                                   </a>
                                 </DropdownMenuItem>
                               </>
+                            )}
+                            {userRole === "courtier" && (
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  handleOpenCommentModal(
+                                    devisItem.id,
+                                    "devis",
+                                    projectId || ""
+                                  )
+                                }
+                                disabled={sendingEmailId === devisItem.id}
+                              >
+                                <Send className="w-4 h-4 mr-2" />
+                                Envoyer au client
+                              </DropdownMenuItem>
                             )}
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -913,7 +1315,10 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                       <td className="px-6 py-4 text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <button aria-label="bouton" className="inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100">
+                            <button
+                              aria-label="bouton"
+                              className="inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100"
+                            >
                               <MoreVertical className="w-5 h-5 text-gray-500" />
                             </button>
                           </DropdownMenuTrigger>
@@ -936,6 +1341,21 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                                   Attribuer
                                 </DropdownMenuItem>
                               )}
+                            {userRole === "courtier" && (
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  handleOpenCommentModal(
+                                    doc.id,
+                                    "devisConfig",
+                                    projectId || ""
+                                  )
+                                }
+                                disabled={sendingEmailId === doc.id}
+                              >
+                                <Send className="w-4 h-4 mr-2" /> Envoyer au
+                                client
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </td>
@@ -983,159 +1403,207 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
           <div className="p-6 border-b border-gray-200">
             <div className="flex items-center justify-between mb-4">
               <h4 className="text-lg font-bold text-gray-900">Factures</h4>
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                  showFilters
+                    ? "bg-[#f26755] text-white shadow-sm"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                <Filter className="h-4 w-4" />
+                Filtres
+              </button>
             </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Numéro
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Titre
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Attribué
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Statut
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Montant
-                    </th>
-                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {paginatedFactures.length > 0 ? (
-                    paginatedFactures.map((doc) => (
-                      <tr
-                        key={doc.id}
-                        className="hover:bg-gray-50 transition-colors"
-                      >
-                        <td className="px-6 py-4">
-                          <span className="font-mono text-sm font-medium text-gray-900">
-                            {doc.numero || "-"}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="font-medium text-gray-900">
-                            {doc.titre || "-"}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="font-medium text-gray-900">
-                            {doc.attribution?.artisanName || "-"}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">{doc.status}</td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-1">
-                            <Euro className="h-4 w-4 text-gray-400" />
-                            <span className="font-semibold text-gray-900">
-                              {Array.isArray(doc.selectedItems) &&
-                              doc.selectedItems.length > 0
-                                ? doc.selectedItems
-                                    .reduce((sum: number, item: any) => {
-                                      const tva =
-                                        typeof item.tva === "number"
-                                          ? item.tva
-                                          : parseFloat(item.tva as string) ||
-                                            20;
-                                      return (
-                                        sum +
-                                        item.quantite *
-                                          item.prix_ht *
-                                          (1 + tva / 100)
-                                      );
-                                    }, 0)
-                                    .toLocaleString("fr-FR", {
-                                      minimumFractionDigits: 2,
-                                      maximumFractionDigits: 2,
-                                    })
-                                : "-"}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <button aria-label="bouton" className="inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100">
-                                <MoreVertical className="w-5 h-5 text-gray-500" />
-                              </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              {
-                                <>
-                                  <DropdownMenuItem asChild>
-                                    <a
-                                      href={doc.pdfUrl}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="flex items-center gap-3 w-full"
-                                      onClick={() => {
-                                        setFacturePreview(doc);
-                                      }}
-                                    >
-                                      <FileText className="w-4 h-4 mr-2" />{" "}
-                                      Visualiser PDF
-                                    </a>
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem asChild>
-                                    <a
-                                      href="#"
-                                      onClick={(e) => {
-                                        e.preventDefault();
-                                        GenerateFacturePDF({
-                                          devis: doc,
-                                          userId: currentUserId || "",
-                                        });
-                                      }}
-                                      className="flex items-center gap-3 w-full"
-                                    >
-                                      <Download className="w-4 h-4 mr-2" />{" "}
-                                      Télécharger PDF
-                                    </a>
-                                  </DropdownMenuItem>
-                                </>
-                              }
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center">
-                        <div className="flex flex-col items-center gap-3">
-                          <Calendar className="h-12 w-12 text-gray-300" />
-                          <p className="text-gray-500 font-medium">
-                            Aucune facture validée
-                          </p>
-                          <p className="text-sm text-gray-400">
-                            Il n'y a aucune facture validée pour l’instant.
-                          </p>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-              {/* --- Pagination des factures validées --- */}
-              {paginatedFactures.length > 0 && (
-                <Pagination
-                  currentPage={devisTabsData["Factures"].currentPage}
-                  totalPages={totalPagesFactures}
-                  onPageChange={devisTabsData["Factures"].setCurrentPage}
-                  totalItems={totalItemsFactures}
-                  itemsPerPage={devisTabsData["Factures"].itemsPerPage}
-                />
-              )}
+            {/* Filtres */}
+            <div
+              className={`transition-all duration-300 overflow-hidden ${
+                showFilters ? "max-h-32 opacity-100" : "max-h-0 opacity-0"
+              }`}
+            >
+              <div className="grid grid-cols-1 gap-4 pt-4 border-t border-gray-100">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Rechercher par titre..."
+                    name="titre"
+                    value={filters.titre}
+                    onChange={handleFilterChange}
+                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f26755]/20 focus:border-[#f26755] transition-colors"
+                  />
+                </div>
+              </div>
             </div>
           </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Numéro
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Titre
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Attribué
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Statut
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Montant
+                  </th>
+                  <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {paginatedFactures.length > 0 ? (
+                  paginatedFactures.map((doc) => (
+                    <tr
+                      key={doc.id}
+                      className="hover:bg-gray-50 transition-colors"
+                    >
+                      <td className="px-6 py-4">
+                        <span className="font-mono text-sm font-medium text-gray-900">
+                          {doc.numero || "-"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="font-medium text-gray-900">
+                          {doc.titre || "-"}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="font-medium text-gray-900">
+                          {doc.attribution?.artisanName || "-"}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">{doc.status}</td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-1">
+                          <Euro className="h-4 w-4 text-gray-400" />
+                          <span className="font-semibold text-gray-900">
+                            {Array.isArray(doc.selectedItems) &&
+                            doc.selectedItems.length > 0
+                              ? doc.selectedItems
+                                  .reduce((sum: number, item: any) => {
+                                    const tva =
+                                      typeof item.tva === "number"
+                                        ? item.tva
+                                        : parseFloat(item.tva as string) || 20;
+                                    return (
+                                      sum +
+                                      item.quantite *
+                                        item.prix_ht *
+                                        (1 + tva / 100)
+                                    );
+                                  }, 0)
+                                  .toLocaleString("fr-FR", {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                  })
+                              : "-"}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              aria-label="bouton"
+                              className="inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100"
+                            >
+                              <MoreVertical className="w-5 h-5 text-gray-500" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {
+                              <>
+                                <DropdownMenuItem asChild>
+                                  <a
+                                    href={doc.pdfUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-3 w-full"
+                                    onClick={() => {
+                                      setFacturePreview(doc);
+                                    }}
+                                  >
+                                    <FileText className="w-4 h-4 mr-2" />{" "}
+                                    Visualiser PDF
+                                  </a>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem asChild>
+                                  <a
+                                    href="#"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      GenerateFacturePDF({
+                                        devis: doc,
+                                        userId: currentUserId || "",
+                                      });
+                                    }}
+                                    className="flex items-center gap-3 w-full"
+                                  >
+                                    <Download className="w-4 h-4 mr-2" />{" "}
+                                    Télécharger PDF
+                                  </a>
+                                </DropdownMenuItem>
+                                {doc.status === "Validé" && (
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      handleSendToClient(
+                                        doc.id,
+                                        "devis", // Les factures sont stockées comme devis avec un flag
+                                        projectId || ""
+                                      )
+                                    }
+                                    disabled={sendingEmailId === doc.id}
+                                  >
+                                    <Send className="w-4 h-4 mr-2" />
+                                    Envoyer au client
+                                  </DropdownMenuItem>
+                                )}
+                              </>
+                            }
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center">
+                      <div className="flex flex-col items-center gap-3">
+                        <Calendar className="h-12 w-12 text-gray-300" />
+                        <p className="text-gray-500 font-medium">
+                          Aucune facture validée
+                        </p>
+                        <p className="text-sm text-gray-400">
+                          Il n'y a aucune facture validée pour l’instant.
+                        </p>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          {/* --- Pagination des factures validées --- */}
+          {paginatedFactures.length > 0 && (
+            <Pagination
+              currentPage={devisTabsData["Factures"].currentPage}
+              totalPages={totalPagesFactures}
+              onPageChange={devisTabsData["Factures"].setCurrentPage}
+              totalItems={totalItemsFactures}
+              itemsPerPage={devisTabsData["Factures"].itemsPerPage}
+            />
+          )}
         </div>
       )}
 
@@ -1154,6 +1622,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
       {showAssignModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
           <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md relative">
+            {/* Bouton de fermeture */}
             <button
               className="absolute top-2 right-2 text-gray-400 hover:text-gray-700"
               onClick={() => {
@@ -1230,6 +1699,72 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
           </div>
         </div>
       )}
+
+      {/* Modal de commentaire avant envoi */}
+      {showCommentModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-lg mx-4 relative">
+            {/* Bouton de fermeture */}
+            <button
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+              onClick={handleCancelSend}
+            >
+              <span className="sr-only">Fermer</span>
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            {/* Titre */}
+            <div className="mb-6">
+              <h3 className="text-xl font-bold text-gray-900 mb-2">
+                📧 Envoyer le devis au client
+              </h3>
+              <p className="text-sm text-gray-600">
+                Vous pouvez ajouter un message personnalisé qui sera inclus dans l'email envoyé au client.
+              </p>
+            </div>
+
+            {/* Champ de commentaire */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                💬 Message personnalisé (optionnel)
+              </label>
+              <textarea
+                value={emailComment}
+                onChange={(e) => setEmailComment(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f26755] focus:border-[#f26755] transition-colors resize-none"
+                rows={4}
+                placeholder="Exemple: Merci pour votre confiance, n'hésitez pas si vous avez des questions..."
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Ce message apparaîtra dans l'email avec un style mis en valeur.
+              </p>
+            </div>
+
+            {/* Boutons d'action */}
+            <div className="flex gap-3">
+              <button
+                className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                onClick={handleCancelSend}
+              >
+                Annuler
+              </button>
+              <button
+                className="flex-1 px-4 py-3 bg-[#f26755] text-white rounded-lg hover:bg-[#e55a4a] transition-colors font-medium flex items-center justify-center gap-2"
+                onClick={handleConfirmSendWithComment}
+                disabled={sendingEmailId !== null}
+              >
+                <Send className="w-4 h-4" />
+                {emailComment.trim() ? 'Envoyer avec message' : 'Envoyer sans message'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+function setItems(arg0: (prev: any) => any) {
+  throw new Error("Function not implemented.");
+}

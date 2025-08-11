@@ -659,7 +659,7 @@ export const FacturePDFDocument: React.FC<FacturePDFDocumentProps> = ({
                       )}
                     </View>
                     <View style={styles.tableCellCenter}>
-                      <Text style={{ fontWeight: 'bold' }}>{item.quantite}</Text>
+                      <Text style={{ fontWeight: 'bold' }}>{Number(item.quantite).toFixed(1)}</Text>
                       <Text style={{ fontSize: 7, color: '#6B7280' }}>{item.unite}</Text>
                     </View>
                     <Text style={styles.tableCellRight}>{formatPrice(item.prix_ht)}</Text>

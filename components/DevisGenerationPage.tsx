@@ -1204,7 +1204,7 @@ if (!devis) {
                                         Quantité
                                       </label>
                                       <div className="text-sm sm:text-lg font-bold text-gray-900">
-                                        {item.quantite}{" "}
+                                        {Number(item.quantite).toFixed(1)}{" "}
                                         {item.customUnit || item.unite}
                                         {item.pieces.length > 0 && (
                                           <span className="text-xs text-[#f26755] ml-1">

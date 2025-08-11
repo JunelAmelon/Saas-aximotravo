@@ -417,7 +417,7 @@ export const FacturePreview: React.FC<FacturePreviewProps> = ({
                           >
                             <div className="text-xs sm:text-sm">
                               <div className="font-semibold">
-                                {item.quantite}
+                                {Number(item.quantite).toFixed(1)}
                               </div>
                               <div className="text-gray-500 text-xs">
                                 {item.unite}

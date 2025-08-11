@@ -3,6 +3,8 @@ import { addDocument, updateDocument } from "@/lib/firebase/firestore";
 import { getDocumentGenerate } from "@/lib/firebase/firestore";
 // Types stricts importés pour la cohérence globale
 import type { DevisItem, PieceSelection, SurfaceData, ClientInfo, CompanyInfo } from "@/types/devis";
+// Import de la fonction de calcul du montant
+import { calculateDevisMontantTTC } from "@/utils/devisCalculations";
 
 // Typage de la configuration du devis (à enrichir selon les besoins réels)
 type DevisConfig = {
@@ -25,6 +27,7 @@ type DevisConfig = {
   projectId?: string; // Lien vers le projet parent
   signatureClient?: string; // Image/base64 de la signature
   deadline?: string; // Date limite de validité
+  montant?: number; // Montant total TTC calculé automatiquement
   // Ajoute ici tout champ additionnel utile à l'édition ou la génération de devis
 };
 
@@ -74,13 +77,24 @@ export const DevisConfigProvider: React.FC<DevisConfigProviderProps> = ({ devisI
     return id;
   }, []);
 
-  // Auto-save sur modification d'un champ
+  // Auto-save sur modification d'un champ avec calcul automatique du montant
   const setDevisConfigField = useCallback(
     (field: string, value: any) => {
       if (!devisConfigId) return;
       const newConfig = { ...devisConfig, [field]: value };
       setDevisConfig(newConfig);
-      updateDocument("devisConfig", devisConfigId, { [field]: value });
+      
+      // Calcul automatique du montant si les items sélectionnés changent
+      let updateData: any = { [field]: value };
+      
+      if (field === 'selectedItems' && Array.isArray(value)) {
+        const montantTTC = calculateDevisMontantTTC(value, newConfig.tva || 20);
+        updateData.montant = montantTTC;
+        // Mettre à jour aussi l'état local
+        setDevisConfig({ ...newConfig, montant: montantTTC });
+      }
+      
+      updateDocument("devisConfig", devisConfigId, updateData);
     },
     [devisConfig, devisConfigId]
   );

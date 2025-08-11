@@ -51,6 +51,7 @@ import {
   updateDoc,
   query,
   where,
+  orderBy,
   addDoc,
   serverTimestamp,
 } from "firebase/firestore";
@@ -280,9 +281,28 @@ export default function ProjectDetails() {
   const getDevisForProject = async (projectId: string): Promise<any[]> => {
     try {
       const devisRef = collection(db, "devis");
-      const q = query(devisRef, where("projectId", "==", projectId));
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      // Essayer d'abord avec orderBy
+      try {
+        const q = query(
+          devisRef, 
+          where("projectId", "==", projectId),
+          orderBy("createdAt", "desc") // Tri par date de création (plus récent en premier)
+        );
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      } catch (orderError) {
+        console.warn("Erreur avec orderBy, récupération sans tri:", orderError);
+        // Fallback sans orderBy si l'index n'existe pas ou si certains docs n'ont pas createdAt
+        const q = query(devisRef, where("projectId", "==", projectId));
+        const snapshot = await getDocs(q);
+        const docs = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        // Tri côté client si possible
+        return docs.sort((a: any, b: any) => {
+          const aDate = a.createdAt?.toDate?.() || a.createdAt || new Date(0);
+          const bDate = b.createdAt?.toDate?.() || b.createdAt || new Date(0);
+          return new Date(bDate).getTime() - new Date(aDate).getTime();
+        });
+      }
     } catch (error) {
       console.error("Erreur lors de la récupération des devis:", error);
       return [];
@@ -294,9 +314,28 @@ export default function ProjectDetails() {
   ): Promise<any[]> => {
     try {
       const devisConfigRef = collection(db, "devisConfig");
-      const q = query(devisConfigRef, where("projectId", "==", projectId));
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      // Essayer d'abord avec orderBy
+      try {
+        const q = query(
+          devisConfigRef, 
+          where("projectId", "==", projectId),
+          orderBy("createdAt", "desc") // Tri par date de création (plus récent en premier)
+        );
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      } catch (orderError) {
+        console.warn("Erreur avec orderBy, récupération sans tri:", orderError);
+        // Fallback sans orderBy si l'index n'existe pas ou si certains docs n'ont pas createdAt
+        const q = query(devisConfigRef, where("projectId", "==", projectId));
+        const snapshot = await getDocs(q);
+        const docs = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        // Tri côté client si possible
+        return docs.sort((a: any, b: any) => {
+          const aDate = a.createdAt?.toDate?.() || a.createdAt || new Date(0);
+          const bDate = b.createdAt?.toDate?.() || b.createdAt || new Date(0);
+          return new Date(bDate).getTime() - new Date(aDate).getTime();
+        });
+      }
     } catch (error) {
       console.error("Erreur lors de la récupération des devisConfig:", error);
       return [];
@@ -459,6 +498,8 @@ export default function ProjectDetails() {
 
   const handleBackToHome = () => {
     setStep(null);
+    // Déclencher un rechargement des données quand on revient de la génération
+    setRefreshTrigger(prev => prev + 1);
     router.push(`/artisan/projects/${id}`); // Redirige vers la page ProjectDetails
   };
   const handleSelectPieces = () => setStep("pieces");
@@ -467,6 +508,8 @@ export default function ProjectDetails() {
   // ..
   const handleBackToCreate = () => {
     setStep(null); // Ferme PiecesSelectionModal
+    // Déclencher un rechargement des données quand on revient à la liste
+    setRefreshTrigger(prev => prev + 1);
     setShowCreateModal(true); // Réaffiche la modale de création
   };
 
@@ -491,6 +534,71 @@ export default function ProjectDetails() {
   );
   const router = useRouter();
 
+  // État pour forcer le rechargement
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  // Fonction pour recharger toutes les données
+  const reloadAllData = async () => {
+    if (!id || !currentUser?.uid) return;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Recharger les données du projet
+      const projectData = await getProjectDetail(id);
+      setProject(projectData);
+      if (!projectData) setError("Projet introuvable");
+      
+      // Recharger les devis
+      const devisData = await getDevisForProject(id);
+      setDevisImportes(devisData);
+      
+      // Recharger les devis générés
+      const devisConfigData = await getDevisConfigForProject(id);
+      setDevisGeneres(devisConfigData);
+      setDevisFactures(
+        devisConfigData.filter((d) => d.status?.toLowerCase() === "validé")
+      );
+      
+    } catch (err) {
+      setError("Erreur lors du chargement du projet");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Effet principal pour charger les données
+  useEffect(() => {
+    reloadAllData();
+  }, [id, currentUser?.uid, refreshTrigger]);
+
+  // Effet pour détecter le retour sur la page et recharger automatiquement
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        // La page devient visible, on recharge
+        setRefreshTrigger(prev => prev + 1);
+      }
+    };
+
+    const handleFocus = () => {
+      // La fenêtre reprend le focus, on recharge
+      setRefreshTrigger(prev => prev + 1);
+    };
+
+    // Ajouter les event listeners
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    // Nettoyage
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, []);
+
+  // Ancien useEffect simplifié pour la compatibilité
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -530,7 +638,7 @@ export default function ProjectDetails() {
       setInvitationAccepted(snapshot.docs.length > 0);
     }
     checkInvitationAccepted();
-  }, [id, currentUserId]);
+  }, [id, currentUserId, refreshTrigger]); // Ajout de refreshTrigger pour recharger après acceptation
 
   useEffect(() => {
     async function checkInvitationstatus() {
@@ -555,7 +663,7 @@ export default function ProjectDetails() {
       }
     }
     checkInvitationstatus();
-  }, [id, currentUserId]);
+  }, [id, currentUserId, refreshTrigger]); // Ajout de refreshTrigger pour synchronisation
 
   // Récupération des artisans acceptés du projet
   useEffect(() => {
@@ -603,6 +711,22 @@ export default function ProjectDetails() {
       return () => clearTimeout(timeout);
     }
   }, [pendingInvitation.refused, router]);
+
+  // Rechargement automatique après acceptation d'invitation
+  React.useEffect(() => {
+    if (pendingInvitation.accepted) {
+      console.log('🔄 Invitation acceptée - rechargement automatique de la page');
+      // Déclencher un rechargement complet des données
+      setRefreshTrigger(prev => prev + 1);
+      // Recharger aussi les statuts d'invitation
+      if (id && currentUserId) {
+        // Forcer la re-vérification du statut d'invitation
+        setTimeout(() => {
+          setRefreshTrigger(prev => prev + 1);
+        }, 500); // Petit délai pour s'assurer que la DB est à jour
+      }
+    }
+  }, [pendingInvitation.accepted, id, currentUserId]);
 
   const handleSendRequest = async () => {
     if (!selectedArtisanIds.length || !project?.id) return;
@@ -1120,7 +1244,11 @@ export default function ProjectDetails() {
           <DevisGenerationPage
             open={step === "generation"}
             onOpenChange={(open) => {
-              if (!open) setStep(null); // ou "pieces" ou autre selon ton workflow
+              if (!open) {
+                setStep(null);
+                // Déclencher un rechargement des données quand on ferme la génération
+                setRefreshTrigger(prev => prev + 1);
+              }
             }}
             onBack={handleBackToHome}
           />

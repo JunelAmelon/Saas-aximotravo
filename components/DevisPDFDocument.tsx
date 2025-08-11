@@ -696,7 +696,7 @@ export const DevisPDFDocument = ({ devis, client, project }: { devis: Devis, cli
                 <View style={styles.detailsRow}>
                   <Text style={styles.detailLabel}>Quantité</Text>
                   <Text style={styles.quantityText}>
-                    {item.quantite} {item.customUnit || item.unite}
+                    {Number(item.quantite).toFixed(1)} {item.customUnit || item.unite}
                   </Text>
                 </View>
 
