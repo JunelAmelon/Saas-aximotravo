@@ -1353,7 +1353,8 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-          <TVAHelper />
+          {/* 🔒 Aide TVA - Visible uniquement pour les courtiers */}
+          {userRole === "courtier" && <TVAHelper />}
           {/* 🔒 Bouton de création de devis - Visible uniquement pour les courtiers */}
           {userRole === "courtier" && (
             <button
