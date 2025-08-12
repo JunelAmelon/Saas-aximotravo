@@ -133,8 +133,7 @@ export default function CourtierArtisans() {
     if (insuranceFile) assuranceUrl = await uploadToCloudinary(insuranceFile);
     if (fiscalFile) fiscalUrl = await uploadToCloudinary(fiscalFile);
     if (kbisFile) kbisUrl = await uploadToCloudinary(kbisFile);
-    if (companyLogoUrl)
-      companyLogoUrl = await uploadToCloudinary(companyLogoUrl);
+    if (companyLogoFile) companyLogoUrl = await uploadToCloudinary(companyLogoFile);
     setCloudinaryLoading(false);
     // Appel création artisan avec URLs Cloudinary
     await createArtisan({
@@ -143,6 +142,7 @@ export default function CourtierArtisans() {
       assuranceUrl,
       fiscalUrl,
       kbisUrl,
+      companyLogoUrl,
     });
     if (!formError) {
       setForm({

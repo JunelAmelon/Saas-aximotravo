@@ -153,7 +153,7 @@ export const FacturePreview: React.FC<FacturePreviewProps> = ({
     }).format(price);
   };
 
-  console.log(devis);
+console.log(user);
 
   // Affichage du loader pendant le chargement
   if (loading) {
@@ -187,6 +187,8 @@ export const FacturePreview: React.FC<FacturePreviewProps> = ({
                     src={user.companyLogoUrl}
                     alt={user.companyName}
                     className="h-16 sm:h-20 lg:h-32 w-auto max-w-[200px] sm:max-w-[250px] lg:max-w-[300px] object-contain bg-white p-2 sm:p-3 rounded-xl shadow-lg"
+                    onLoad={() => console.log('🖼️ Logo artisan chargé:', user.companyLogoUrl)}
+                    onError={() => console.error('❌ Erreur chargement logo artisan:', user.companyLogoUrl)}
                   />
                 ) : (
                   <div
@@ -203,6 +205,8 @@ export const FacturePreview: React.FC<FacturePreviewProps> = ({
                   src={DEFAULT_COMPANY_INFO.logoUrl}
                   alt={DEFAULT_COMPANY_INFO.name}
                   className="h-16 sm:h-20 lg:h-32 w-auto max-w-[200px] sm:max-w-[250px] lg:max-w-[300px] object-contain bg-white p-2 sm:p-3 rounded-xl shadow-lg"
+                  onLoad={() => console.log('🖼️ Logo courtier chargé:', DEFAULT_COMPANY_INFO.logoUrl)}
+                  onError={() => console.error('❌ Erreur chargement logo courtier:', DEFAULT_COMPANY_INFO.logoUrl)}
                 />
               )}
             </div>
