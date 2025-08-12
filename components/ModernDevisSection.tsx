@@ -1965,19 +1965,13 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                           <DropdownMenuContent align="end">
                             {
                               <>
-                                <DropdownMenuItem asChild>
-                                  <a
-                                    href={doc.pdfUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center gap-3 w-full"
-                                    onClick={() => {
-                                      setFacturePreview(doc);
-                                    }}
-                                  >
-                                    <FileText className="w-4 h-4 mr-2" />{" "}
-                                    Visualiser PDF
-                                  </a>
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setFacturePreview(doc);
+                                  }}
+                                >
+                                  <FileText className="w-4 h-4 mr-2" />
+                                  Visualiser la facture
                                 </DropdownMenuItem>
                                 <DropdownMenuItem asChild>
                                   <a
