@@ -133,7 +133,8 @@ export default function CourtierArtisans() {
     if (insuranceFile) assuranceUrl = await uploadToCloudinary(insuranceFile);
     if (fiscalFile) fiscalUrl = await uploadToCloudinary(fiscalFile);
     if (kbisFile) kbisUrl = await uploadToCloudinary(kbisFile);
-    if (companyLogoFile) companyLogoUrl = await uploadToCloudinary(companyLogoFile);
+    if (companyLogoFile)
+      companyLogoUrl = await uploadToCloudinary(companyLogoFile);
     setCloudinaryLoading(false);
     // Appel création artisan avec URLs Cloudinary
     await createArtisan({
@@ -277,12 +278,12 @@ export default function CourtierArtisans() {
 
       {/* Modal d'ajout */}
       <Dialog open={openAddModal} onOpenChange={setOpenAddModal}>
-        <DialogContent className="max-w-2xl w-full p-0 rounded-3xl shadow-xl bg-[#fff] border-0">
+        <DialogContent className="max-w-xs sm:max-w-md md:max-w-2xl lg:max-w-4xl w-full p-0 rounded-2xl sm:rounded-3xl shadow-xl bg-[#fff] border-0 max-h-[95vh] overflow-hidden">
           <div className="relative bg-white">
             {cloudinaryLoading && (
               <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm rounded-lg">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#f26755] mb-4"></div>
-                <span className="text-[#f26755] font-semibold text-lg">
+                <div className="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-t-2 border-b-2 border-[#f26755] mb-2 sm:mb-4"></div>
+                <span className="text-[#f26755] font-medium sm:font-semibold text-sm sm:text-lg">
                   Enregistrement des fichiers..
                 </span>
               </div>
@@ -290,446 +291,370 @@ export default function CourtierArtisans() {
 
             <form
               onSubmit={handleAddArtisan}
-              className="flex flex-col gap-6 max-h-[70vh] overflow-y-auto p-8 bg-white rounded-3xl shadow-xl border border-gray-100"
+              className="flex flex-col gap-3 sm:gap-4 md:gap-6 max-h-[75vh] sm:max-h-[70vh] overflow-y-auto p-3 sm:p-6 md:p-8 bg-white rounded-2xl sm:rounded-3xl shadow-xl border border-gray-100"
             >
-              {/* TITRE */}
-              <div className="border-b border-gray-100">
-                <h2 className="text-3xl font-extrabold text-[#f26755] tracking-wide uppercase mb-1">
+              {/* TITRE - Responsive */}
+              <div className="border-b border-gray-100 pb-2 sm:pb-3 mb-3 sm:mb-4">
+                <h2 className="text-lg sm:text-2xl md:text-3xl font-extrabold text-[#f26755] tracking-wide uppercase mb-1 text-center sm:text-left">
                   Ajouter un artisan
                 </h2>
-                <p className="text-base text-gray-400 font-medium">
+                <p className="text-xs sm:text-sm md:text-base text-gray-400 font-medium text-center sm:text-left">
                   Tous les champs sont obligatoires
                 </p>
               </div>
 
-              {/* --- SECTION ARTISAN --- */}
-              <h3 className="text-base font-bold text-[#f26755] uppercase tracking-wider col-span-2 mt-1 mb-1">
-                Informations sur l'artisan
-              </h3>
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
-                    Prénom*
-                  </label>
-                  <input
-                    name="firstName"
-                    value={form.firstName}
-                    onChange={handleFormChange}
-                    required
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] transition-all"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
-                    Nom*
-                  </label>
-                  <input
-                    name="lastName"
-                    value={form.lastName}
-                    onChange={handleFormChange}
-                    required
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] transition-all"
-                  />
-                </div>
-                <div className="space-y-1 ">
-                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
-                    Email*
-                  </label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={form.email}
-                    onChange={handleFormChange}
-                    required
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] transition-all"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
-                    Téléphone*
-                  </label>
-                  <input
-                    name="phoneNumber"
-                    value={form.phoneNumber}
-                    onChange={handleFormChange}
-                    required
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] transition-all"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label
-                    htmlFor="specialite-select"
-                    className="text-xs font-semibold uppercase tracking-wide text-gray-600"
-                  >
-                    Spécialité*
-                  </label>
-                  <select
-                    name="specialite"
-                    value={form.specialite}
-                    onChange={handleFormChange}
-                    required
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f26755]/50 focus:border-[#f26755] transition-all appearance-none"
-                  >
-                    <option value="">Sélectionnez une spécialité</option>
-                    <option value="maçonnerie">Maçonnerie</option>
-                    <option value="plomberie">Plomberie</option>
-                    <option value="électricité">Électricité</option>
-                    <option value="menuiserie">Menuiserie</option>
-                    <option value="peinture">Peinture</option>
-                    <option value="carrelage">Carrelage</option>
-                    <option value="couverture">Couverture</option>
-                    <option value="étanchéité">Étanchéité</option>
-                    <option value="autre">Autre (précisez)</option>
-                  </select>
-                  {form.specialite === "autre" && (
+              {/* --- SECTION ARTISAN - Responsive --- */}
+              <div className="bg-gray-50/30 rounded-lg sm:rounded-xl p-3 sm:p-4 md:p-6 border border-gray-100">
+                <h3 className="text-sm sm:text-base md:text-lg font-bold text-[#f26755] uppercase tracking-wider mb-4 sm:mb-6 flex items-center gap-2">
+                  Informations sur l'artisan
+                </h3>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
+                  {/* Nom */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] sm:text-xs md:text-sm font-semibold uppercase tracking-wide text-gray-600">
+                      Nom*
+                    </label>
                     <input
-                      name="otherSpecialite"
-                      value={form.otherSpecialite}
+                      name="lastName"
+                      value={form.lastName}
                       onChange={handleFormChange}
-                      placeholder="Précisez la spécialité"
-                      className="rounded-xl bg-gray-50 border border-gray-200 text-base placeholder:text-gray-400 focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] px-4 py-3"
+                      required
+                      className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-200 rounded-lg sm:rounded-xl bg-gray-50 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] transition-all"
                     />
-                  )}
-                </div>
-                <div className="space-y-1 ">
-                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
-                    Secteur géographique*
-                  </label>
-                  <input
-                    name="secteur"
-                    value={form.secteur}
-                    onChange={handleFormChange}
-                    required
-                    placeholder="Secteur d'intervention"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] transition-all"
-                  />
-                </div>
-                <div className="space-y-1 col-span-2">
-                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
-                    Certification*
-                  </label>
-                  <div className="flex items-center space-x-4 mt-1">
-                    <label className="inline-flex items-center space-x-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="hasCertification"
-                        value="oui"
-                        checked={form.hasCertification === "oui"}
-                        onChange={handleFormChange}
-                        className="h-4 w-4 text-[#f26755] focus:ring-[#f26755] border-gray-300"
-                      />
-                      <span className="text-gray-700">Oui</span>
-                    </label>
-                    <label className="inline-flex items-center space-x-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="hasCertification"
-                        value="non"
-                        checked={form.hasCertification === "non"}
-                        onChange={handleFormChange}
-                        className="h-4 w-4 text-[#f26755] focus:ring-[#f26755] border-gray-300"
-                      />
-                      <span className="text-gray-700">Non</span>
-                    </label>
                   </div>
-                  {form.hasCertification === "oui" && (
-                    <div className="mt-2">
-                      <label className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">
-                        Attestation de certification*
+
+                  {/* Prénom */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] sm:text-xs md:text-sm font-semibold uppercase tracking-wide text-gray-600">
+                      Prénom*
+                    </label>
+                    <input
+                      name="firstName"
+                      value={form.firstName}
+                      onChange={handleFormChange}
+                      required
+                      className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-200 rounded-lg sm:rounded-xl bg-gray-50 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] transition-all"
+                    />
+                  </div>
+
+                  {/* Email */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] sm:text-xs md:text-sm font-semibold uppercase tracking-wide text-gray-600">
+                      Email*
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={form.email}
+                      onChange={handleFormChange}
+                      required
+                      className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-200 rounded-lg sm:rounded-xl bg-gray-50 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] transition-all"
+                    />
+                  </div>
+
+                  {/* Téléphone */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] sm:text-xs md:text-sm font-semibold uppercase tracking-wide text-gray-600">
+                      Téléphone*
+                    </label>
+                    <input
+                      name="phoneNumber"
+                      value={form.phoneNumber}
+                      onChange={handleFormChange}
+                      required
+                      className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-200 rounded-lg sm:rounded-xl bg-gray-50 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] transition-all"
+                    />
+                  </div>
+
+                  {/* Spécialité */}
+                  <div className="space-y-1">
+                    <label
+                      htmlFor="specialite-select"
+                      className="text-[11px] sm:text-xs md:text-sm font-semibold uppercase tracking-wide text-gray-600"
+                    >
+                      Spécialité*
+                    </label>
+                    <select
+                      name="specialite"
+                      value={form.specialite}
+                      onChange={handleFormChange}
+                      required
+                      className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-200 rounded-lg sm:rounded-xl bg-gray-50 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-[#f26755]/50 focus:border-[#f26755] transition-all appearance-none"
+                    >
+                      <option value="">Sélectionnez une spécialité</option>
+                      <option value="maçonnerie">Maçonnerie</option>
+                      <option value="plomberie">Plomberie</option>
+                      <option value="électricité">Électricité</option>
+                      <option value="menuiserie">Menuiserie</option>
+                      <option value="peinture">Peinture</option>
+                      <option value="carrelage">Carrelage</option>
+                      <option value="couverture">Couverture</option>
+                      <option value="étanchéité">Étanchéité</option>
+                      <option value="autre">Autre (précisez)</option>
+                    </select>
+                    {form.specialite === "autre" && (
+                      <input
+                        name="otherSpecialite"
+                        value={form.otherSpecialite}
+                        onChange={handleFormChange}
+                        placeholder="Précisez la spécialité"
+                        className="w-full rounded-lg sm:rounded-xl bg-gray-50 border border-gray-200 text-sm sm:text-base placeholder:text-gray-400 focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] px-3 sm:px-4 py-2 sm:py-2.5 mt-2"
+                      />
+                    )}
+                  </div>
+
+                  {/* Secteur */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] sm:text-xs md:text-sm font-semibold uppercase tracking-wide text-gray-600">
+                      Secteur géographique*
+                    </label>
+                    <input
+                      name="secteur"
+                      value={form.secteur}
+                      onChange={handleFormChange}
+                      required
+                      placeholder="Secteur d'intervention"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-200 rounded-lg sm:rounded-xl bg-gray-50 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] transition-all"
+                    />
+                  </div>
+
+                  {/* Certification */}
+                  <div className="space-y-1 col-span-1 sm:col-span-2">
+                    <label className="text-[11px] sm:text-xs md:text-sm font-semibold uppercase tracking-wide text-gray-600">
+                      Certification*
+                    </label>
+                    <div className="flex items-center space-x-4 mt-1">
+                      <label className="inline-flex items-center space-x-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="hasCertification"
+                          value="oui"
+                          checked={form.hasCertification === "oui"}
+                          onChange={handleFormChange}
+                          className="h-4 w-4 text-[#f26755] focus:ring-[#f26755] border-gray-300"
+                        />
+                        <span className="text-gray-700">Oui</span>
                       </label>
-                      <div className="flex items-center justify-center w-full">
-                        <label className="flex flex-col w-full border border-dashed border-gray-200 hover:border-[#f26755] rounded-xl cursor-pointer transition-all p-4 bg-gray-50 hover:bg-orange-50 group">
-                          <div className="flex items-center gap-2 text-gray-400 group-hover:text-[#f26755] transition-colors">
-                            <Upload className="h-5 w-5" />
-                            <span className="text-sm">
-                              Cliquez pour uploader (PDF, JPG, PNG)
-                            </span>
-                          </div>
-                          <input
-                            type="file"
-                            accept="application/pdf,image/*"
-                            onChange={(e) =>
-                              handleFileChange(
-                                e,
-                                setCertificationFile,
-                                setCertificationUrl
-                              )
-                            }
-                            className="hidden"
-                            disabled={!!certificationFile}
-                          />
-                          {certificationUrl && (
-                            <div className="mt-4 flex justify-center items-center gap-2">
-                              {certificationFile &&
-                              certificationFile.type.startsWith("image/") ? (
-                                <img
-                                  src={certificationUrl}
-                                  alt="Aperçu certification"
-                                  className="max-h-24 rounded-lg border"
-                                />
-                              ) : (
-                                <a
-                                  href={certificationUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex items-center gap-2 text-blue-600 underline"
-                                >
-                                  <FileText className="h-5 w-5 text-blue-500" />
-                                  {certificationFile?.name || "Voir le fichier"}
-                                </a>
-                              )}
-                              <button
-                                type="button"
-                                className="ml-2 p-1 rounded hover:bg-gray-200"
-                                onClick={() => {
-                                  setCertificationFile(null);
-                                  setCertificationUrl(null);
-                                }}
-                                aria-label="Supprimer le fichier"
-                              >
-                                <X className="h-5 w-5 text-gray-500" />
-                              </button>
-                            </div>
-                          )}
-                        </label>
-                      </div>
+                      <label className="inline-flex items-center space-x-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="hasCertification"
+                          value="non"
+                          checked={form.hasCertification === "non"}
+                          onChange={handleFormChange}
+                          className="h-4 w-4 text-[#f26755] focus:ring-[#f26755] border-gray-300"
+                        />
+                        <span className="text-gray-700">Non</span>
+                      </label>
                     </div>
-                  )}
-                </div>
-                <div className="space-y-1 col-span-2">
-                  <label className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">
-                    Assurance*
-                  </label>
-                  <div className="flex items-center justify-center w-full">
-                    <label className="flex flex-col w-full border border-dashed border-gray-200 hover:border-[#f26755] rounded-xl cursor-pointer transition-all p-4 bg-gray-50 hover:bg-orange-50 group">
-                      <div className="flex items-center gap-2 text-gray-400 group-hover:text-[#f26755] transition-colors">
-                        <Upload className="h-5 w-5" />
-                        <span className="text-sm">
-                          Cliquez pour uploader (PDF, JPG, PNG)
-                        </span>
-                      </div>
-                      <input
-                        type="file"
-                        accept="application/pdf,image/*"
-                        onChange={(e) =>
-                          handleFileChange(e, setInsuranceFile, setInsuranceUrl)
-                        }
-                        className="hidden"
-                        disabled={!!insuranceFile}
-                      />
-                      {insuranceUrl && (
-                        <div className="mt-4 flex justify-center items-center gap-2">
-                          {insuranceFile &&
-                          insuranceFile.type.startsWith("image/") ? (
-                            <img
-                              src={insuranceUrl}
-                              alt="Aperçu assurance"
-                              className="max-h-24 rounded-lg border"
+
+                    {/* Upload certification */}
+                    {form.hasCertification === "oui" && (
+                      <div className="mt-2">
+                        <label className="block text-[11px] sm:text-xs md:text-sm font-semibold uppercase tracking-wide text-gray-600 mb-1">
+                          Attestation de certification*
+                        </label>
+                        <div className="flex items-center justify-center w-full">
+                          <label className="flex flex-col w-full border border-dashed border-gray-200 hover:border-[#f26755] rounded-lg sm:rounded-xl cursor-pointer transition-all p-3 sm:p-4 bg-gray-50 hover:bg-orange-50 group">
+                            <div className="flex items-center gap-2 text-gray-400 group-hover:text-[#f26755] transition-colors">
+                              <Upload className="h-4 w-4 sm:h-5 sm:w-5" />
+                              <span className="text-xs sm:text-sm">
+                                Cliquez pour uploader (PDF, JPG, PNG)
+                              </span>
+                            </div>
+                            <input
+                              type="file"
+                              accept="application/pdf,image/*"
+                              onChange={(e) =>
+                                handleFileChange(
+                                  e,
+                                  setCertificationFile,
+                                  setCertificationUrl
+                                )
+                              }
+                              className="hidden"
+                              disabled={!!certificationFile}
                             />
-                          ) : (
-                            <a
-                              href={insuranceUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-2 text-blue-600 underline"
-                            >
-                              <FileText className="h-5 w-5 text-blue-500" />
-                              {insuranceFile?.name || "Voir le fichier"}
-                            </a>
-                          )}
-                          <button
-                            type="button"
-                            className="ml-2 p-1 rounded hover:bg-gray-200"
-                            onClick={() => {
-                              setInsuranceFile(null);
-                              setInsuranceUrl(null);
-                            }}
-                            aria-label="Supprimer le fichier"
-                          >
-                            <X className="h-5 w-5 text-gray-500" />
-                          </button>
+                            {certificationUrl && (
+                              <div className="mt-3 sm:mt-4 flex justify-center items-center gap-2">
+                                {certificationFile?.type.startsWith(
+                                  "image/"
+                                ) ? (
+                                  <img
+                                    src={certificationUrl}
+                                    alt="Aperçu certification"
+                                    className="max-h-16 sm:max-h-20 md:max-h-24 rounded-lg border"
+                                  />
+                                ) : (
+                                  <a
+                                    href={certificationUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2 text-blue-600 underline text-xs sm:text-sm"
+                                  >
+                                    <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500" />
+                                    <span className="truncate max-w-[120px] sm:max-w-none">
+                                      {certificationFile?.name ||
+                                        "Voir le fichier"}
+                                    </span>
+                                  </a>
+                                )}
+                                <button
+                                  type="button"
+                                  className="ml-2 p-1 rounded hover:bg-gray-200"
+                                  onClick={() => {
+                                    setCertificationFile(null);
+                                    setCertificationUrl(null);
+                                  }}
+                                  aria-label="Supprimer le fichier"
+                                >
+                                  <X className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500" />
+                                </button>
+                              </div>
+                            )}
+                          </label>
                         </div>
-                      )}
-                    </label>
+                      </div>
+                    )}
                   </div>
-                </div>
-                <div className="space-y-1 col-span-2">
-                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
-                    Date d'assurance*
-                  </label>
-                  <input
-                    type="date"
-                    name="insuranceDate"
-                    value={form.insuranceDate}
-                    onChange={handleFormChange}
-                    required
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] transition-all"
-                  />
+
+                  {/* Assurance */}
+                  <div className="space-y-1 col-span-1 sm:col-span-2">
+                    <label className="block text-[11px] sm:text-xs md:text-sm font-semibold uppercase tracking-wide text-gray-600 mb-1">
+                      Assurance*
+                    </label>
+                    <div className="flex items-center justify-center w-full">
+                      <label className="flex flex-col w-full border border-dashed border-gray-200 hover:border-[#f26755] rounded-lg sm:rounded-xl cursor-pointer transition-all p-3 sm:p-4 bg-gray-50 hover:bg-orange-50 group">
+                        <div className="flex items-center gap-2 text-gray-400 group-hover:text-[#f26755] transition-colors">
+                          <Upload className="h-4 w-4 sm:h-5 sm:w-5" />
+                          <span className="text-xs sm:text-sm">
+                            Cliquez pour uploader (PDF, JPG, PNG)
+                          </span>
+                        </div>
+                        <input
+                          type="file"
+                          accept="application/pdf,image/*"
+                          onChange={(e) =>
+                            handleFileChange(
+                              e,
+                              setInsuranceFile,
+                              setInsuranceUrl
+                            )
+                          }
+                          className="hidden"
+                          disabled={!!insuranceFile}
+                        />
+                        {insuranceUrl && (
+                          <div className="mt-3 sm:mt-4 flex justify-center items-center gap-2">
+                            {insuranceFile?.type.startsWith("image/") ? (
+                              <img
+                                src={insuranceUrl}
+                                alt="Aperçu assurance"
+                                className="max-h-16 sm:max-h-20 md:max-h-24 rounded-lg border"
+                              />
+                            ) : (
+                              <a
+                                href={insuranceUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 text-blue-600 underline text-xs sm:text-sm"
+                              >
+                                <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500" />
+                                <span className="truncate max-w-[120px] sm:max-w-none">
+                                  {insuranceFile?.name || "Voir le fichier"}
+                                </span>
+                              </a>
+                            )}
+                            <button
+                              type="button"
+                              className="ml-2 p-1 rounded hover:bg-gray-200"
+                              onClick={() => {
+                                setInsuranceFile(null);
+                                setInsuranceUrl(null);
+                              }}
+                              aria-label="Supprimer le fichier"
+                            >
+                              <X className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500" />
+                            </button>
+                          </div>
+                        )}
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Date assurance */}
+                  <div className="space-y-1 col-span-1 sm:col-span-2">
+                    <label className="text-[11px] sm:text-xs md:text-sm font-semibold uppercase tracking-wide text-gray-600">
+                      Date d'assurance*
+                    </label>
+                    <input
+                      type="date"
+                      name="insuranceDate"
+                      value={form.insuranceDate}
+                      onChange={handleFormChange}
+                      required
+                      className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-200 rounded-lg sm:rounded-xl bg-gray-50 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] transition-all"
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* --- SECTION ENTREPRISE --- */}
-              <h3 className="text-base font-bold text-[#f26755] uppercase tracking-wider col-span-2 mt-10 mb-2 border-t border-gray-100 pt-6">
-                Informations sur l'entreprise
-              </h3>
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
-                    Nom de l'entreprise*
-                  </label>
-                  <input
-                    name="companyName"
-                    value={form.companyName}
-                    onChange={handleFormChange}
-                    required
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] transition-all"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
-                    Adresse*
-                  </label>
-                  <input
-                    name="companyAddress"
-                    value={form.companyAddress}
-                    onChange={handleFormChange}
-                    required
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] transition-all"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
-                    Code postal*
-                  </label>
-                  <input
-                    name="companyPostalCode"
-                    value={form.companyPostalCode}
-                    onChange={handleFormChange}
-                    required
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] transition-all"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
-                    Ville*
-                  </label>
-                  <input
-                    name="companyCity"
-                    value={form.companyCity}
-                    onChange={handleFormChange}
-                    required
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] transition-all"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
-                    Téléphone entreprise*
-                  </label>
-                  <input
-                    name="companyPhone"
-                    value={form.companyPhone}
-                    onChange={handleFormChange}
-                    required
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] transition-all"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
-                    Email entreprise*
-                  </label>
-                  <input
-                    name="companyEmail"
-                    value={form.companyEmail}
-                    onChange={handleFormChange}
-                    required
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] transition-all"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
-                    Forme juridique*
-                  </label>
-                  <input
-                    name="companyLegalForm"
-                    value={form.companyLegalForm}
-                    onChange={handleFormChange}
-                    required
-                    placeholder="SARL, SAS..."
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] transition-all"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
-                    SIRET*
-                  </label>
-                  <input
-                    name="siret"
-                    value={form.siret}
-                    onChange={handleFormChange}
-                    required
-                    placeholder="123 456 789 00012"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] transition-all"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
-                    RCS*
-                  </label>
-                  <input
-                    name="rcs"
-                    value={form.rcs}
-                    onChange={handleFormChange}
-                    required
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] transition-all"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
-                    Code APE/NAF*
-                  </label>
-                  <input
-                    name="companyApe"
-                    value={form.companyApe}
-                    onChange={handleFormChange}
-                    required
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] transition-all"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
-                    Numéro de TVA*
-                  </label>
-                  <input
-                    name="companyTva"
-                    value={form.companyTva}
-                    onChange={handleFormChange}
-                    required
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] transition-all"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
-                    Capital social*
-                  </label>
-                  <input
-                    name="companyCapital"
-                    value={form.companyCapital}
-                    onChange={handleFormChange}
-                    required
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] transition-all"
-                  />
-                </div>
-                <div className="space-y-1 col-span-2">
-                  <label className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">
-                    Logo de l'entreprise*
-                  </label>
-                  <div className="flex items-center justify-center w-full">
-                    <label className="flex flex-col w-full border border-dashed border-gray-200 hover:border-[#f26755] rounded-xl cursor-pointer transition-all p-4 bg-gray-50 hover:bg-orange-50 group">
-                      <div className="flex items-center gap-2 text-gray-400 group-hover:text-[#f26755] transition-colors">
+              {/* --- SECTION ENTREPRISE - Responsive --- */}
+              <div className="bg-gray-50/30 rounded-lg sm:rounded-xl p-3 sm:p-4 md:p-6 border border-gray-100">
+                <h3 className="text-sm sm:text-base md:text-lg font-bold text-[#f26755] uppercase tracking-wider mb-4 sm:mb-6 md:mb-8 flex items-center gap-2 border-t border-gray-100 pt-3 sm:pt-5 md:pt-6 mt-3 sm:mt-6 md:mt-8">
+                  Informations sur l'entreprise
+                </h3>
+
+                {/* Grille responsive */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
+                  {/* Champs texte */}
+                  {[
+                    { name: "companyName", label: "Nom de l'entreprise*" },
+                    { name: "companyAddress", label: "Adresse*" },
+                    { name: "companyPostalCode", label: "Code postal*" },
+                    { name: "companyCity", label: "Ville*" },
+                    { name: "companyPhone", label: "Téléphone entreprise*" },
+                    { name: "companyEmail", label: "Email entreprise*" },
+                    {
+                      name: "companyLegalForm",
+                      label: "Forme juridique*",
+                      placeholder: "SARL, SAS...",
+                    },
+                    {
+                      name: "siret",
+                      label: "SIRET*",
+                      placeholder: "123 456 789 00012",
+                    },
+                    { name: "rcs", label: "RCS*" },
+                    { name: "companyApe", label: "Code APE/NAF*" },
+                    { name: "companyTva", label: "Numéro de TVA*" },
+                    { name: "companyCapital", label: "Capital social*" },
+                  ].map(({ name, label, placeholder }) => (
+                    <div key={name} className="space-y-1">
+                      <label className="text-xs sm:text-sm font-semibold uppercase tracking-wide text-gray-600">
+                        {label}
+                      </label>
+                      <input
+                        name={name}
+                        value={form[name as keyof typeof form] || ""}
+                        onChange={handleFormChange}
+                        required
+                        placeholder={placeholder || ""}
+                        className="w-full px-3 sm:px-4 py-2 sm:py-2.5 md:py-3 border border-gray-200 rounded-lg sm:rounded-xl bg-gray-50 text-sm sm:text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f26755]/40 focus:border-[#f26755] transition-all"
+                      />
+                    </div>
+                  ))}
+
+                  {/* Upload logo en pleine largeur */}
+                  <div className="space-y-1 sm:col-span-2">
+                    <label className="block text-xs sm:text-sm font-semibold uppercase tracking-wide text-gray-600">
+                      Logo de l'entreprise*
+                    </label>
+                    <label className="flex flex-col w-full border border-dashed border-gray-200 hover:border-[#f26755] rounded-lg sm:rounded-xl cursor-pointer transition-all p-4 bg-gray-50 hover:bg-orange-50 group">
+                      <div className="flex items-center gap-2 text-gray-400 group-hover:text-[#f26755] transition-colors text-sm">
                         <Upload className="h-5 w-5" />
-                        <span className="text-sm">
-                          Cliquez pour uploader (JPG, PNG)
-                        </span>
+                        <span>Cliquez pour uploader (JPG, PNG)</span>
                       </div>
                       <input
                         type="file"
@@ -745,7 +670,7 @@ export default function CourtierArtisans() {
                         disabled={!!companyLogoFile}
                       />
                       {companyLogoUrl && (
-                        <div className="mt-4 flex justify-center items-center gap-2">
+                        <div className="mt-4 flex justify-center items-center gap-2 flex-wrap">
                           <img
                             src={companyLogoUrl}
                             alt="Logo de l'entreprise"
@@ -753,7 +678,7 @@ export default function CourtierArtisans() {
                           />
                           <button
                             type="button"
-                            className="ml-2 p-1 rounded hover:bg-gray-200"
+                            className="p-1 rounded hover:bg-gray-200"
                             onClick={() => {
                               setCompanyLogoFile(null);
                               setCompanyLogoUrl(null);
@@ -773,8 +698,8 @@ export default function CourtierArtisans() {
               <h3 className="text-base font-bold text-[#f26755] uppercase tracking-wider col-span-2 mt-10 mb-2 border-t border-gray-100 pt-6">
                 Documents administratifs
               </h3>
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-1 ">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                <div className="space-y-1">
                   <label className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">
                     Attestation fiscale*
                   </label>
@@ -796,7 +721,7 @@ export default function CourtierArtisans() {
                         disabled={!!fiscalFile}
                       />
                       {fiscalUrl && (
-                        <div className="mt-4 flex justify-center items-center gap-2">
+                        <div className="mt-4 flex justify-center items-center gap-2 flex-wrap">
                           {fiscalFile &&
                           fiscalFile.type.startsWith("image/") ? (
                             <img
@@ -831,6 +756,7 @@ export default function CourtierArtisans() {
                     </label>
                   </div>
                 </div>
+
                 <div className="space-y-1">
                   <label className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">
                     Kbis*
@@ -853,7 +779,7 @@ export default function CourtierArtisans() {
                         disabled={!!kbisFile}
                       />
                       {kbisUrl && (
-                        <div className="mt-4 flex justify-center items-center gap-2">
+                        <div className="mt-4 flex justify-center items-center gap-2 flex-wrap">
                           {kbisFile && kbisFile.type.startsWith("image/") ? (
                             <img
                               src={kbisUrl}
