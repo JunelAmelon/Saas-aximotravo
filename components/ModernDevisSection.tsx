@@ -41,6 +41,8 @@ import { useToast } from "@/hooks/use-toast";
 import { FacturePreview } from "./FacturePreview";
 import { FactureModal } from "./FacturePreview";
 import { GenerateFacturePDF } from "./GenerateFacturePDF";
+import { FactureCommissionPreview, FactureCommissionModal } from "./FactureCommissionPreview";
+import { FactureType } from "@/types/facture";
 // ====================
 // Types et Interfaces
 // ====================
@@ -158,6 +160,10 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
   const { toast } = useToast();
 
   const [facturePreview, setFacturePreview] = useState<Devis | null>(null);
+  const [factureCommissionPreview, setFactureCommissionPreview] = useState<{
+    devis: Devis;
+    factureType: 'commission_courtier' | 'commission_aximotravo';
+  } | null>(null);
 
   // Fonction pour ouvrir la modal de commentaire avant envoi
   const handleOpenCommentModal = (
@@ -1991,19 +1997,62 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                                   </a>
                                 </DropdownMenuItem>
                                 {doc.status === "Validé" && (
-                                  <DropdownMenuItem
-                                    onClick={() =>
-                                      handleSendToClient(
-                                        doc.id,
-                                        "devis", // Les factures sont stockées comme devis avec un flag
-                                        projectId || ""
-                                      )
-                                    }
-                                    disabled={sendingEmailId === doc.id}
-                                  >
-                                    <Send className="w-4 h-4 mr-2" />
-                                    Envoyer au client
-                                  </DropdownMenuItem>
+                                  <>
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        handleSendToClient(
+                                          doc.id,
+                                          "devis", // Les factures sont stockées comme devis avec un flag
+                                          projectId || ""
+                                        )
+                                      }
+                                      disabled={sendingEmailId === doc.id}
+                                    >
+                                      <Send className="w-4 h-4 mr-2" />
+                                      Envoyer au client
+                                    </DropdownMenuItem>
+                                    {/* Options de factures de commission - Uniquement pour devis validés */}
+                                    {/* Pour les artisans : seulement commission courtier */}
+                                    {userRole === "artisan" ? (
+                                      <DropdownMenuItem
+                                        onClick={() =>
+                                          setFactureCommissionPreview({
+                                            devis: doc,
+                                            factureType: 'commission_courtier'
+                                          })
+                                        }
+                                      >
+                                        <Euro className="w-4 h-4 mr-2" />
+                                        Facture Commission Courtier
+                                      </DropdownMenuItem>
+                                    ) : (
+                                      /* Pour les courtiers : les deux options */
+                                      <>
+                                        <DropdownMenuItem
+                                          onClick={() =>
+                                            setFactureCommissionPreview({
+                                              devis: doc,
+                                              factureType: 'commission_courtier'
+                                            })
+                                          }
+                                        >
+                                          <Euro className="w-4 h-4 mr-2" />
+                                          Facture Commission Courtier
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() =>
+                                            setFactureCommissionPreview({
+                                              devis: doc,
+                                              factureType: 'commission_aximotravo'
+                                            })
+                                          }
+                                        >
+                                          <Euro className="w-4 h-4 mr-2" />
+                                          Facture Commission Aximotravo
+                                        </DropdownMenuItem>
+                                      </>
+                                    )}
+                                  </>
                                 )}
                               </>
                             }
@@ -2211,6 +2260,20 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
           </div>
         </div>
       )}
+
+      {/* Modal pour les factures de commission */}
+      <FactureCommissionModal
+        factureCommissionPreview={factureCommissionPreview}
+        userId={currentUserId || ""}
+        setFactureCommissionPreview={setFactureCommissionPreview}
+      />
+
+      {/* Modal pour les factures classiques */}
+      <FactureModal
+        facturePreview={facturePreview}
+        userId={currentUserId || ""}
+        setFacturePreview={setFacturePreview}
+      />
     </div>
   );
 };
