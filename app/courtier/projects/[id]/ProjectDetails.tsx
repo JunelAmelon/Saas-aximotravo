@@ -333,8 +333,6 @@ export default function ProjectDetails() {
   } = useDevis();
 
   const handleBackToHome = () => {
-    // Déclencher un rechargement des données quand on revient de la génération
-    setRefreshTrigger(prev => prev + 1);
     router.push(`/courtier/projects/${id}`); // Redirige vers la page ProjectDetails
   };
   const handleSelectPieces = () => setStep("pieces");
@@ -343,8 +341,6 @@ export default function ProjectDetails() {
   // ..
   const handleBackToCreate = () => {
     setStep(null); // Ferme PiecesSelectionModal
-    // Déclencher un rechargement des données quand on revient à la liste
-    setRefreshTrigger(prev => prev + 1);
     setShowCreateModal(true); // Réaffiche la modale de création
   };
   const params = useParams<{ id: string; tab?: string }>();
@@ -448,8 +444,7 @@ export default function ProjectDetails() {
     }
   };
 
-  // État pour forcer le rechargement
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
 
   // --- Écoute temps réel des devis Firestore ---
   const { currentUser } = useAuth();
@@ -638,7 +633,7 @@ export default function ProjectDetails() {
       unsubscribeDevis();
       unsubscribeDevisConfig();
     };
-  }, [id, currentUser?.uid, refreshTrigger]);
+  }, [id, currentUser?.uid]);
 
   // 🆕 Audit automatique des acomptes au chargement du projet
   useEffect(() => {
@@ -840,7 +835,7 @@ export default function ProjectDetails() {
       setArtisanInvitations(invitations);
     }
     fetchArtisanInvitations();
-  }, [id, isRequestSent]);
+  }, [id]); // Suppression de isRequestSent pour éviter le rechargement automatique
 
   useEffect(() => {
     const fetchArtisans = async () => {
@@ -851,104 +846,6 @@ export default function ProjectDetails() {
     };
     fetchArtisans();
   }, [courtierId, id]);
-
-
-
-  // Fonction pour recharger toutes les données
-  const reloadAllData = async () => {
-    if (!id || !currentUser?.uid) return;
-    
-    setLoading(true);
-    setError(null);
-    
-    try {
-      // Recharger les données du projet
-      const projectData = await getProjectDetail(id);
-      setProject(projectData);
-      if (!projectData) setError("Projet introuvable");
-      
-      // Recharger les devis importés
-      const devisData = await getDevisForProject(id);
-      setDevisImportes(devisData);
-      
-      // Recharger les devis générés
-      const devisConfigData = await getDevisConfigForProject(id);
-      setDevisGeneres(devisConfigData);
-      setDevisFactures(
-        devisConfigData.filter((d) => d.status?.toLowerCase() === "validé")
-      );
-      
-      // Recharger les artisans disponibles si courtier connecté
-      if (courtierId) {
-        const artisans = await getArtisansByCourtier(courtierId, id);
-        const onlyArtisans = artisans.filter((a) => a.role === "artisan");
-        setAvailableArtisans(onlyArtisans);
-      }
-      
-    } catch (err) {
-      setError("Erreur lors du chargement du projet");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Effet principal pour charger les données
-  useEffect(() => {
-    reloadAllData();
-  }, [id, currentUser?.uid, courtierId, refreshTrigger]);
-
-  // Effet pour forcer un rechargement manuel des données quand refreshTrigger change
-  useEffect(() => {
-    if (refreshTrigger > 0) {
-      console.log('🔄 Rechargement manuel déclenché par refreshTrigger:', refreshTrigger);
-      // Forcer un rechargement manuel des devis en plus de l'écoute temps réel
-      const forceReload = async () => {
-        try {
-          const devisData = await getDevisForProject(id!);
-          setDevisImportes(devisData);
-          
-          const devisConfigData = await getDevisConfigForProject(id!);
-          setDevisGeneres(devisConfigData);
-          setDevisFactures(
-            devisConfigData.filter((d) => d.status?.toLowerCase() === "validé")
-          );
-          
-          console.log('✅ Rechargement manuel terminé');
-        } catch (error) {
-          console.error('❌ Erreur lors du rechargement manuel:', error);
-        }
-      };
-      
-      if (id && currentUser?.uid) {
-        forceReload();
-      }
-    }
-  }, [refreshTrigger, id, currentUser?.uid]);
-
-  // Effet pour détecter le retour sur la page et recharger automatiquement
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        // La page devient visible, on recharge
-        setRefreshTrigger(prev => prev + 1);
-      }
-    };
-
-    const handleFocus = () => {
-      // La fenêtre reprend le focus, on recharge
-      setRefreshTrigger(prev => prev + 1);
-    };
-
-    // Ajouter les event listeners
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
-
-    // Nettoyage
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
-    };
-  }, []);
 
   // Ancien useEffect simplifié pour la compatibilité
   useEffect(() => {
@@ -1027,6 +924,36 @@ export default function ProjectDetails() {
         setIsRequestSent(false);
       }, 3000);
       setSelectedArtisanIds([]);
+      
+      // Recharger manuellement les invitations sans déclencher le useEffect
+      const refreshInvitations = async () => {
+        if (!id) return;
+        const q = query(
+          collection(db, "artisan_projet"),
+          where("projetId", "==", id),
+          where("status", "in", ["pending", "refusé", "rejeté"])
+        );
+        const snapshot = await getDocs(q);
+        const invitations = await Promise.all(
+          snapshot.docs.map(async (docSnap) => {
+            const data = docSnap.data();
+            let artisan: User | null = null;
+            try {
+              const userDoc = await getDoc(doc(db, "users", data.artisanId));
+              artisan = userDoc.exists() ? (userDoc.data() as User) : null;
+            } catch {}
+            return {
+              id: docSnap.id,
+              artisan,
+              status: data.status,
+            };
+          })
+        );
+        setArtisanInvitations(invitations);
+      };
+      
+      // Exécuter le rechargement avec un petit délai
+      setTimeout(refreshInvitations, 500);
     }
     if (failCount > 0) {
       setError(`Erreur lors de l'envoi de ${failCount} invitation(s).`);
@@ -1757,8 +1684,6 @@ export default function ProjectDetails() {
             onOpenChange={(open) => {
               if (!open) {
                 setStep(null);
-                // Déclencher un rechargement des données quand on ferme la génération
-                setRefreshTrigger(prev => prev + 1);
               }
             }}
             onBack={handleBackToHome}
