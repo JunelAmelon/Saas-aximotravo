@@ -10,6 +10,7 @@ export interface Devis {
   surfaceData: SurfaceData[];
   selectedItems: DevisItem[];
   createdAt: Date;
+  updatedAt?: Date;
   clientInfo?: ClientInfo;
   companyInfo?: CompanyInfo;
   attribution?: {

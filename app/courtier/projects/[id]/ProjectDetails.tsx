@@ -741,7 +741,14 @@ export default function ProjectDetails() {
       setUpdatingStatusId(docId);
       try {
         const ref = doc(db, type, docId);
-        await updateDoc(ref, { status: newstatus });
+        const updateData: any = { status: newstatus };
+        
+        // Mettre à jour updatedAt quand le statut passe à "Validé"
+        if (newstatus.toLowerCase() === "validé") {
+          updateData.updatedAt = new Date();
+        }
+        
+        await updateDoc(ref, updateData);
 
         // 🆕 Création automatique d'acompte si c'est le premier devis validé par le client
         if (newstatus.toLowerCase() === "validé") {
