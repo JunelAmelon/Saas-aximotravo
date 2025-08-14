@@ -498,8 +498,6 @@ export default function ProjectDetails() {
 
   const handleBackToHome = () => {
     setStep(null);
-    // Déclencher un rechargement des données quand on revient de la génération
-    setRefreshTrigger(prev => prev + 1);
     router.push(`/artisan/projects/${id}`); // Redirige vers la page ProjectDetails
   };
   const handleSelectPieces = () => setStep("pieces");
@@ -508,8 +506,6 @@ export default function ProjectDetails() {
   // ..
   const handleBackToCreate = () => {
     setStep(null); // Ferme PiecesSelectionModal
-    // Déclencher un rechargement des données quand on revient à la liste
-    setRefreshTrigger(prev => prev + 1);
     setShowCreateModal(true); // Réaffiche la modale de création
   };
 
@@ -534,8 +530,7 @@ export default function ProjectDetails() {
   );
   const router = useRouter();
 
-  // État pour forcer le rechargement
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
 
   // Fonction pour recharger toutes les données
   const reloadAllData = async () => {
@@ -571,32 +566,7 @@ export default function ProjectDetails() {
   // Effet principal pour charger les données
   useEffect(() => {
     reloadAllData();
-  }, [id, currentUser?.uid, refreshTrigger]);
-
-  // Effet pour détecter le retour sur la page et recharger automatiquement
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        // La page devient visible, on recharge
-        setRefreshTrigger(prev => prev + 1);
-      }
-    };
-
-    const handleFocus = () => {
-      // La fenêtre reprend le focus, on recharge
-      setRefreshTrigger(prev => prev + 1);
-    };
-
-    // Ajouter les event listeners
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
-
-    // Nettoyage
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
-    };
-  }, []);
+  }, [id, currentUser?.uid]);
 
   // Ancien useEffect simplifié pour la compatibilité
   useEffect(() => {
@@ -638,7 +608,7 @@ export default function ProjectDetails() {
       setInvitationAccepted(snapshot.docs.length > 0);
     }
     checkInvitationAccepted();
-  }, [id, currentUserId, refreshTrigger]); // Ajout de refreshTrigger pour recharger après acceptation
+  }, [id, currentUserId]);
 
   useEffect(() => {
     async function checkInvitationstatus() {
@@ -663,7 +633,7 @@ export default function ProjectDetails() {
       }
     }
     checkInvitationstatus();
-  }, [id, currentUserId, refreshTrigger]); // Ajout de refreshTrigger pour synchronisation
+  }, [id, currentUserId]);
 
   // Récupération des artisans acceptés du projet
   useEffect(() => {
@@ -703,7 +673,7 @@ export default function ProjectDetails() {
     }
   };
   // Redirection après refus
-  React.useEffect(() => {
+  useEffect(() => {
     if (pendingInvitation.refused) {
       const timeout = setTimeout(() => {
         router.push("/artisan/projects");
@@ -713,18 +683,72 @@ export default function ProjectDetails() {
   }, [pendingInvitation.refused, router]);
 
   // Rechargement automatique après acceptation d'invitation
-  React.useEffect(() => {
+  useEffect(() => {
     if (pendingInvitation.accepted) {
       console.log('🔄 Invitation acceptée - rechargement automatique de la page');
-      // Déclencher un rechargement complet des données
-      setRefreshTrigger(prev => prev + 1);
-      // Recharger aussi les statuts d'invitation
-      if (id && currentUserId) {
-        // Forcer la re-vérification du statut d'invitation
-        setTimeout(() => {
-          setRefreshTrigger(prev => prev + 1);
-        }, 500); // Petit délai pour s'assurer que la DB est à jour
-      }
+      // Recharger toutes les données pour afficher les infos client
+      reloadAllData();
+      
+      // Forcer la re-vérification du statut d'invitation
+      const recheckInvitationStatus = async () => {
+        if (!id || !currentUserId) return;
+        
+        // Vérifier invitationAccepted
+        const qAccepted = query(
+          collection(db, "artisan_projet"),
+          where("projetId", "==", id),
+          where("artisanId", "==", currentUserId),
+          where("status", "==", "accepté")
+        );
+        const snapshotAccepted = await getDocs(qAccepted);
+        setInvitationAccepted(snapshotAccepted.docs.length > 0);
+        
+        // Vérifier invitationstatus
+        const qStatus = query(
+          collection(db, "artisan_projet"),
+          where("projetId", "==", id),
+          where("artisanId", "==", currentUserId),
+          where("status", "in", ["pending", "accepté"])
+        );
+        const snapshotStatus = await getDocs(qStatus);
+        if (snapshotStatus.empty) {
+          setInvitationstatus("none");
+        } else {
+          const status = snapshotStatus.docs[0].data().status;
+          if (status === "pending") setInvitationstatus("pending");
+          else if (status === "accepté") setInvitationstatus("accepted");
+          else setInvitationstatus("none");
+        }
+      };
+      
+      // Recharger la liste des artisans acceptés
+      const reloadArtisansList = async () => {
+        if (!id) return;
+        
+        const q = query(
+          collection(db, "artisan_projet"),
+          where("projetId", "==", id),
+          where("status", "==", "accepté")
+        );
+        const snapshot = await getDocs(q);
+        const artisanIds = snapshot.docs.map((doc) => doc.data().artisanId);
+        
+        // Récupérer les infos utilisateur pour chaque artisan
+        const users = await Promise.all(
+          artisanIds.map(async (uid) => {
+            const userDoc = await getDoc(doc(db, "users", uid));
+            return userDoc.exists() ? userDoc.data() : null;
+          })
+        );
+        const filteredUsers = users.filter(Boolean) as User[];
+        setProjectArtisans(filteredUsers);
+      };
+      
+      // Exécuter les re-vérifications avec un petit délai
+      setTimeout(() => {
+        recheckInvitationStatus();
+        reloadArtisansList();
+      }, 500);
     }
   }, [pendingInvitation.accepted, id, currentUserId]);
 
@@ -1246,8 +1270,6 @@ export default function ProjectDetails() {
             onOpenChange={(open) => {
               if (!open) {
                 setStep(null);
-                // Déclencher un rechargement des données quand on ferme la génération
-                setRefreshTrigger(prev => prev + 1);
               }
             }}
             onBack={handleBackToHome}
