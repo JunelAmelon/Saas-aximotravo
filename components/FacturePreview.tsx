@@ -21,16 +21,18 @@ interface FacturePreviewProps {
 export const DEFAULT_COMPANY_INFO = {
   logoUrl: "https://res.cloudinary.com/djdogxq0d/image/upload/v1753677699/logo_vvpiay.jpg",
   name: "Aximobat",
-  address: "123 Rue de l'Innovation",
-  postalCode: "75001",
-  city: "Paris",
-  phone: "01 23 45 67 89",
+  address: "1 place du village",
+  postalCode: "65240",
+  city: "ASPIN-AURE",
+  phone: "0811386565",
   email: "contact@Aximobat.com",
   companyLegalForm: "SAS",
-  companyCapital: "100000",
+  companyCapital: "5000 €",
   siret: "123456789012345",
-  rcs: "123456789",
-  companyApe: "12345",
+  rcs: "TARBES",
+  siren: "815247812",
+  companyApe: "7112B",
+  tvaIntra: "FR95815247812",
 };
 
 export const FacturePreview: React.FC<FacturePreviewProps> = ({

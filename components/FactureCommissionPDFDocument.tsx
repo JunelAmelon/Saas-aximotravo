@@ -11,6 +11,7 @@ import { Devis } from "@/types/devis";
 import { getUserById, User, ArtisanUser } from "@/lib/firebase/users";
 import { Project } from "@/lib/firebase/projects";
 import { FactureType } from "@/types/facture";
+import { entreprise } from "@/types/aximotravo";
 
 // Styles optimisés pour un meilleur affichage
 const styles = StyleSheet.create({
@@ -29,8 +30,8 @@ const styles = StyleSheet.create({
     marginBottom: 25, // Réduit de 30 à 25
   },
   logo: {
-    width: 100, // Réduit de 120 à 100
-    height: 50,  // Réduit de 60 à 50
+    width: 120, // Réduit de 120 à 100
+    height: 60,  // Réduit de 60 à 50
   },
   companyInfo: {
     fontSize: 9, // Réduit de 10 à 9
@@ -355,13 +356,13 @@ export const FactureCommissionPDFDocument: React.FC<FactureCommissionPDFDocument
                 }}>ÉMETTEUR</Text>
               </View>
               <View style={{ padding: 8 }}> {/* Réduit de 12 à 8 */}
-                <Text style={{ fontSize: 8, fontWeight: 'bold', marginBottom: 1 }}>AXIMOTRAVO</Text>
-                <Text style={{ fontSize: 8, marginBottom: 0.5 }}>123 Rue de la République</Text>
-                <Text style={{ fontSize: 8, marginBottom: 0.5 }}>75001 Paris</Text>
-                <Text style={{ fontSize: 8, marginBottom: 0.5 }}>SIRET: 123 456 789 00012</Text>
-                <Text style={{ fontSize: 8, marginBottom: 0.5 }}>TVA: FR12345678901</Text>
-                <Text style={{ fontSize: 8, marginBottom: 0.5 }}>Tél: 01 23 45 67 89</Text>
-                <Text style={{ fontSize: 8 }}>Email: contact@aximotravo.com</Text>
+                <Text style={{ fontSize: 8, fontWeight: 'bold', marginBottom: 1 }}>{entreprise.nom}</Text>
+                <Text style={{ fontSize: 8, marginBottom: 0.5 }}>{entreprise.adresse}</Text>
+                <Text style={{ fontSize: 8, marginBottom: 0.5 }}>{entreprise.codePostal} {entreprise.ville}</Text>
+                <Text style={{ fontSize: 8, marginBottom: 0.5 }}>SIRET: {entreprise.siren}</Text>
+                <Text style={{ fontSize: 8, marginBottom: 0.5 }}>TVA: {entreprise.tva}</Text>
+                <Text style={{ fontSize: 8, marginBottom: 0.5 }}>Tél: {entreprise.tel}</Text>
+                <Text style={{ fontSize: 8 }}>Email: {entreprise.email}</Text>
               </View>
             </View>
           </View>
@@ -845,9 +846,9 @@ export const FactureCommissionPDFDocument: React.FC<FactureCommissionPDFDocument
               gap: 6, // Réduit de 8 à 6
               marginBottom: 1 // Réduit de 2 à 1
             }}>
-              <Text style={styles.footerText}>AXIMOTRAVO</Text>
+              <Text style={styles.footerText}>{entreprise.nom}</Text>
               <Text style={styles.footerText}>•</Text>
-              <Text style={styles.footerText}>SAS au capital de 1000€</Text>
+              <Text style={styles.footerText}>{entreprise.statut}</Text>
             </View>
             <View style={{
               flexDirection: 'row',
@@ -855,9 +856,9 @@ export const FactureCommissionPDFDocument: React.FC<FactureCommissionPDFDocument
               gap: 6, // Réduit de 8 à 6
               marginBottom: 1 // Réduit de 2 à 1
             }}>
-              <Text style={styles.footerText}>www.aximotravo.com</Text>
+              <Text style={styles.footerText}>{entreprise.site}</Text>
               <Text style={styles.footerText}>•</Text>
-              <Text style={styles.footerText}>contact@aximotravo.com</Text>
+              <Text style={styles.footerText}>{entreprise.email}</Text>
             </View>
             <View style={{
               flexDirection: 'row',
@@ -865,11 +866,11 @@ export const FactureCommissionPDFDocument: React.FC<FactureCommissionPDFDocument
               gap: 6, // Réduit de 8 à 6
               marginBottom: 1 // Réduit de 2 à 1
             }}>
-              <Text style={styles.footerText}>123 Rue de la République</Text>
+              <Text style={styles.footerText}>{entreprise.adresse}</Text>
               <Text style={styles.footerText}>•</Text>
-              <Text style={styles.footerText}>75001 Paris France</Text>
+              <Text style={styles.footerText}>{entreprise.codePostal} {entreprise.ville}</Text>
               <Text style={styles.footerText}>•</Text>
-              <Text style={styles.footerText}>tél 01 23 45 67 89</Text>
+              <Text style={styles.footerText}>tél {entreprise.tel}</Text>
             </View>
             <View style={{
               flexDirection: 'row',
@@ -879,11 +880,11 @@ export const FactureCommissionPDFDocument: React.FC<FactureCommissionPDFDocument
               borderTopWidth: 1,
               borderTopColor: '#E5E5E5'
             }}>
-              <Text style={styles.footerText}>RCS Paris B 123 456 789</Text>
+              <Text style={styles.footerText}>{entreprise.rcs}</Text>
               <Text style={styles.footerText}>•</Text>
-              <Text style={styles.footerText}>SIREN 123456789</Text>
+              <Text style={styles.footerText}>{entreprise.siren}</Text>
               <Text style={styles.footerText}>•</Text>
-              <Text style={styles.footerText}>APE 7022Z</Text>
+              <Text style={styles.footerText}>{entreprise.ape}</Text>
             </View>
           </View>
         </View>
