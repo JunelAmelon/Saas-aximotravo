@@ -4,7 +4,7 @@ import { Devis } from "@/types/devis";
 import { ArtisanUser, User, CourtierUser } from "@/lib/firebase/users";
 import { Project } from "@/lib/firebase/projects";
 import { Timestamp } from "firebase/firestore";
-import { DEFAULT_COMPANY_INFO } from "./FacturePreview";
+import { entreprise } from "@/types/aximotravo";
 
 // Enregistrement des polices (optionnel)
 // Font.register({
@@ -547,9 +547,7 @@ export const FacturePDFDocument: React.FC<FacturePDFDocumentProps> = ({
     ? `${user?.companyLegalForm} ${user?.companyName} au Capital de ${user?.companyCapital} ${
         user?.siret ? `- Siret ${user.siret}` : ""
       } - RCS ${user?.rcs} - Code APE ${user?.companyApe}`
-    : `${DEFAULT_COMPANY_INFO.companyLegalForm} ${DEFAULT_COMPANY_INFO.name} au Capital de ${DEFAULT_COMPANY_INFO.companyCapital} ${
-        DEFAULT_COMPANY_INFO.siret ? `- Siret ${DEFAULT_COMPANY_INFO.siret}` : ""
-      } - RCS ${DEFAULT_COMPANY_INFO.rcs} - Code APE ${DEFAULT_COMPANY_INFO.companyApe}`;
+    : `${entreprise.statut} ${entreprise.siren ? `- Siret ${entreprise.siren}` : ""} - RCS ${entreprise.rcs} - Code APE ${entreprise.ape}`;
 
   return (
     <Document>
@@ -568,7 +566,7 @@ export const FacturePDFDocument: React.FC<FacturePDFDocumentProps> = ({
                 </View>
               )
             ) : (
-              <Image src={DEFAULT_COMPANY_INFO.logoUrl} style={styles.logo} />
+              <Image src={entreprise.logoUrl} style={styles.logo} />
             )}
           </View>
           
@@ -585,15 +583,15 @@ export const FacturePDFDocument: React.FC<FacturePDFDocumentProps> = ({
           <View style={styles.infoBox}>
             <Text style={styles.infoTitle}>PRESTATAIRE</Text>
             <Text style={styles.infoTextBold}>
-              {user?.role === "artisan" ? user?.companyName : DEFAULT_COMPANY_INFO.name}
+              {user?.role === "artisan" ? user?.companyName : entreprise.nom}
             </Text>
             <Text style={styles.infoText}>
-              {user?.role === "artisan" ? user?.companyAddress : DEFAULT_COMPANY_INFO.address}
+              {user?.role === "artisan" ? user?.companyAddress : entreprise.adresse}
             </Text>
             <Text style={styles.infoText}>
               {user?.role === "artisan" 
                 ? `${user?.companyPostalCode} ${user?.companyCity}`
-                : `${DEFAULT_COMPANY_INFO.postalCode} ${DEFAULT_COMPANY_INFO.city}`}
+                : `${entreprise.codePostal} ${entreprise.ville}`}
             </Text>
             <Text style={styles.infoText}>
               Tél: {user?.role === "artisan" ? user?.companyPhone : user?.phone}
