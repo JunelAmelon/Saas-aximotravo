@@ -30,7 +30,7 @@ const styles = StyleSheet.create({
     marginBottom: 25, // Réduit de 30 à 25
   },
   logo: {
-    width: 120, // Réduit de 120 à 100
+    width: 180, // Réduit de 120 à 100
     height: 60,  // Réduit de 60 à 50
   },
   companyInfo: {
