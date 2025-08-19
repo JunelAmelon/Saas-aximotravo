@@ -136,6 +136,8 @@ export default function CourtierProjects() {
     }
   }, [currentUser]);
 
+  console.log(projects);
+
   useEffect(() => {
     loadProjects();
   }, [loadProjects]);

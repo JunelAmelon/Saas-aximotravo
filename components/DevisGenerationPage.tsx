@@ -1180,18 +1180,17 @@ if (!devis) {
                                     </Tooltip>
                                   </h4>
 
-                                  {item.customImage && (
-                                    <div className="mb-2">
-                                      <Image
-                                        src={item.customImage}
-                                        alt="Illustration"
-                                        width={100}
-                                        height={100}
-                                        className="w-16 h-12 object-cover rounded border"
+                                  {/* Afficher les images sur une seule ligne avec défilement horizontal */}
+                                  <div className="flex gap-2 overflow-x-auto pb-2">
+                                    {(item.images || (item.customImage ? [item.customImage] : [])).map((img, idx) => (
+                                      <img
+                                        key={idx}
+                                        src={img}
+                                        alt={`${item.itemName} ${idx + 1}`}
+                                        className="h-20 w-20 flex-shrink-0 object-cover rounded-md border"
                                       />
-                                    </div>
-                                  )}
-
+                                    ))}
+                                  </div>
                                   <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
                                     <Tooltip content={item.description || ""}>
                                       <span className="line-clamp-2 block">{item.description}</span>
@@ -1510,71 +1509,71 @@ if (!devis) {
               Modifier les prix
             </Button>
           </div>
-        </div>
-      </div>
-
-      {/* Footer fixe avec récapitulatif moderne - responsive (masqué sur XL+) */}
-      <div className="xl:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-200/50 p-3 sm:p-4 shadow-lg z-30">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-          <div className="bg-gray-50 rounded-lg p-2 sm:p-3 text-center">
-            <div className="text-xs text-gray-600 mb-1">
-              Total HT
-            </div>
-            <div className="text-sm sm:text-lg font-bold text-gray-900">
-              {totalHT.toFixed(2)} €
-            </div>
-          </div>
-          <div className="bg-gray-50 rounded-lg p-2 sm:p-3 text-center">
-            <div className="text-xs text-gray-600 mb-1">
-              TVA ({averageTvaRate.toFixed(1)}%)
-            </div>
-            <div className="text-sm sm:text-lg font-bold text-gray-900">
-              {totalTVA.toFixed(2)} €
-            </div>
-          </div>
-          <div className="bg-gradient-to-r from-[#f26755]/10 to-[#f26755]/5 rounded-lg p-2 sm:p-3 text-center border border-[#f26755]/20">
-            <div className="text-xs text-gray-600 mb-1">
-              Total TTC
-            </div>
-            <div className="text-lg sm:text-xl font-bold text-[#f26755]">
-              {totalTTC.toFixed(2)} €
-            </div>
-          </div>
-          <div className="flex items-center justify-center">
-            <Button
-              onClick={() => setShowPriceAdjustment(true)}
-              className="w-full bg-[#f26755] hover:bg-[#e55a4a] text-white rounded-lg h-10 sm:h-11 font-semibold shadow-lg hover:shadow-xl transition-all duration-200 text-xs sm:text-sm"
-            >
-              <Settings className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-              Modifier prix
-            </Button>
           </div>
         </div>
-      </div>
 
-      {/* Modals */}
-      {editingItemModal && (
-        <EditItemModal
-          open={!!editingItemModal}
-          onOpenChange={(open) => !open && setEditingItemModal(null)}
-          item={editingItemModal}
+        {/* Footer fixe avec récapitulatif moderne - responsive (masqué sur XL+) */}
+        <div className="xl:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-200/50 p-3 sm:p-4 shadow-lg z-30">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+            <div className="bg-gray-50 rounded-lg p-2 sm:p-3 text-center">
+              <div className="text-xs text-gray-600 mb-1">
+                Total HT
+              </div>
+              <div className="text-sm sm:text-lg font-bold text-gray-900">
+                {totalHT.toFixed(2)} €
+              </div>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-2 sm:p-3 text-center">
+              <div className="text-xs text-gray-600 mb-1">
+                TVA ({averageTvaRate.toFixed(1)}%)
+              </div>
+              <div className="text-sm sm:text-lg font-bold text-gray-900">
+                {totalTVA.toFixed(2)} €
+              </div>
+            </div>
+            <div className="bg-gradient-to-r from-[#f26755]/10 to-[#f26755]/5 rounded-lg p-2 sm:p-3 text-center border border-[#f26755]/20">
+              <div className="text-xs text-gray-600 mb-1">
+                Total TTC
+              </div>
+              <div className="text-lg sm:text-xl font-bold text-[#f26755]">
+                {totalTTC.toFixed(2)} €
+              </div>
+            </div>
+            <div className="flex items-center justify-center">
+              <Button
+                onClick={() => setShowPriceAdjustment(true)}
+                className="w-full bg-[#f26755] hover:bg-[#e55a4a] text-white rounded-lg h-10 sm:h-11 font-semibold shadow-lg hover:shadow-xl transition-all duration-200 text-xs sm:text-sm"
+              >
+                <Settings className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                Modifier prix
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Modals */}
+        {editingItemModal && (
+          <EditItemModal
+            open={!!editingItemModal}
+            onOpenChange={(open) => !open && setEditingItemModal(null)}
+            item={editingItemModal}
     
-        />
-      )}
+          />
+        )}
 
-      <PriceAdjustmentModal
-        open={showPriceAdjustment}
-        onOpenChange={setShowPriceAdjustment}
-        items={selectedItems}
+        <PriceAdjustmentModal
+          open={showPriceAdjustment}
+          onOpenChange={setShowPriceAdjustment}
+          items={selectedItems}
  
-      />
+        />
 
-      <CreateCustomItemModal
-        open={showCreateCustomModal}
-        onOpenChange={setShowCreateCustomModal}
+        <CreateCustomItemModal
+          open={showCreateCustomModal}
+          onOpenChange={setShowCreateCustomModal}
         
-        defaultTva={defaultTva}
-      />
+          defaultTva={defaultTva}
+        />
 
     </div>
   );

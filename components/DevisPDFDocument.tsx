@@ -164,6 +164,21 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     lineHeight: 1.4,
   },
+  imagesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+    marginBottom: 8,
+  },
+  itemImage: {
+    width: 60,
+    height: 45,
+    borderRadius: 4,
+    borderWidth: 0.5,
+    borderColor: '#e2e8f0',
+    marginRight: 4,
+    marginBottom: 4,
+  },
   // Badges informatifs - simplifiés
   badgeContainer: {
     flexDirection: "row",
@@ -676,21 +691,8 @@ export const DevisPDFDocument = ({ devis, client, project }: { devis: Devis, cli
 
                 <Text style={styles.prestationDesc}>{item.description}</Text>
 
-                {/* Images */}
-                {item.customImage && (
-                  <View style={{ marginBottom: 10 }}>
-                    <Image
-                      src={item.customImage}
-                      style={{
-                        width: 80,
-                        height: 60,
-                        borderRadius: 4,
-                        borderWidth: 1,
-                        borderColor: "#E2E8F0",
-                      }}
-                    />
-                  </View>
-                )}
+                {/* Afficher plusieurs images sur une seule ligne */}
+
 
                 {/* Détails chiffrés stylisés - sans fonds */}
                 <View style={styles.detailsRow}>
@@ -714,7 +716,14 @@ export const DevisPDFDocument = ({ devis, client, project }: { devis: Devis, cli
                   </Text>
                 </View>
 
-                <View style={[styles.detailsRow, { marginTop: 6 }]}>
+                <View
+                  style={[
+                    styles.detailsRow,
+                    {
+                      marginTop: 6,
+                    },
+                  ]}
+                >
                   <Text style={[styles.detailLabel, { fontWeight: 600 }]}>
                     Total HT
                   </Text>
@@ -736,7 +745,10 @@ export const DevisPDFDocument = ({ devis, client, project }: { devis: Devis, cli
                   </Text>
                   {item.isOffered ? (
                     <View
-                      style={{ flexDirection: "row", alignItems: "center" }}
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                      }}
                     >
                       <Text
                         style={[

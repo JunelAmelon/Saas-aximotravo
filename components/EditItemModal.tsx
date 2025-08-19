@@ -22,12 +22,11 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
   open,
   onOpenChange,
   item,
-  
 }) => {
   const { devisConfig, setDevisConfigField } = useDevisConfig();
   const [editedItem, setEditedItem] = useState<DevisItem>({ ...item });
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string>(item.customImage || '');
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>(item.images || (item.customImage ? [item.customImage] : []));
   const [customTva, setCustomTva] = useState<string>('');
   const [customUnit, setCustomUnit] = useState<string>('');
 
@@ -44,36 +43,53 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
   }
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
-      // Ne pas uploader ici !
+    const files = e.target.files;
+    if (files) {
+      const newFiles = Array.from(files);
+      setImageFiles(prev => [...prev, ...newFiles]);
+
+      // Créer des aperçus pour les nouvelles images
+      const newPreviews = newFiles.map(file => URL.createObjectURL(file));
+      setImagePreviews(prev => [...prev, ...newPreviews]);
     }
+  };
+
+  const removeImage = (index: number) => {
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
+    setImageFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const [loading, setLoading] = useState(false);
 
   const handleSave = async () => {
     setLoading(true);
-    let imageUrl = editedItem.customImage || '';
-    if (imageFile) {
-      // Uploader sur Cloudinary ici
+    let imageUrls: string[] = item.images || [];
+
+    // Uploader les nouvelles images
+    if (imageFiles.length > 0) {
       const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/auto/upload`;
       const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || '';
-      const data = new FormData();
-      data.append('file', imageFile);
-      data.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-      const res = await fetch(CLOUDINARY_UPLOAD_URL, { method: 'POST', body: data });
-      const result = await res.json();
-      if (result.secure_url) imageUrl = result.secure_url;
+
+      const uploadPromises = imageFiles.map(async (file) => {
+        const data = new FormData();
+        data.append('file', file);
+        data.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+        const res = await fetch(CLOUDINARY_UPLOAD_URL, { method: 'POST', body: data });
+        const result = await res.json();
+        return result.secure_url;
+      });
+
+      const newImageUrls = await Promise.all(uploadPromises);
+      imageUrls = [...imageUrls, ...newImageUrls];
     }
- 
+
     const updatedItem = {
       ...editedItem,
-      customImage: imageUrl,
+      images: imageUrls,
+      customImage: imageUrls[0] || '', // Garder la première image pour la rétrocompatibilité
       originalPrix: editedItem.originalPrix || item.prix_ht
     };
+
     const updatedItems = (devisConfig?.selectedItems || []).map(i => i.id === updatedItem.id ? updatedItem : i);
     setDevisConfigField('selectedItems', updatedItems);
     setLoading(false);
@@ -162,50 +178,39 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
 
           {/* Contenu */}
           <div className="p-6 space-y-6">
-            {/* Image d'illustration */}
-            <div className="space-y-3">
-              <Label className="text-sm font-medium text-gray-700">Image d&apos;illustration</Label>
-              <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 hover:border-[#f26755]/50 transition-colors">
-                {imagePreview ? (
-                  <div className="relative">
+            {/* Images */}
+            <div className="space-y-2">
+              <Label htmlFor="images">Images (plusieurs possibles)</Label>
+              <Input
+                id="images"
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleImageUpload}
+                className="cursor-pointer"
+              />
+
+              {/* Aperçu des images */}
+              <div className="flex flex-wrap gap-2 mt-2">
+                {imagePreviews.map((preview, index) => (
+                  <div key={index} className="relative group">
                     <img
-                      src={imagePreview}
-                      alt="Aperçu"
-                      className="w-full h-32 object-cover rounded-lg"
+                      src={preview}
+                      alt={`Preview ${index + 1}`}
+                      className="h-20 w-20 object-cover rounded-md"
                     />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setImagePreview('');
-                        setEditedItem(prev => ({ ...prev, customImage: undefined }));
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeImage(index);
                       }}
-                      className="absolute top-2 right-2 h-6 w-6 p-0 bg-black/50 text-white hover:bg-black/70"
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                     >
                       <X className="h-3 w-3" />
-                    </Button>
+                    </button>
                   </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                    <p className="text-sm text-gray-600 mb-2">Ajouter une image pour illustrer cette prestation</p>
-                    <input
-                     aria-label="file"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      className="hidden"
-                      id="image-upload"
-                    />
-                    <Label
-                      htmlFor="image-upload"
-                      className="inline-flex items-center px-4 py-2 bg-[#f26755] text-white rounded-lg cursor-pointer hover:bg-[#e55a4a] transition-colors"
-                    >
-                      <Upload className="h-4 w-4 mr-2" />
-                      Choisir une image
-                    </Label>
-                  </div>
-                )}
+                ))}
               </div>
             </div>
 
@@ -405,4 +410,4 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
       </DialogContent>
     </Dialog>
   );
-}
+};
