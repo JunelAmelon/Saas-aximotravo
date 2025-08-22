@@ -41,7 +41,10 @@ import { useToast } from "@/hooks/use-toast";
 import { FacturePreview } from "./FacturePreview";
 import { FactureModal } from "./FacturePreview";
 import { GenerateFacturePDF } from "./GenerateFacturePDF";
-import { FactureCommissionPreview, FactureCommissionModal } from "./FactureCommissionPreview";
+import {
+  FactureCommissionPreview,
+  FactureCommissionModal,
+} from "./FactureCommissionPreview";
 import { FactureType } from "@/types/facture";
 // ====================
 // Types et Interfaces
@@ -162,7 +165,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
   const [facturePreview, setFacturePreview] = useState<Devis | null>(null);
   const [factureCommissionPreview, setFactureCommissionPreview] = useState<{
     devis: Devis;
-    factureType: 'commission_courtier' | 'commission_aximotravo';
+    factureType: "commission_courtier" | "commission_aximotravo";
   } | null>(null);
 
   // Fonction pour ouvrir la modal de commentaire avant envoi
@@ -312,107 +315,15 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
         return; // Arrêter l'envoi
       }
 
-      // // Template d'email - différent selon si c'est le premier devis ou non
-      // const emailSubject = isFirstValidatedDevis
-      //   ? `Votre devis est prêt - Accès à votre espace client : ${projectData.name}`
-      //   : `Nouveau devis validé pour votre projet : ${projectData.name}`;
-
-      // const loginInstructionsSection = isFirstValidatedDevis
-      //   ? `
-      //   <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 20px 0;">
-      //     <h4 style="color: #1976d2; margin-top: 0;">🔑 Première connexion - Vos identifiants</h4>
-      //     <p style="margin: 5px 0;"><strong>Email de connexion :</strong> ${clientData.email}</p>
-      //     ${clientData.tempPassword && !clientData.passwordRetrieved ? `
-      //       <p style="margin: 5px 0;"><strong>Mot de passe temporaire :</strong> <span style="font-family: monospace; background: #f0f0f0; padding: 2px 6px; border-radius: 4px;">${clientData.tempPassword}</span></p>
-      //       <p style="margin: 5px 0; color: #d32f2f; font-weight: bold;">⚠️ Changez ce mot de passe dès votre première connexion pour sécuriser votre compte</p>
-      //     ` : `
-      //       <p style="margin: 5px 0;">Utilisez votre mot de passe habituel pour vous connecter.</p>
-      //       <p style="margin: 5px 0; font-size: 14px; color: #666;">
-      //         Si vous avez oublié votre mot de passe, utilisez la fonction "Mot de passe oublié" sur la page de connexion.
-      //       </p>
-      //     `}
-      //     <p style="margin: 10px 0; padding: 10px; background: #fff3cd; border-left: 4px solid #ffc107; font-size: 14px;">
-      //       <strong>💡 Conseil :</strong> Ajoutez cette page à vos favoris pour un accès rapide à vos futurs devis.
-      //     </p>
-      //   </div>
-      // `
-      //   : "";
-
-      // const welcomeMessage = isFirstValidatedDevis
-      //   ? `Bienvenue ! Votre devis pour le projet <strong>"${projectData.name}"</strong> a été validé. Vous avez maintenant accès à votre espace client sécurisé.`
-      //   : `Votre nouveau devis pour le projet <strong>"${projectData.name}"</strong> a été validé et est maintenant disponible.`;
-
-      // const emailHtml = `
-      //   <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #f26755; border-radius: 8px; overflow: hidden;">
-      //     <div style="background: linear-gradient(90deg, #f26755 0%, #f28c55 100%); padding: 20px; text-align: center;">
-      //       <h1 style="color: white; margin: 0; font-size: 24px;">
-      //         ${
-      //           isFirstValidatedDevis
-      //             ? "🎉 Bienvenue sur Aximotravo"
-      //             : "Devis Validé ✅"
-      //         }
-      //       </h1>
-      //     </div>
-
-      //     <div style="padding: 30px;">
-      //       <p style="font-size: 16px; color: #333; margin-bottom: 20px;">
-      //         Bonjour ${clientData.firstName || ""} ${
-      //   clientData.lastName || ""
-      // },
-      //       </p>
-
-      //       <p style="font-size: 16px; color: #333; margin-bottom: 20px;">
-      //         ${welcomeMessage}
-      //       </p>
-
-      //       <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
-      //         <h3 style="color: #f26755; margin-top: 0;">📋 Détails du devis</h3>
-      //         <p><strong>Titre :</strong> ${devisData?.titre || "Devis"}</p>
-      //         <p><strong>Projet :</strong> ${projectData.name}</p>
-      //         <p><strong>Date de validation :</strong> ${new Date().toLocaleDateString(
-      //           "fr-FR"
-      //         )}</p>
-      //       </div>
-
-      //       <div style="text-align: center; margin: 30px 0;">
-      //         <a href="${secureClientUrl}"
-      //            style="display: inline-block; background: #f26755; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 10px;">
-      //           🔐 Accéder à votre espace sécurisé
-      //         </a>
-
-      //         <a href="${pdfUrl}"
-      //            style="display: inline-block; background: #28a745; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 10px;">
-      //           📄 Télécharger le PDF
-      //         </a>
-      //       </div>
-
-      //       ${loginInstructionsSection}
-
-      //       ${comment ? `
-      //       <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f26755;">
-      //         <h4 style="color: #f26755; margin-top: 0; font-size: 16px;">💬 Message de votre courtier</h4>
-      //         <p style="font-size: 15px; color: #333; margin: 0; line-height: 1.5;">${comment}</p>
-      //       </div>
-      //       ` : ''}
-
-      //       <p style="font-size: 14px; color: #666; margin-top: 30px;">
-      //         Pour toute question, n'hésitez pas à nous contacter.
-      //       </p>
-
-      //       <p style="font-size: 14px; color: #666;">
-      //         Cordialement,<br>
-      //         L'équipe Aximotravo
-      //       </p>
-      //     </div>
-      //   </div>
-      // `;
-
       const emailSubject = isFirstValidatedDevis
         ? `Votre devis personnalisé est disponible - ${projectData.name}`
         : `Nouveau devis disponible - ${projectData.name}`;
 
-      const loginInstructionsSection = (isFirstValidatedDevis && clientData.tempPassword && !clientData.passwordRetrieved)
-        ? `
+      const loginInstructionsSection =
+        isFirstValidatedDevis &&
+        clientData.tempPassword &&
+        !clientData.passwordRetrieved
+          ? `
 <!-- Section identifiants -->
 <div style="border: 2px solid #e3f2fd; 
             background: #f8fbff; 
@@ -477,7 +388,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
   </div>
 </div>
 `
-        : ""; // Section vide si pas de mot de passe temporaire ou pas le premier devis
+          : ""; // Section vide si pas de mot de passe temporaire ou pas le premier devis
 
       const welcomeMessage = isFirstValidatedDevis
         ? `Nous avons le plaisir de vous transmettre votre devis pour le projet <strong>"${projectData.name}"</strong>. 
@@ -1359,19 +1270,15 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-          {/* 🔒 Aide TVA - Visible uniquement pour les courtiers */}
-          {userRole === "courtier" && <TVAHelper />}
-          {/* 🔒 Bouton de création de devis - Visible uniquement pour les courtiers */}
-          {userRole === "courtier" && (
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#f26755] hover:bg-[#e55a4a] text-white rounded-xl font-semibold text-sm shadow-lg hover:shadow-xl transition-all duration-200"
-            >
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">Créer un devis</span>
-              <span className="sm:hidden">Créer</span>
-            </button>
-          )}
+          <TVAHelper />
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#f26755] hover:bg-[#e55a4a] text-white rounded-xl font-semibold text-sm shadow-lg hover:shadow-xl transition-all duration-200"
+          >
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Créer un devis</span>
+            <span className="sm:hidden">Créer</span>
+          </button>
         </div>
       </div>
 
@@ -1577,21 +1484,19 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                                 </DropdownMenuItem>
                               </>
                             )}
-                            {userRole === "courtier" && (
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  handleOpenCommentModal(
-                                    devisItem.id,
-                                    "devis",
-                                    projectId || ""
-                                  )
-                                }
-                                disabled={sendingEmailId === devisItem.id}
-                              >
-                                <Send className="w-4 h-4 mr-2" />
-                                Envoyer au client
-                              </DropdownMenuItem>
-                            )}
+                            <DropdownMenuItem
+                              onClick={() =>
+                                handleOpenCommentModal(
+                                  devisItem.id,
+                                  "devis",
+                                  projectId || ""
+                                )
+                              }
+                              disabled={sendingEmailId === devisItem.id}
+                            >
+                              <Send className="w-4 h-4 mr-2" />
+                              Envoyer au client
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </td>
@@ -1789,7 +1694,6 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                                   Attribuer
                                 </DropdownMenuItem>
                               )}
-                            {userRole === "courtier" && (
                               <DropdownMenuItem
                                 onClick={() =>
                                   handleOpenCommentModal(
@@ -1803,7 +1707,6 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                                 <Send className="w-4 h-4 mr-2" /> Envoyer au
                                 client
                               </DropdownMenuItem>
-                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </td>
@@ -1972,14 +1875,16 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                           <DropdownMenuContent align="end">
                             {
                               <>
-                                <DropdownMenuItem
-                                  onClick={() => {
-                                    setFacturePreview(doc);
-                                  }}
-                                >
-                                  <FileText className="w-4 h-4 mr-2" />
-                                  Visualiser la facture
-                                </DropdownMenuItem>
+                                {userRole === "artisan" && (
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setFacturePreview(doc);
+                                    }}
+                                  >
+                                    <FileText className="w-4 h-4 mr-2" />
+                                    Visualiser la facture
+                                  </DropdownMenuItem>
+                                )}
                                 <DropdownMenuItem asChild>
                                   <a
                                     href="#"
@@ -2013,26 +1918,14 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                                     </DropdownMenuItem>
                                     {/* Options de factures de commission - Uniquement pour devis validés */}
                                     {/* Pour les artisans : seulement commission courtier */}
-                                    {userRole === "artisan" ? (
-                                      <DropdownMenuItem
-                                        onClick={() =>
-                                          setFactureCommissionPreview({
-                                            devis: doc,
-                                            factureType: 'commission_courtier'
-                                          })
-                                        }
-                                      >
-                                        <Euro className="w-4 h-4 mr-2" />
-                                        Facture Commission Courtier
-                                      </DropdownMenuItem>
-                                    ) : (
-                                      /* Pour les courtiers : les deux options */
+                                    {userRole === "artisan" && (
                                       <>
                                         <DropdownMenuItem
                                           onClick={() =>
                                             setFactureCommissionPreview({
                                               devis: doc,
-                                              factureType: 'commission_courtier'
+                                              factureType:
+                                                "commission_courtier",
                                             })
                                           }
                                         >
@@ -2043,7 +1936,8 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                                           onClick={() =>
                                             setFactureCommissionPreview({
                                               devis: doc,
-                                              factureType: 'commission_aximotravo'
+                                              factureType:
+                                                "commission_aximotravo",
                                             })
                                           }
                                         >

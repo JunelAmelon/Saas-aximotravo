@@ -8,7 +8,7 @@ import {
   Image,
 } from "@react-pdf/renderer";
 import { Devis } from "@/types/devis";
-import { getUserById, User, ArtisanUser } from "@/lib/firebase/users";
+import { getUserById, User, ArtisanUser, CourtierUser } from "@/lib/firebase/users";
 import { Project } from "@/lib/firebase/projects";
 import { FactureType } from "@/types/facture";
 import { entreprise } from "@/types/aximotravo";
@@ -190,6 +190,7 @@ interface FactureCommissionPDFDocumentProps {
   project: Project | null;
   factureType: FactureType;
   tauxCommission: number;
+  broker: CourtierUser | null;
 }
 
 export const FactureCommissionPDFDocument: React.FC<FactureCommissionPDFDocumentProps> = ({
@@ -199,6 +200,7 @@ export const FactureCommissionPDFDocument: React.FC<FactureCommissionPDFDocument
   project,
   factureType,
   tauxCommission,
+  broker,
 }) => {
   // Calcul des totaux du devis
   const calculateDevisTotal = () => {
@@ -315,7 +317,7 @@ export const FactureCommissionPDFDocument: React.FC<FactureCommissionPDFDocument
             <Text style={{
               fontSize: 8, // Réduit de 10 à 8
               color: '#B45309'
-            }}>{formatDate(new Date())}</Text>
+            }}>{formatDate(devis.updatedAt)}</Text>
           </View>
         </View>
         
@@ -355,6 +357,18 @@ export const FactureCommissionPDFDocument: React.FC<FactureCommissionPDFDocument
                   color: '#F26755'
                 }}>ÉMETTEUR</Text>
               </View>
+              {factureType === "commission_courtier" && broker ? (
+                <View style={{ padding: 8 }}> {/* Réduit de 12 à 8 */}
+                  <Text style={{ fontSize: 8, fontWeight: 'bold', marginBottom: 1 }}>{entreprise.nom}</Text>
+                  <Text style={{ fontSize: 8, marginBottom: 0.5 }}>{entreprise.adresse}</Text>
+                  <Text style={{ fontSize: 8, marginBottom: 0.5 }}>{entreprise.codePostal} {entreprise.ville}</Text>
+                  <Text style={{ fontSize: 8, marginBottom: 0.5 }}>SIRET: {entreprise.siren}</Text>
+                  <Text style={{ fontSize: 8, marginBottom: 0.5 }}>TVA: {entreprise.tva}</Text>
+                  <Text style={{ fontSize: 8, marginBottom: 0.5 }}>{broker.displayName}</Text>
+                  <Text style={{ fontSize: 8, marginBottom: 0.5 }}>Tél: {broker.phone}</Text>
+                  <Text style={{ fontSize: 8 }}>Email: {broker.email}</Text>
+                </View>
+              ) : (
               <View style={{ padding: 8 }}> {/* Réduit de 12 à 8 */}
                 <Text style={{ fontSize: 8, fontWeight: 'bold', marginBottom: 1 }}>{entreprise.nom}</Text>
                 <Text style={{ fontSize: 8, marginBottom: 0.5 }}>{entreprise.adresse}</Text>
@@ -363,7 +377,7 @@ export const FactureCommissionPDFDocument: React.FC<FactureCommissionPDFDocument
                 <Text style={{ fontSize: 8, marginBottom: 0.5 }}>TVA: {entreprise.tva}</Text>
                 <Text style={{ fontSize: 8, marginBottom: 0.5 }}>Tél: {entreprise.tel}</Text>
                 <Text style={{ fontSize: 8 }}>Email: {entreprise.email}</Text>
-              </View>
+              </View>)}
             </View>
           </View>
 
@@ -753,23 +767,6 @@ export const FactureCommissionPDFDocument: React.FC<FactureCommissionPDFDocument
               }}>{formatPrice(montantCommissionHT)}</Text>
             </View>
             <View style={{ padding: 8 }}> {/* Réduit de 12 à 8 */}
-              <View style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                marginBottom: 3 // Réduit de 4 à 3
-              }}>
-                <Text style={{ fontSize: 8 }}>Frais de port</Text>
-                <Text style={{ fontSize: 8 }}>-</Text>
-              </View>
-              <View style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                marginBottom: 6 // Réduit de 8 à 6
-              }}>
-                <Text style={{ fontSize: 8 }}>TVA collectée sur les débits</Text>
-                <Text style={{ fontSize: 8 }}>-</Text>
-              </View>
-              
               {/* Détail TVA */}
               <View style={{
                 backgroundColor: '#FFF7F5',

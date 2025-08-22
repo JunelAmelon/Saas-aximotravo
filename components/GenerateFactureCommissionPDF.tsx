@@ -1,7 +1,7 @@
 import { pdf } from "@react-pdf/renderer";
 import { FactureCommissionPDFDocument } from "@/components/FactureCommissionPDFDocument";
 import { addProjectDocument } from "@/hooks/useProjectDocuments";
-import { getUserById, ArtisanUser } from "@/lib/firebase/users";
+import { getUserById, ArtisanUser, CourtierUser } from "@/lib/firebase/users";
 import { getProjectById, Project } from "@/lib/firebase/projects";
 import { Devis } from "@/types/devis";
 import { FactureType } from "@/types/facture";
@@ -16,12 +16,14 @@ export const GenerateFactureCommissionPDF = async ({
   factureType,
   tauxCommission,
   setLoading,
+  broker,
 }: {
   devis: Devis;
   userId: string;
   factureType: FactureType;
   tauxCommission: number;
   setLoading?: (b: boolean) => void;
+  broker: CourtierUser | null;
 }) => {
   if (!devis) return;
   if (setLoading) setLoading(true);
@@ -96,6 +98,7 @@ export const GenerateFactureCommissionPDF = async ({
         project={project}
         factureType={factureType}
         tauxCommission={tauxCommission}
+        broker={broker}
       />
     ).toBlob();
 
