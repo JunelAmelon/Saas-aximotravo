@@ -329,13 +329,28 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ devis }) => {
                 </p>
 
                 {/* Images */}
-                {item.customImage && (
-                  <div className="mb-2">
-                    <img
-                      src={item.customImage}
-                      alt="Illustration"
-                      className="w-20 h-15 object-cover rounded border border-gray-200"
-                    />
+                {((item.images?.length ?? 0) > 0 || item.customImage) && (
+                  <div className="mb-2 flex flex-wrap gap-2">
+                    {/* Afficher les images du tableau si elles existent */}
+                    {item.images?.length > 0 ? (
+                      item.images.map((img: string, idx: number) => (
+                        <img
+                          key={idx}
+                          src={img}
+                          alt={`Illustration ${idx + 1}`}
+                          className="w-20 h-15 object-cover rounded border border-gray-200"
+                        />
+                      ))
+                    ) : (
+                      /* Sinon afficher customImage si elle existe */
+                      item.customImage && (
+                        <img
+                          src={item.customImage}
+                          alt="Illustration personnalisée"
+                          className="w-20 h-15 object-cover rounded border border-gray-200"
+                        />
+                      )
+                    )}
                   </div>
                 )}
 

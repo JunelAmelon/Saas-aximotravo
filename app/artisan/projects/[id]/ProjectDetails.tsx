@@ -94,7 +94,7 @@ export interface ProjectDetails {
   startDate: string;
   estimatedEndDate: string;
   broker: {
-    id: string | number;
+    id: string;
     company: string;
     courtier: User;
   };
@@ -1277,6 +1277,7 @@ export default function ProjectDetails() {
             onOpenChange={(open) => {
               if (!open) {
                 setStep(null);
+                
               }
             }}
             onBack={handleBackToHome}

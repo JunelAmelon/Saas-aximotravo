@@ -29,6 +29,10 @@ import {
   FactureCommissionData,
 } from "@/utils/factureCommissionPersistence";
 import { entreprise } from "@/types/aximotravo";
+import {
+  ProjectDetails,
+  getProjectDetail,
+} from "@/app/artisan/projects/[id]/ProjectDetails";
 
 interface FactureCommissionPreviewProps {
   userId: string;
@@ -42,11 +46,11 @@ export const FactureCommissionPreview: React.FC<
   FactureCommissionPreviewProps
 > = ({ userId, devis, factureType, onClose, isModal = false }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [project, setProject] = useState<Project | null>(null);
+  const [project, setProject] = useState<ProjectDetails | null>(null);
   const [client, setClient] = useState<User | null>(null);
   const [artisan, setArtisan] = useState<ArtisanUser | null>(null);
+  const [broker, setBroker] = useState<CourtierUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [factureData, setFactureData] = useState<FactureCommissionData | null>(
     null
   );
@@ -70,10 +74,19 @@ export const FactureCommissionPreview: React.FC<
           setUser(userData as CourtierUser);
         }
 
+        let loadedBroker = null;
+
         // Charger le projet si disponible
         if (devis.projectId) {
-          const projectData = await getProjectById(devis.projectId);
+          const projectData = await getProjectDetail(devis.projectId);
           setProject(projectData);
+
+          // Charger le courtier si disponible
+          if (projectData?.broker.id) {
+            const brokerData = await getUserById(projectData.broker.id);
+            setBroker(brokerData as CourtierUser);
+            loadedBroker = brokerData; // Stocker la valeur localement
+          }
 
           // Charger le client si disponible
           if (projectData?.client_id) {
@@ -114,7 +127,8 @@ export const FactureCommissionPreview: React.FC<
     };
 
     loadData();
-  }, [userId, devis.projectId, devis.id, factureType]);
+  }, [userId, devis.projectId, devis.id, factureType]); // Retirer 'project' des dépendances
+
 
   // Calcul du montant total du devis
   const calculateDevisTotal = () => {
@@ -180,26 +194,6 @@ export const FactureCommissionPreview: React.FC<
     return `${prefix}${year
       .toString()
       .slice(-2)}${month}-${devisIdHash}${typeCode}`;
-  };
-
-  const handleGeneratePDF = async () => {
-    if (!user) return;
-
-    try {
-      setIsGeneratingPDF(true);
-      await GenerateFactureCommissionPDF({
-        devis,
-        userId: user.uid,
-        factureType,
-        tauxCommission,
-        setLoading: setIsGeneratingPDF,
-      });
-      console.log("✅ PDF de facture de commission généré avec succès");
-    } catch (error) {
-      console.error("❌ Erreur lors de la génération du PDF:", error);
-    } finally {
-      setIsGeneratingPDF(false);
-    }
   };
 
   const formatDate = (date: Date | Timestamp | any) => {
@@ -289,7 +283,7 @@ export const FactureCommissionPreview: React.FC<
                   {generateFactureNumber()}
                 </p>
                 <p className="text-xs sm:text-sm mt-2 text-orange-700">
-                  {formatDate(new Date())}
+                  {formatDate(devis.updatedAt)}
                 </p>
               </div>
             </div>
@@ -307,17 +301,32 @@ export const FactureCommissionPreview: React.FC<
                     ÉMETTEUR
                   </h3>
                 </div>
-                <div className="p-3 text-xs">
-                  <p className="font-bold">{entreprise.nom}</p>
-                  <p>{entreprise.adresse}</p>
-                  <p>
-                    {entreprise.codePostal} {entreprise.ville}
-                  </p>
-                  <p>SIRET: {entreprise.siren}</p>
-                  <p>TVA: {entreprise.tva}</p>
-                  <p>Tél: {entreprise.tel}</p>
-                  <p>Email: {entreprise.email}</p>
-                </div>
+                {factureType === "commission_courtier" && broker ? (
+                  <div className="p-3 text-xs">
+                    <p className="font-bold">{entreprise.nom}</p>
+                    <p>{entreprise.adresse}</p>
+                    <p>
+                      {entreprise.codePostal} {entreprise.ville}
+                    </p>
+                    <p>SIRET: {entreprise.siren}</p>
+                    <p>TVA: {entreprise.tva}</p>
+                    <p>{broker.displayName}</p>
+                    <p>Tél: {broker.phone}</p>
+                    <p>Email: {broker.email}</p>
+                  </div>
+                ) : (
+                  <div className="p-3 text-xs">
+                    <p className="font-bold">{entreprise.nom}</p>
+                    <p>{entreprise.adresse}</p>
+                    <p>
+                      {entreprise.codePostal} {entreprise.ville}
+                    </p>
+                    <p>SIRET: {entreprise.siren}</p>
+                    <p>TVA: {entreprise.tva}</p>
+                    <p>Tél: {entreprise.tel}</p>
+                    <p>Email: {entreprise.email}</p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -490,48 +499,6 @@ export const FactureCommissionPreview: React.FC<
             </div>
           </div>
 
-          {/* Configuration du taux */}
-          <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
-                <label className="text-sm font-medium text-[#F26755]">
-                  Ajuster le taux de commission :
-                </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    value={tauxCommission}
-                    onChange={(e) => setTauxCommission(Number(e.target.value))}
-                    className="w-20 p-2 border border-orange-300 rounded text-center focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                    min="0"
-                    max="100"
-                    step="0.1"
-                  />
-                  <span className="text-sm text-orange-700">%</span>
-                </div>
-              </div>
-
-              {/* Bouton de téléchargement PDF */}
-              <Button
-                onClick={handleGeneratePDF}
-                disabled={isGeneratingPDF || !user}
-                className="bg-[#F26755] hover:bg-[#E55A4A] text-white px-4 py-2 rounded flex items-center gap-2 w-full sm:w-auto"
-              >
-                {isGeneratingPDF ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    Génération...
-                  </>
-                ) : (
-                  <>
-                    <Download className="w-4 h-4" />
-                    Télécharger PDF
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-
           {/* Conditions de paiement */}
           <div className="mb-6">
             <div className="border border-orange-200">
@@ -587,15 +554,6 @@ export const FactureCommissionPreview: React.FC<
                   </div>
                 </div>
                 <div className="p-3 text-xs md:text-sm space-y-2">
-                  <div className="flex justify-between">
-                    <span>Frais de port</span>
-                    <span>-</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>TVA collectée sur les débits</span>
-                    <span>-</span>
-                  </div>
-
                   {/* Version desktop - Tableau */}
                   <div className="hidden md:block">
                     <div className="grid grid-cols-5 gap-1 mt-2 border-t pt-2">
@@ -731,6 +689,75 @@ export const FactureCommissionModal: React.FC<FactureCommissionModalProps> = ({
   userId,
   setFactureCommissionPreview,
 }) => {
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [broker, setBroker] = useState<CourtierUser | null>(null);
+
+  // Charger les données utilisateur pour le PDF
+  useEffect(() => {
+    const loadUser = async () => {
+      if (userId) {
+        try {
+          const userData = await getUserById(userId);
+          setUser(userData);
+        } catch (error) {
+          console.error("Erreur lors du chargement de l'utilisateur:", error);
+        }
+      }
+    };
+
+    loadUser();
+  }, [userId]);
+
+  // Charger le courtier (broker) lié au projet du devis
+  useEffect(() => {
+    const loadBroker = async () => {
+      try {
+        if (!factureCommissionPreview?.devis?.projectId) {
+          setBroker(null);
+          return;
+        }
+        const project = await getProjectById(factureCommissionPreview.devis.projectId);
+        const brokerId = (project as any)?.broker?.id;
+        if (brokerId) {
+          const brokerData = await getUserById(brokerId);
+          setBroker(brokerData as CourtierUser);
+        } else {
+          setBroker(null);
+        }
+      } catch (e) {
+        console.error("Erreur lors du chargement du courtier:", e);
+        setBroker(null);
+      }
+    };
+
+    loadBroker();
+  }, [factureCommissionPreview?.devis?.projectId]);
+
+  const handleGeneratePDF = async () => {
+    if (!user || !factureCommissionPreview) return;
+
+    try {
+      setIsGeneratingPDF(true);
+      await GenerateFactureCommissionPDF({
+        devis: factureCommissionPreview.devis,
+        userId: user.uid,
+        factureType: factureCommissionPreview.factureType,
+        tauxCommission:
+          factureCommissionPreview.factureType === "commission_courtier"
+            ? COMMISSION_RATES.commission_courtier
+            : COMMISSION_RATES.commission_aximotravo,
+        setLoading: setIsGeneratingPDF,
+        broker: broker,
+      });
+      console.log("✅ PDF de facture de commission généré avec succès");
+    } catch (error) {
+      console.error("❌ Erreur lors de la génération du PDF:", error);
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
   if (!factureCommissionPreview) return null;
 
   return (
@@ -738,13 +765,38 @@ export const FactureCommissionModal: React.FC<FactureCommissionModalProps> = ({
       <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b p-4 flex justify-between items-center">
           <h2 className="text-xl font-bold">Facture de Commission</h2>
-          <Button
-            onClick={() => setFactureCommissionPreview(null)}
-            variant="outline"
-            size="sm"
-          >
-            Fermer
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={handleGeneratePDF}
+              disabled={
+                isGeneratingPDF ||
+                !user ||
+                (factureCommissionPreview?.factureType === "commission_courtier" && !broker)
+              }
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-1"
+            >
+              {isGeneratingPDF ? (
+                <>
+                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current mr-1"></div>
+                  <span className="hidden sm:inline">Génération...</span>
+                </>
+              ) : (
+                <>
+                  <Download className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline ml-1">Télécharger</span>
+                </>
+              )}
+            </Button>
+            <Button
+              onClick={() => setFactureCommissionPreview(null)}
+              variant="outline"
+              size="sm"
+            >
+              Fermer
+            </Button>
+          </div>
         </div>
         <FactureCommissionPreview
           userId={userId}

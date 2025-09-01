@@ -64,7 +64,8 @@ export interface DevisItem {
   quantite: number;
   pieces: string[];
   isOffered?: boolean;
-  customImage?: string;
+  customImage?: string; // Gardé pour la rétrocompatibilité
+  images?: string[];    // Nouveau champ pour stocker plusieurs images
   customUnit?: string;
   originalPrix?: number;
   tva?: number; // TVA spécifique à cette prestation

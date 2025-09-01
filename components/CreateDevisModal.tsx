@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,7 @@ import { Loader } from './ui/Loader';
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { useParams } from 'next/navigation';
 import { serverTimestamp } from 'firebase/firestore';
+import { getUserById } from '@/lib/firebase/users';
 
 interface CreateDevisModalProps {
   open: boolean;
@@ -21,11 +22,13 @@ interface CreateDevisModalProps {
 
 export function CreateDevisModal({ open, onOpenChange, onCreateDevis }: CreateDevisModalProps) {
   const { currentUser } = useAuth();
+  const [user, setUser] = useState<any>(null);
   const [titre, setTitre] = useState('');
   const [tva, setTva] = useState<number | 'custom'>(10);
   const [customTva, setCustomTva] = useState('');
   const [devisConfigId, setDevisConfigId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [userLoading, setUserLoading] = useState(true);
   const params = useParams() || {};
   const projectId =
     typeof params.id === 'string'
@@ -39,6 +42,25 @@ export function CreateDevisModal({ open, onOpenChange, onCreateDevis }: CreateDe
     const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
     return `DEV-${year}-${random}`;
   }, []);
+
+  useEffect(() => {
+    const loadUser = async () => {
+      if (currentUser?.uid) {
+        try {
+          const userData = await getUserById(currentUser.uid);
+          setUser(userData);
+        } catch (error) {
+          console.error('Error loading user data:', error);
+        } finally {
+          setUserLoading(false);
+        }
+      } else {
+        setUserLoading(false);
+      }
+    };
+
+    loadUser();
+  }, [currentUser]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,6 +78,12 @@ export function CreateDevisModal({ open, onOpenChange, onCreateDevis }: CreateDe
         numero: generateDevisNumber(),
         tva: finalTva,
         status: 'En Cours',
+        ...(user?.role === 'artisan' && {
+          attribution: {
+            artisanId: user.uid,
+            artisanName: user.displayName,
+          },
+        }),
         pieces: PIECES_DISPONIBLES.map(nom => ({
           nom,
           selected: false,
@@ -79,8 +107,6 @@ export function CreateDevisModal({ open, onOpenChange, onCreateDevis }: CreateDe
     setTva(20);
     setCustomTva('');
   };
-
-
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

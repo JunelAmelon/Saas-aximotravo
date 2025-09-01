@@ -9,6 +9,7 @@ import { FacturePDFDocument } from "./FacturePDFDocument";
 import { Button } from "@/components/ui/button";
 import { Building, Download, Edit, User as UserIcon } from "lucide-react";
 import { GenerateFacturePDF } from "./GenerateFacturePDF";
+import { entreprise } from "@/types/aximotravo";
 
 interface FacturePreviewProps {
   userId: string;
@@ -16,24 +17,6 @@ interface FacturePreviewProps {
   onClose?: () => void;
   isModal?: boolean;
 }
-
-// Informations par défaut de l'entreprise pour les courtiers
-export const DEFAULT_COMPANY_INFO = {
-  logoUrl: "https://res.cloudinary.com/djdogxq0d/image/upload/v1753677699/logo_vvpiay.jpg",
-  name: "Aximobat",
-  address: "1 place du village",
-  postalCode: "65240",
-  city: "ASPIN-AURE",
-  phone: "0811386565",
-  email: "contact@Aximobat.com",
-  companyLegalForm: "SAS",
-  companyCapital: "5000 €",
-  siret: "123456789012345",
-  rcs: "TARBES",
-  siren: "815247812",
-  companyApe: "7112B",
-  tvaIntra: "FR95815247812",
-};
 
 export const FacturePreview: React.FC<FacturePreviewProps> = ({
   userId,
@@ -204,11 +187,11 @@ console.log(user);
                 )
               ) : (
                 <img
-                  src={DEFAULT_COMPANY_INFO.logoUrl}
-                  alt={DEFAULT_COMPANY_INFO.name}
+                  src={entreprise.logoUrl}
+                  alt={entreprise.nom}
                   className="h-16 sm:h-20 lg:h-32 w-auto max-w-[200px] sm:max-w-[250px] lg:max-w-[300px] object-contain bg-white p-2 sm:p-3 rounded-xl shadow-lg"
-                  onLoad={() => console.log('🖼️ Logo courtier chargé:', DEFAULT_COMPANY_INFO.logoUrl)}
-                  onError={() => console.error('❌ Erreur chargement logo courtier:', DEFAULT_COMPANY_INFO.logoUrl)}
+                  onLoad={() => console.log('🖼️ Logo courtier chargé:', entreprise.logoUrl)}
+                  onError={() => console.error('❌ Erreur chargement logo courtier:', entreprise.logoUrl)}
                 />
               )}
             </div>
@@ -266,17 +249,17 @@ console.log(user);
                 <p className="font-semibold text-gray-800">
                   {user?.role === "artisan"
                     ? user?.companyName
-                    : DEFAULT_COMPANY_INFO.name}
+                    : entreprise.nom}
                 </p>
                 <p className="text-gray-600">
                   {user?.role === "artisan"
                     ? user?.companyAddress
-                    : DEFAULT_COMPANY_INFO.address}
+                    : entreprise.adresse}
                 </p>
                 <p className="text-gray-600">
                   {user?.role === "artisan"
                     ? `${user?.companyPostalCode} ${user?.companyCity}`
-                    : `${DEFAULT_COMPANY_INFO.postalCode} ${DEFAULT_COMPANY_INFO.city}`}
+                    : `${entreprise.codePostal} ${entreprise.ville}`}
                 </p>
                 <p className="text-gray-600">
                   Tél: {user?.role === "artisan" ? user?.companyPhone : user?.phone}
@@ -725,14 +708,12 @@ console.log(user);
                 } ${user?.siret ? `- Siret ${user.siret}` : ""} - RCS ${
                   user?.rcs
                 } - Code APE ${user?.companyApe}`
-              : `${DEFAULT_COMPANY_INFO.companyLegalForm} ${
-                  DEFAULT_COMPANY_INFO.name
-                } au Capital de ${DEFAULT_COMPANY_INFO.companyCapital} ${
-                  DEFAULT_COMPANY_INFO.siret
-                    ? `- Siret ${DEFAULT_COMPANY_INFO.siret}`
+              : `${entreprise.statut} ${
+                  entreprise.siren
+                    ? `- Siret ${entreprise.siren}`
                     : ""
-                } - RCS ${DEFAULT_COMPANY_INFO.rcs} - Code APE ${
-                  DEFAULT_COMPANY_INFO.companyApe
+                } - RCS ${entreprise.rcs} - Code APE ${
+                  entreprise.ape
                 }`}
           </p>
         </div>

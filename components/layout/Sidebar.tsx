@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Calendar, FolderOpen, Scale, Users } from "lucide-react";
+import { LayoutDashboard, Calendar, FolderOpen, Scale, Users, BadgeInfo } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface SidebarProps {
@@ -85,7 +85,13 @@ export default function Sidebar({ userRole }: SidebarProps) {
         href: `${roleBasePath}/profiles`,
         icon: Users,
         current: pathname === `${roleBasePath}/profiles`,
-      }
+      },
+      {
+        name: "Artisans",
+        href: `${roleBasePath}/artisans`,
+        icon: Users,
+        current: pathname === `${roleBasePath}/artisans`,
+      },
     ],
   };
 
