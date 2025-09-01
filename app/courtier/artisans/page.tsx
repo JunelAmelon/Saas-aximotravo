@@ -72,6 +72,12 @@ export default function CourtierArtisans() {
   const [kbisUrl, setKbisUrl] = useState<string | null>(null);
   const [companyLogoFile, setCompanyLogoFile] = useState<File | null>(null);
   const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null);
+  const [idCardFile, setIdCardFile] = useState<File | null>(null);
+  const [idCardUrl, setIdCardUrl] = useState<string | null>(null);
+  const [qualityCharterFile, setQualityCharterFile] = useState<File | null>(null);
+  const [qualityCharterUrl, setQualityCharterUrl] = useState<string | null>(null);
+  const [obligationsFile, setObligationsFile] = useState<File | null>(null);
+  const [obligationsUrl, setObligationsUrl] = useState<string | null>(null);
   const {
     createArtisan,
     loading: formLoading,
@@ -116,6 +122,9 @@ export default function CourtierArtisans() {
     let fiscalUrl = null;
     let kbisUrl = null;
     let companyLogoUrl = null;
+    let idCardUrl = null;
+    let qualityCharterUrl = null;
+    let obligationsUrl = null;
     const uploadToCloudinary = async (file: File | null) => {
       if (!file) return null;
       const data = new FormData();
@@ -135,6 +144,11 @@ export default function CourtierArtisans() {
     if (kbisFile) kbisUrl = await uploadToCloudinary(kbisFile);
     if (companyLogoFile)
       companyLogoUrl = await uploadToCloudinary(companyLogoFile);
+    if (idCardFile) idCardUrl = await uploadToCloudinary(idCardFile);
+    if (qualityCharterFile)
+      qualityCharterUrl = await uploadToCloudinary(qualityCharterFile);
+    if (obligationsFile)
+      obligationsUrl = await uploadToCloudinary(obligationsFile);
     setCloudinaryLoading(false);
     // Appel création artisan avec URLs Cloudinary
     await createArtisan({
@@ -144,6 +158,9 @@ export default function CourtierArtisans() {
       fiscalUrl,
       kbisUrl,
       companyLogoUrl,
+      idCardUrl,
+      qualityCharterUrl,
+      obligationsUrl,
     });
     if (!formError) {
       setForm({
@@ -180,6 +197,12 @@ export default function CourtierArtisans() {
       setFiscalFile(null);
       setKbisFile(null);
       setCompanyLogoUrl(null);
+      setIdCardFile(null);
+      setIdCardUrl(null);
+      setQualityCharterFile(null);
+      setQualityCharterUrl(null);
+      setObligationsFile(null);
+      setObligationsUrl(null);
       if (typeof window !== "undefined") {
         setTimeout(() => window.location.reload(), 1000);
       }
@@ -670,23 +693,35 @@ export default function CourtierArtisans() {
                         disabled={!!companyLogoFile}
                       />
                       {companyLogoUrl && (
-                        <div className="mt-4 flex justify-center items-center gap-2 flex-wrap">
-                          <img
-                            src={companyLogoUrl}
-                            alt="Logo de l'entreprise"
-                            className="max-h-24 rounded-lg border"
-                          />
-                          <button
-                            type="button"
-                            className="p-1 rounded hover:bg-gray-200"
-                            onClick={() => {
-                              setCompanyLogoFile(null);
-                              setCompanyLogoUrl(null);
-                            }}
-                            aria-label="Supprimer le fichier"
-                          >
-                            <X className="h-5 w-5 text-gray-500" />
-                          </button>
+                        <div className="mt-4 p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                            <img
+                              src={companyLogoUrl}
+                              alt="Logo de l'entreprise"
+                              className="max-h-20 w-auto rounded-lg border mx-auto sm:mx-0"
+                            />
+                            <div className="flex-1 min-w-0 text-center sm:text-left">
+                              <p className="text-sm font-medium text-gray-900 truncate">
+                                {companyLogoFile?.name || "Logo de l'entreprise"}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {companyLogoFile?.size
+                                  ? `${(companyLogoFile.size / 1024).toFixed(1)} KB`
+                                  : ''}
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              className="flex-shrink-0 p-2 rounded-full hover:bg-red-50 transition-colors group self-center sm:self-start"
+                              onClick={() => {
+                                setCompanyLogoFile(null);
+                                setCompanyLogoUrl(null);
+                              }}
+                              aria-label="Supprimer le fichier"
+                            >
+                              <X className="h-5 w-5 text-gray-400 group-hover:text-red-500" />
+                            </button>
+                          </div>
                         </div>
                       )}
                     </label>
@@ -721,36 +756,51 @@ export default function CourtierArtisans() {
                         disabled={!!fiscalFile}
                       />
                       {fiscalUrl && (
-                        <div className="mt-4 flex justify-center items-center gap-2 flex-wrap">
-                          {fiscalFile &&
-                          fiscalFile.type.startsWith("image/") ? (
-                            <img
-                              src={fiscalUrl}
-                              alt="Aperçu fiscal"
-                              className="max-h-24 rounded-lg border"
-                            />
-                          ) : (
-                            <a
-                              href={fiscalUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-2 text-[#f26755] underline"
+                        <div className="mt-4 p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                            {fiscalFile && fiscalFile.type.startsWith("image/") ? (
+                              <img
+                                src={fiscalUrl}
+                                alt="Aperçu fiscal"
+                                className="max-h-20 w-auto rounded-lg border mx-auto sm:mx-0"
+                              />
+                            ) : (
+                              <div className="flex items-center justify-center w-16 h-16 bg-orange-50 rounded-lg border border-orange-200 mx-auto sm:mx-0">
+                                <FileText className="h-8 w-8 text-[#f26755]" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0 text-center sm:text-left">
+                              <p className="text-sm font-medium text-gray-900 truncate">
+                                {fiscalFile?.name || "Attestation fiscale"}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {fiscalFile?.size
+                                  ? `${(fiscalFile.size / 1024).toFixed(1)} KB`
+                                  : ''}
+                              </p>
+                              {!fiscalFile?.type.startsWith("image/") && (
+                                <a
+                                  href={fiscalUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 text-xs text-[#f26755] hover:underline mt-1"
+                                >
+                                  <span>Voir le fichier</span>
+                                </a>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              className="flex-shrink-0 p-2 rounded-full hover:bg-red-50 transition-colors group self-center sm:self-start"
+                              onClick={() => {
+                                setFiscalFile(null);
+                                setFiscalUrl(null);
+                              }}
+                              aria-label="Supprimer le fichier"
                             >
-                              <FileText className="h-5 w-5 text-[#f26755]" />
-                              {fiscalFile?.name || "Voir le fichier"}
-                            </a>
-                          )}
-                          <button
-                            type="button"
-                            className="ml-2 p-1 rounded hover:bg-gray-200"
-                            onClick={() => {
-                              setFiscalFile(null);
-                              setFiscalUrl(null);
-                            }}
-                            aria-label="Supprimer le fichier"
-                          >
-                            <X className="h-5 w-5 text-gray-500" />
-                          </button>
+                              <X className="h-5 w-5 text-gray-400 group-hover:text-red-500" />
+                            </button>
+                          </div>
                         </div>
                       )}
                     </label>
@@ -779,35 +829,282 @@ export default function CourtierArtisans() {
                         disabled={!!kbisFile}
                       />
                       {kbisUrl && (
-                        <div className="mt-4 flex justify-center items-center gap-2 flex-wrap">
-                          {kbisFile && kbisFile.type.startsWith("image/") ? (
-                            <img
-                              src={kbisUrl}
-                              alt="Aperçu kbis"
-                              className="max-h-24 rounded-lg border"
-                            />
-                          ) : (
-                            <a
-                              href={kbisUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-2 text-[#f26755] underline"
+                        <div className="mt-4 p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                            {kbisFile && kbisFile.type.startsWith("image/") ? (
+                              <img
+                                src={kbisUrl}
+                                alt="Aperçu kbis"
+                                className="max-h-20 w-auto rounded-lg border mx-auto sm:mx-0"
+                              />
+                            ) : (
+                              <div className="flex items-center justify-center w-16 h-16 bg-orange-50 rounded-lg border border-orange-200 mx-auto sm:mx-0">
+                                <FileText className="h-8 w-8 text-[#f26755]" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0 text-center sm:text-left">
+                              <p className="text-sm font-medium text-gray-900 truncate">
+                                {kbisFile?.name || "Document KBIS"}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {kbisFile?.size
+                                  ? `${(kbisFile.size / 1024).toFixed(1)} KB`
+                                  : ''}
+                              </p>
+                              {!kbisFile?.type.startsWith("image/") && (
+                                <a
+                                  href={kbisUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 text-xs text-[#f26755] hover:underline mt-1"
+                                >
+                                  <span>Voir le fichier</span>
+                                </a>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              className="flex-shrink-0 p-2 rounded-full hover:bg-red-50 transition-colors group self-center sm:self-start"
+                              onClick={() => {
+                                setKbisFile(null);
+                                setKbisUrl(null);
+                              }}
+                              aria-label="Supprimer le fichier"
                             >
-                              <FileText className="h-5 w-5 text-[#f26755]" />
-                              {kbisFile?.name || "Voir le fichier"}
-                            </a>
-                          )}
-                          <button
-                            type="button"
-                            className="ml-2 p-1 rounded hover:bg-gray-200"
-                            onClick={() => {
-                              setKbisFile(null);
-                              setKbisUrl(null);
-                            }}
-                            aria-label="Supprimer le fichier"
-                          >
-                            <X className="h-5 w-5 text-gray-500" />
-                          </button>
+                              <X className="h-5 w-5 text-gray-400 group-hover:text-red-500" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </label>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">
+                    Carte d'identité*
+                  </label>
+                  <div className="flex items-center justify-center w-full">
+                    <label className="flex flex-col w-full border border-dashed border-gray-200 hover:border-[#f26755] rounded-xl cursor-pointer transition-all p-4 bg-gray-50 hover:bg-orange-50 group">
+                      <div className="flex items-center gap-2 text-gray-400 group-hover:text-[#f26755] transition-colors">
+                        <Upload className="h-5 w-5" />
+                        <span className="text-sm">
+                          Cliquez pour uploader (PDF, JPG, PNG)
+                        </span>
+                      </div>
+                      <input
+                        type="file"
+                        accept="application/pdf,image/*"
+                        onChange={(e) =>
+                          handleFileChange(e, setIdCardFile, setIdCardUrl)
+                        }
+                        className="hidden"
+                        disabled={!!idCardFile}
+                      />
+                      {idCardUrl && (
+                        <div className="mt-4 p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                            {idCardFile && idCardFile.type.startsWith("image/") ? (
+                              <img
+                                src={idCardUrl}
+                                alt="Aperçu carte d'identité"
+                                className="max-h-20 w-auto rounded-lg border mx-auto sm:mx-0"
+                              />
+                            ) : (
+                              <div className="flex items-center justify-center w-16 h-16 bg-orange-50 rounded-lg border border-orange-200 mx-auto sm:mx-0">
+                                <FileText className="h-8 w-8 text-[#f26755]" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0 text-center sm:text-left">
+                              <p className="text-sm font-medium text-gray-900 truncate">
+                                {idCardFile?.name || "Carte d'identité"}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {idCardFile?.size
+                                  ? `${(idCardFile.size / 1024).toFixed(1)} KB`
+                                  : ''}
+                              </p>
+                              {!idCardFile?.type.startsWith("image/") && (
+                                <a
+                                  href={idCardUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 text-xs text-[#f26755] hover:underline mt-1"
+                                >
+                                  <span>Voir le fichier</span>
+                                </a>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              className="flex-shrink-0 p-2 rounded-full hover:bg-red-50 transition-colors group self-center sm:self-start"
+                              onClick={() => {
+                                setIdCardFile(null);
+                                setIdCardUrl(null);
+                              }}
+                              aria-label="Supprimer le fichier"
+                            >
+                              <X className="h-5 w-5 text-gray-400 group-hover:text-red-500" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </label>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">
+                    Charte qualité*
+                  </label>
+                  <div className="flex items-center justify-center w-full">
+                    <label className="flex flex-col w-full border border-dashed border-gray-200 hover:border-[#f26755] rounded-xl cursor-pointer transition-all p-4 bg-gray-50 hover:bg-orange-50 group">
+                      <div className="flex items-center gap-2 text-gray-400 group-hover:text-[#f26755] transition-colors">
+                        <Upload className="h-5 w-5" />
+                        <span className="text-sm">
+                          Cliquez pour uploader (PDF, JPG, PNG)
+                        </span>
+                      </div>
+                      <input
+                        type="file"
+                        accept="application/pdf,image/*"
+                        onChange={(e) =>
+                          handleFileChange(
+                            e,
+                            setQualityCharterFile,
+                            setQualityCharterUrl
+                          )
+                        }
+                        className="hidden"
+                        disabled={!!qualityCharterFile}
+                      />
+                      {qualityCharterUrl && (
+                        <div className="mt-4 p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                            {qualityCharterFile &&
+                            qualityCharterFile.type.startsWith("image/") ? (
+                              <img
+                                src={qualityCharterUrl}
+                                alt="Aperçu charte qualité"
+                                className="max-h-20 w-auto rounded-lg border mx-auto sm:mx-0"
+                              />
+                            ) : (
+                              <div className="flex items-center justify-center w-16 h-16 bg-orange-50 rounded-lg border border-orange-200 mx-auto sm:mx-0">
+                                <FileText className="h-8 w-8 text-[#f26755]" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0 text-center sm:text-left">
+                              <p className="text-sm font-medium text-gray-900 truncate">
+                                {qualityCharterFile?.name || "Charte qualité"}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {qualityCharterFile?.size
+                                  ? `${(qualityCharterFile.size / 1024).toFixed(1)} KB`
+                                  : ''}
+                              </p>
+                              {!qualityCharterFile?.type.startsWith(
+                                "image/"
+                              ) && (
+                                <a
+                                  href={qualityCharterUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 text-xs text-[#f26755] hover:underline mt-1"
+                                >
+                                  <span>Voir le fichier</span>
+                                </a>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              className="flex-shrink-0 p-2 rounded-full hover:bg-red-50 transition-colors group self-center sm:self-start"
+                              onClick={() => {
+                                setQualityCharterFile(null);
+                                setQualityCharterUrl(null);
+                              }}
+                              aria-label="Supprimer le fichier"
+                            >
+                              <X className="h-5 w-5 text-gray-400 group-hover:text-red-500" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </label>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">
+                    Obligations*
+                  </label>
+                  <div className="flex items-center justify-center w-full">
+                    <label className="flex flex-col w-full border border-dashed border-gray-200 hover:border-[#f26755] rounded-xl cursor-pointer transition-all p-4 bg-gray-50 hover:bg-orange-50 group">
+                      <div className="flex items-center gap-2 text-gray-400 group-hover:text-[#f26755] transition-colors">
+                        <Upload className="h-5 w-5" />
+                        <span className="text-sm">
+                          Cliquez pour uploader (PDF, JPG, PNG)
+                        </span>
+                      </div>
+                      <input
+                        type="file"
+                        accept="application/pdf,image/*"
+                        onChange={(e) =>
+                          handleFileChange(
+                            e,
+                            setObligationsFile,
+                            setObligationsUrl
+                          )
+                        }
+                        className="hidden"
+                        disabled={!!obligationsFile}
+                      />
+                      {obligationsUrl && (
+                        <div className="mt-4 p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                            {obligationsFile &&
+                            obligationsFile.type.startsWith("image/") ? (
+                              <img
+                                src={obligationsUrl}
+                                alt="Aperçu obligations"
+                                className="max-h-20 w-auto rounded-lg border mx-auto sm:mx-0"
+                              />
+                            ) : (
+                              <div className="flex items-center justify-center w-16 h-16 bg-orange-50 rounded-lg border border-orange-200 mx-auto sm:mx-0">
+                                <FileText className="h-8 w-8 text-[#f26755]" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0 text-center sm:text-left">
+                              <p className="text-sm font-medium text-gray-900 truncate">
+                                {obligationsFile?.name || "Obligations"}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {obligationsFile?.size
+                                  ? `${(obligationsFile.size / 1024).toFixed(1)} KB`
+                                  : ''}
+                              </p>
+                              {!obligationsFile?.type.startsWith("image/") && (
+                                <a
+                                  href={obligationsUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 text-xs text-[#f26755] hover:underline mt-1"
+                                >
+                                  <span>Voir le fichier</span>
+                                </a>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              className="flex-shrink-0 p-2 rounded-full hover:bg-red-50 transition-colors group self-center sm:self-start"
+                              onClick={() => {
+                                setObligationsFile(null);
+                                setObligationsUrl(null);
+                              }}
+                              aria-label="Supprimer le fichier"
+                            >
+                              <X className="h-5 w-5 text-gray-400 group-hover:text-red-500" />
+                            </button>
+                          </div>
                         </div>
                       )}
                     </label>

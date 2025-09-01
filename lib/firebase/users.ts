@@ -41,10 +41,21 @@ export interface ArtisanUser extends BaseUser {
   hasCertification?: string;
   certificationUrl?: string | null;
   insuranceDate?: string;
-  insuranceUrl?: string | null;
+  assuranceUrl?: string | null;
   fiscalUrl?: string | null;
   kbisUrl?: string | null;
   companyLogoUrl?: string;
+  idCardUrl?: string | null;
+  qualityCharterUrl?: string | null;
+  obligationsUrl?: string | null;
+  status?: "validated" | "pending" | "rejected";
+  tempId?: string; 
+  courtierName?: string; 
+  submittedAt?: Date | null; 
+  validatedAt?: Date | null; 
+  rejectedAt?: Date | null; 
+  rejectedReason?: string; 
+  authCreated?: boolean; 
 }
 
 export interface CourtierUser extends BaseUser {
@@ -128,7 +139,8 @@ export async function getArtisansByCourtierId(courtierId: string): Promise<Artis
     const artisansQuery = query(
       collection(db, 'users'),
       where('role', '==', 'artisan'),
-      where('courtierId', '==', courtierId)
+      where('courtierId', '==', courtierId),
+      where('status', '==', 'validated')
     );
     const snapshot = await getDocs(artisansQuery);
     return snapshot.docs.map(doc => doc.data() as ArtisanUser);
@@ -144,7 +156,8 @@ export async function getUnassignedArtisans(): Promise<ArtisanUser[]> {
     const artisansQuery = query(
       collection(db, 'users'),
       where('role', '==', 'artisan'),
-      where('courtierId', '==', null)
+      where('courtierId', '==', null),
+      where('status', '==', 'validated')
     );
     const snapshot = await getDocs(artisansQuery);
     return snapshot.docs.map(doc => doc.data() as ArtisanUser);
@@ -202,7 +215,7 @@ export async function getAllArtisans(): Promise<ArtisanUser[]> {
   try {
     const artisansQuery = query(
       collection(db, 'users'),
-      where('role', '==', 'artisan')
+      where('role', '==', 'artisan'),
     );
     const snapshot = await getDocs(artisansQuery);
     return snapshot.docs.map(doc => doc.data() as ArtisanUser);
