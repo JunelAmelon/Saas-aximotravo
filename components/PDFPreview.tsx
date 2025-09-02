@@ -5,6 +5,8 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 import { Project, getProjectById } from "@/lib/firebase/projects";
 import { MapPin } from "lucide-react";
+import { useAuth } from "@/lib/contexts/AuthContext";
+
 interface PDFPreviewProps {
   devis: Devis;
 }
@@ -15,6 +17,31 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ devis }) => {
   const [client, setClient] = useState<any>(null);
 
   const [project, setProject] = useState<Project | null>(null);
+  const { currentUser } = useAuth();
+  const [isArtisan, setIsArtisan] = useState<boolean>(false);
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadRole() {
+      if (!currentUser) {
+        if (mounted) setIsArtisan(false);
+        return;
+      }
+      try {
+        const userSnap = await getDoc(doc(db, "users", currentUser.uid));
+        if (mounted) {
+          setIsArtisan(userSnap.exists() && (userSnap.data() as any).role === "artisan");
+        }
+      } catch {
+        if (mounted) setIsArtisan(false);
+      }
+    }
+    loadRole();
+    return () => {
+      mounted = false;
+    };
+  }, [currentUser]);
+
   useEffect(() => {
     async function loadProject() {
       if (!projectId) return;
@@ -41,7 +68,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ devis }) => {
     }
     loadClient();
   }, [projectId]);
-  
+
   // Vérification de sécurité pour éviter les erreurs lors du chargement
   if (!devis || !devis.selectedItems) {
     return (
@@ -545,42 +572,46 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ devis }) => {
         </div>
 
         {/* Modalités de paiement */}
-        <div className="mt-10">
-          <h3 className="font-bold text-gray-800 mb-5 pb-2 border-b-2 border-[#F26755] text-base md:text-3xl">
-            MODALITÉS DE PAIEMENT
-          </h3>
+        {isArtisan && (
+          <div className="mt-10">
+            <h3 className="font-bold text-gray-800 mb-5 pb-2 border-b-2 border-[#F26755] text-base md:text-3xl">
+              MODALITÉS DE PAIEMENT
+            </h3>
 
-          {payments.map((payment, index) => (
-            <div
-              key={index}
-              className="flex justify-between items-center mb-2 pb-2 border-b border-gray-200 py-3"
-            >
-              <div className="flex items-center">
-                <div className="w-8 h-8 bg-[#F26755] text-white rounded-full flex items-center justify-center mr-2 text-base md:text-lg font-bold">
-                  {payment.percent}%
+            {payments.map((payment, index) => (
+              <div
+                key={index}
+                className="flex justify-between items-center mb-2 pb-2 border-b border-gray-200 py-3"
+              >
+                <div className="flex items-center">
+                  <div className="w-8 h-8 bg-[#F26755] text-white rounded-full flex items-center justify-center mr-2 text-base md:text-lg font-bold">
+                    {payment.percent}%
+                  </div>
+                  <span className="text-base md:text-lg font-medium">
+                    {payment.label}
+                  </span>
                 </div>
-                <span className="text-base md:text-lg font-medium">
-                  {payment.label}
+                <span className="bg-green-100 text-green-700 px-2 py-1 rounded font-bold text-base md:text-lg">
+                  {payment.amount.toFixed(2)} €
                 </span>
               </div>
-              <span className="bg-green-100 text-green-700 px-2 py-1 rounded font-bold text-base md:text-lg">
-                {payment.amount.toFixed(2)} €
-              </span>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         {/* Signature */}
-        <div className="mt-15 flex justify-end">
-          <div className="w-50 pt-2 border-t border-gray-200 text-center">
-            <div className="text-gray-600 text-base md:text-lg">
-              Fait à Paris, le {new Date().toLocaleDateString("fr-FR")}
-            </div>
-            <div className="font-bold text-base md:text-lg mb-1 truncate">
-              Signature du client
+        {isArtisan && (
+          <div className="mt-15 flex justify-end">
+            <div className="w-50 pt-2 border-t border-gray-200 text-center">
+              <div className="text-gray-600 text-base md:text-lg">
+                Fait à Paris, le {new Date().toLocaleDateString("fr-FR")}
+              </div>
+              <div className="font-bold text-base md:text-lg mb-1 truncate">
+                Signature du client
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
