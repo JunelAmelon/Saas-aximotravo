@@ -66,8 +66,10 @@ interface PendingArtisan {
   postalCode?: string;
   experience?: string;
   description?: string;
-  // New documents
+  // Documents
   idCardUrl?: string | null;
+  charterUrl?: string | null;
+  // Deprecated legacy (kept for backward compatibility)
   qualityCharterUrl?: string | null;
   obligationsUrl?: string | null;
 }
@@ -225,16 +227,16 @@ export default function AdminArtisansPage() {
   console.log(filteredArtisans);
 
   const getDocumentStatus = (artisan: PendingArtisan) => {
+    const charter = artisan.charterUrl || artisan.qualityCharterUrl || artisan.obligationsUrl;
     const docs = [
       artisan.certificationUrl,
       artisan.assuranceUrl,
       artisan.fiscalUrl,
       artisan.kbisUrl,
       artisan.idCardUrl,
-      artisan.qualityCharterUrl,
-      artisan.obligationsUrl
+      charter
     ].filter(Boolean);
-    return `${docs.length}/7`;
+    return `${docs.length}/6`;
   };
 
   if (loading) {
@@ -315,7 +317,7 @@ export default function AdminArtisansPage() {
                             {artisan.firstName} {artisan.lastName}
                           </h3>
                           <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium self-start ${
-                            getDocumentStatus(artisan) === '7/7' 
+                            getDocumentStatus(artisan) === '6/6' 
                               ? 'bg-emerald-100 text-emerald-700' 
                               : 'bg-amber-100 text-amber-700'
                           }`}>
@@ -640,8 +642,7 @@ export default function AdminArtisansPage() {
                     { label: 'Attestation fiscale', url: selectedArtisan.fiscalUrl, key: 'fiscal' },
                     { label: 'Extrait KBIS', url: selectedArtisan.kbisUrl, key: 'kbis' },
                     { label: "Carte d'identité", url: selectedArtisan.idCardUrl, key: 'idCard' },
-                    { label: 'Charte qualité', url: selectedArtisan.qualityCharterUrl, key: 'qualityCharter' },
-                    { label: 'Obligations', url: selectedArtisan.obligationsUrl, key: 'obligations' }
+                    { label: 'Charte/Obligations', url: (selectedArtisan.charterUrl || selectedArtisan.qualityCharterUrl || selectedArtisan.obligationsUrl), key: 'charter' }
                   ].map((doc) => (
                     <div key={doc.key} className="flex items-center justify-between p-4 bg-white rounded-lg border border-slate-200">
                       <div className="flex items-center gap-3">

@@ -65,10 +65,13 @@ interface ValidatedArtisan {
   postalCode?: string;
   experience?: string;
   description?: string;
-  // New documents
-  idCardUrl?: string;
+  // New merged field
+  charterUrl?: string;
+  // Deprecated legacy (kept for backward compatibility)
   qualityCharterUrl?: string;
   obligationsUrl?: string;
+  // Other docs
+  idCardUrl?: string;
 }
 
 export default function ValidatedArtisansPage() {
@@ -483,23 +486,38 @@ export default function ValidatedArtisansPage() {
                     { key: 'fiscalUrl', label: 'Document fiscal' },
                     { key: 'kbisUrl', label: 'KBIS' },
                     { key: 'idCardUrl', label: "Carte d'identité" },
-                    { key: 'qualityCharterUrl', label: 'Charte qualité' },
-                    { key: 'obligationsUrl', label: 'Obligations' }
+                    { key: 'charter', label: 'Charte/Obligations' }
                   ].map(({ key, label }) => (
                     <div key={key} className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
                       <span className="text-xs sm:text-sm font-medium text-gray-700 truncate mr-2">{label}</span>
-                      {selectedArtisan[key as keyof ValidatedArtisan] ? (
-                        <a
-                          href={selectedArtisan[key as keyof ValidatedArtisan] as string}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-medium transition-colors flex items-center space-x-1 flex-shrink-0"
-                        >
-                          <Download className="h-3 w-3 sm:h-4 sm:w-4" />
-                          <span>Voir</span>
-                        </a>
+                      {key === 'charter' ? (
+                        (selectedArtisan.charterUrl || selectedArtisan.qualityCharterUrl || selectedArtisan.obligationsUrl) ? (
+                          <a
+                            href={(selectedArtisan.charterUrl || selectedArtisan.qualityCharterUrl || selectedArtisan.obligationsUrl) as string}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-medium transition-colors flex items-center space-x-1 flex-shrink-0"
+                          >
+                            <Download className="h-3 w-3 sm:h-4 sm:w-4" />
+                            <span>Voir</span>
+                          </a>
+                        ) : (
+                          <span className="text-red-600 text-xs sm:text-sm flex-shrink-0">Non fourni</span>
+                        )
                       ) : (
-                        <span className="text-red-600 text-xs sm:text-sm flex-shrink-0">Non fourni</span>
+                        selectedArtisan[key as keyof ValidatedArtisan] ? (
+                          <a
+                            href={selectedArtisan[key as keyof ValidatedArtisan] as string}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-medium transition-colors flex items-center space-x-1 flex-shrink-0"
+                          >
+                            <Download className="h-3 w-3 sm:h-4 sm:w-4" />
+                            <span>Voir</span>
+                          </a>
+                        ) : (
+                          <span className="text-red-600 text-xs sm:text-sm flex-shrink-0">Non fourni</span>
+                        )
                       )}
                     </div>
                   ))}
