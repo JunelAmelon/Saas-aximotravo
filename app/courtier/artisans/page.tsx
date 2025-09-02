@@ -948,7 +948,7 @@ export default function CourtierArtisans() {
 
                 <div className="space-y-1">
                   <label className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">
-                    Charte/Obligations*
+                    Charte qualité/Obligations*
                   </label>
                   <div className="flex items-center justify-center w-full">
                     <label className="flex flex-col w-full border border-dashed border-gray-200 hover:border-[#f26755] rounded-xl cursor-pointer transition-all p-4 bg-gray-50 hover:bg-orange-50 group">

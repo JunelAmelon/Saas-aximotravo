@@ -642,7 +642,7 @@ export default function AdminArtisansPage() {
                     { label: 'Attestation fiscale', url: selectedArtisan.fiscalUrl, key: 'fiscal' },
                     { label: 'Extrait KBIS', url: selectedArtisan.kbisUrl, key: 'kbis' },
                     { label: "Carte d'identité", url: selectedArtisan.idCardUrl, key: 'idCard' },
-                    { label: 'Charte/Obligations', url: (selectedArtisan.charterUrl || selectedArtisan.qualityCharterUrl || selectedArtisan.obligationsUrl), key: 'charter' }
+                    { label: 'Charte qualité/Obligations', url: (selectedArtisan.charterUrl || selectedArtisan.qualityCharterUrl || selectedArtisan.obligationsUrl), key: 'charter' }
                   ].map((doc) => (
                     <div key={doc.key} className="flex items-center justify-between p-4 bg-white rounded-lg border border-slate-200">
                       <div className="flex items-center gap-3">
