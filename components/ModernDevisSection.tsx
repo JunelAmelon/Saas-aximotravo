@@ -39,6 +39,7 @@ import {
 import { db } from "@/lib/firebase/config";
 import { useToast } from "@/hooks/use-toast";
 import { FacturePreview } from "./FacturePreview";
+import {NoticeComptablePreview, NoticeComptableModal} from "./NoticeComptablePreview";
 import { FactureModal } from "./FacturePreview";
 import { GenerateFacturePDF } from "./GenerateFacturePDF";
 import {
@@ -167,6 +168,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
     devis: Devis;
     factureType: "commission_courtier" | "commission_aximotravo";
   } | null>(null);
+  const [noticeComptablePreview, setNoticeComptablePreview] = useState<Devis | null>(null);
 
   // Fonction pour ouvrir la modal de commentaire avant envoi
   const handleOpenCommentModal = (
@@ -727,7 +729,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
             margin: 0; 
             text-align: center;
             line-height: 1.4;">
-    © 2024 Aximotravo • Société de courtage en travaux<br>
+    &copy; 2024 Aximotravo • Société de courtage en travaux<br>
     SIRET 123 456 789 00012
   </p>
 </div>--->
@@ -1944,6 +1946,14 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                                           <Euro className="w-4 h-4 mr-2" />
                                           Facture Commission Aximotravo
                                         </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() =>
+                                            setNoticeComptablePreview(doc)
+                                          }
+                                        >
+                                          <FileText className="w-4 h-4 mr-2" />
+                                          Voir la notice comptable
+                                        </DropdownMenuItem>
                                       </>
                                     )}
                                   </>
@@ -1985,6 +1995,13 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
           )}
         </div>
       )}
+
+      {/* Modal de la notice comptable */}
+      <NoticeComptableModal
+        noticeComptablePreview={noticeComptablePreview}
+        userId={currentUserId || ""}
+        setNoticeComptablePreview={setNoticeComptablePreview}
+      />
 
       {facturePreview && (
         <FactureModal
@@ -2088,34 +2105,15 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
               onClick={handleCancelSend}
             >
-              <span className="sr-only">Fermer</span>
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
+              <span className="sr-only">Fermer</span>×
             </button>
-
-            {/* Titre */}
-            <div className="mb-6">
-              <h3 className="text-xl font-bold text-gray-900 mb-2">
-                📧 Envoyer le devis au client
-              </h3>
-              <p className="text-sm text-gray-600">
-                Vous pouvez ajouter un message personnalisé qui sera inclus dans
-                l'email envoyé au client.
-              </p>
-            </div>
-
-            {/* Champ de commentaire */}
+            <h3 className="text-lg font-bold mb-4">
+              📧 Envoyer le devis au client
+            </h3>
+            <p className="text-sm text-gray-600">
+              Vous pouvez ajouter un message personnalisé qui sera inclus dans
+              l'email envoyé au client.
+            </p>
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 💬 Message personnalisé (optionnel)
