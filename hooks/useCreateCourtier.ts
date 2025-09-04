@@ -121,7 +121,17 @@ export function useCreateCourtier() {
       </tr>
     </table>
     <p style="margin-bottom: 12px;">
-      Vous pouvez vous connecter à la plateforme dès maintenant.
+      Vous pouvez vous connecter à la plateforme dès maintenant en cliquant sur le bouton ci-dessous.
+    </p>
+    <p style="margin: 0 0 16px;">
+      <a href="https://aximobat.com" target="_blank" rel="noopener noreferrer"
+         style="background:#f26755;color:#ffffff;text-decoration:none;padding:10px 16px;border-radius:6px;display:inline-block;font-weight:bold;">
+        Se connecter à la plateforme
+      </a>
+    </p>
+    <p style="margin: 0 0 16px; font-size: 0.9em; color: #555;">
+      Ou copiez-collez ce lien dans votre navigateur :
+      <span style="color:#f26755;">https://aximobat.com</span>
     </p>
     <p style="color: #f26755; font-size: 0.97em; margin-bottom: 0;">
       <i>Merci de changer votre mot de passe après la première connexion.</i>
