@@ -164,6 +164,21 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     lineHeight: 1.4,
   },
+  imagesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+    marginBottom: 8,
+  },
+  itemImage: {
+    width: 60,
+    height: 45,
+    borderRadius: 4,
+    borderWidth: 0.5,
+    borderColor: '#e2e8f0',
+    marginRight: 4,
+    marginBottom: 4,
+  },
   // Badges informatifs - simplifiés
   badgeContainer: {
     flexDirection: "row",
@@ -432,7 +447,7 @@ const styles = StyleSheet.create({
   },
 });
 
-export const DevisPDFDocument = ({ devis, client, project }: { devis: Devis, client: User, project: Project }) => {
+export const DevisPDFDocument = ({ devis, client, project, isArtisan = false }: { devis: Devis, client: User, project: Project, isArtisan?: boolean }) => {
   // Calcul des totaux avec gestion de la TVA variable et des prestations offertes
   let totalHT = 0;
   let totalTVA = 0;
@@ -676,27 +691,14 @@ export const DevisPDFDocument = ({ devis, client, project }: { devis: Devis, cli
 
                 <Text style={styles.prestationDesc}>{item.description}</Text>
 
-                {/* Images */}
-                {item.customImage && (
-                  <View style={{ marginBottom: 10 }}>
-                    <Image
-                      src={item.customImage}
-                      style={{
-                        width: 80,
-                        height: 60,
-                        borderRadius: 4,
-                        borderWidth: 1,
-                        borderColor: "#E2E8F0",
-                      }}
-                    />
-                  </View>
-                )}
+                {/* Afficher plusieurs images sur une seule ligne */}
+
 
                 {/* Détails chiffrés stylisés - sans fonds */}
                 <View style={styles.detailsRow}>
                   <Text style={styles.detailLabel}>Quantité</Text>
                   <Text style={styles.quantityText}>
-                    {item.quantite} {item.customUnit || item.unite}
+                    {Number(item.quantite).toFixed(1)} {item.customUnit || item.unite}
                   </Text>
                 </View>
 
@@ -714,7 +716,14 @@ export const DevisPDFDocument = ({ devis, client, project }: { devis: Devis, cli
                   </Text>
                 </View>
 
-                <View style={[styles.detailsRow, { marginTop: 6 }]}>
+                <View
+                  style={[
+                    styles.detailsRow,
+                    {
+                      marginTop: 6,
+                    },
+                  ]}
+                >
                   <Text style={[styles.detailLabel, { fontWeight: 600 }]}>
                     Total HT
                   </Text>
@@ -736,7 +745,10 @@ export const DevisPDFDocument = ({ devis, client, project }: { devis: Devis, cli
                   </Text>
                   {item.isOffered ? (
                     <View
-                      style={{ flexDirection: "row", alignItems: "center" }}
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                      }}
                     >
                       <Text
                         style={[
@@ -819,7 +831,7 @@ export const DevisPDFDocument = ({ devis, client, project }: { devis: Devis, cli
         </Page>
       ))}
 
-      {/* DERNIÈRE PAGE DÉDIÉE : Récapitulatif financier + Modalités de paiement + Signature */}
+      {/* DERNIÈRE PAGE DÉDIÉE : Récapitulatif financier + Modalités de paiement + Signature (artisan uniquement) */}
       <Page size="A4" style={styles.page}>
         {/* Header de la page financière */}
         <View style={styles.pageHeader}>
@@ -926,64 +938,68 @@ export const DevisPDFDocument = ({ devis, client, project }: { devis: Devis, cli
           </View>
         </View>
 
-        {/* Modalités de paiement avec montants stylisés */}
-        <View style={{ marginTop: 40 }}>
-          <Text
-            style={{
-              fontWeight: 700,
-              color: "#2D3748",
-              marginBottom: 20,
-              paddingBottom: 10,
-              borderBottomWidth: 2,
-              borderBottomColor: "#F26755",
-              fontSize: 14,
-            }}
-          >
-            MODALITÉS DE PAIEMENT
-          </Text>
-
-          {payments.map((payment, index) => (
-            <View
-              key={index}
-              style={[styles.paymentItem, { paddingVertical: 12 }]}
+        {/* Modalités de paiement avec montants stylisés - réservé aux artisans */}
+        {isArtisan && (
+          <View style={{ marginTop: 40 }}>
+            <Text
+              style={{
+                fontWeight: 700,
+                color: "#2D3748",
+                marginBottom: 20,
+                paddingBottom: 10,
+                borderBottomWidth: 2,
+                borderBottomColor: "#F26755",
+                fontSize: 14,
+              }}
             >
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <View
-                  style={[
-                    styles.paymentPercent,
-                    { width: 30, height: 30, borderRadius: 15 },
-                  ]}
-                >
-                  <Text
-                    style={{ color: "white", fontSize: 9, fontWeight: 700 }}
+              MODALITÉS DE PAIEMENT
+            </Text>
+
+            {payments.map((payment, index) => (
+              <View
+                key={index}
+                style={[styles.paymentItem, { paddingVertical: 12 }]}
+              >
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <View
+                    style={[
+                      styles.paymentPercent,
+                      { width: 30, height: 30, borderRadius: 15 },
+                    ]}
                   >
-                    {payment.percent}%
+                    <Text
+                      style={{ color: "white", fontSize: 9, fontWeight: 700 }}
+                    >
+                      {payment.percent}%
+                    </Text>
+                  </View>
+                  <Text style={{ fontSize: 12, fontWeight: 500 }}>
+                    {payment.label}
                   </Text>
                 </View>
-                <Text style={{ fontSize: 12, fontWeight: 500 }}>
-                  {payment.label}
-                </Text>
+                <View style={styles.paymentAmountContainer}>
+                  <Text style={[styles.paymentAmountText, { fontSize: 12 }]}>
+                    {payment.amount.toFixed(2)} €
+                  </Text>
+                </View>
               </View>
-              <View style={styles.paymentAmountContainer}>
-                <Text style={[styles.paymentAmountText, { fontSize: 12 }]}>
-                  {payment.amount.toFixed(2)} €
-                </Text>
-              </View>
-            </View>
-          ))}
-        </View>
-
-        {/* Signature */}
-        <View style={[styles.signatureSection, { marginTop: 60 }]}>
-          <View style={styles.signatureLine}>
-            <Text style={{ fontSize: 10, color: "#718096" }}>
-              Fait le {new Date().toLocaleDateString("fr-FR")}
-            </Text>
-            <Text style={{ marginTop: 20, fontWeight: 600, fontSize: 11 }}>
-              Signature du client
-            </Text>
+            ))}
           </View>
-        </View>
+        )}
+
+        {/* Signature - réservée aux artisans */}
+        {isArtisan && (
+          <View style={[styles.signatureSection, { marginTop: 60 }]}>
+            <View style={styles.signatureLine}>
+              <Text style={{ fontSize: 10, color: "#718096" }}>
+                Fait le {new Date().toLocaleDateString("fr-FR")}
+              </Text>
+              <Text style={{ marginTop: 20, fontWeight: 600, fontSize: 11 }}>
+                Signature du client
+              </Text>
+            </View>
+          </View>
+        )}
       </Page>
     </Document>
   );

@@ -10,6 +10,8 @@ import { CLOUDINARY_UPLOAD_PRESET } from '@/lib/cloudinary';
 import { useParams } from 'next/navigation';
 import { Euro, Check, X, Clock, Mail, Upload, Send, ChevronRight, ArrowLeft, Plus, Eye, Calendar, FileText, Download, Image as ImageIcon } from 'lucide-react';
 import Image from 'next/image';
+import { db } from '@/lib/firebase';
+import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
 // Mock types to match your existing structure
 interface ProjectPayment {
@@ -55,6 +57,9 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
   const [documentFiles, setDocumentFiles] = useState<File[]>([]);
   const [message, setMessage] = useState('');
   const [isNotificationSent, setIsNotificationSent] = useState(false);
+  const [reminderLoading, setReminderLoading] = useState<string | null>(null);
+  const [reminderStatus, setReminderStatus] = useState<{type: 'success' | 'error', message: string} | null>(null);
+  const [projectData, setProjectData] = useState<{name: string, clientName: string, clientEmail: string} | null>(null);
 
   const [recipients] = useState<Recipient[]>([
     {
@@ -81,6 +86,59 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
   const [selectedRecipients, setSelectedRecipients] = useState<string[]>(
     recipients.filter(r => r.required).map(r => r.id)
   );
+
+  // Récupérer les données du projet pour personnaliser l'email
+  useEffect(() => {
+    const fetchProjectData = async () => {
+      if (!resolvedProjectId) return;
+      
+      try {
+        // Récupérer les données du projet depuis Firebase
+        const projectRef = doc(db, 'projects', resolvedProjectId);
+        const projectSnap = await getDoc(projectRef);
+        
+        if (!projectSnap.exists()) {
+          console.error('Projet introuvable:', resolvedProjectId);
+          return;
+        }
+        
+        const projectData = projectSnap.data();
+        
+        // Récupérer les informations du client
+        let clientName = 'Cher client';
+        let clientEmail = 'client@example.com';
+        
+        if (projectData.client_id) {
+          // Récupérer le client depuis la collection users
+          const clientQuery = query(
+            collection(db, 'users'), 
+            where('uid', '==', projectData.client_id)
+          );
+          const clientSnap = await getDocs(clientQuery);
+          
+          if (!clientSnap.empty) {
+            const clientData = clientSnap.docs[0].data();
+            clientName = `${clientData.firstName || ''} ${clientData.lastName || ''}`.trim();
+            clientEmail = clientData.email;
+          }
+        }
+        
+        // Utiliser le nom du projet ou un nom par défaut
+        const projectName = projectData.name || projectData.title || 'votre projet';
+        
+        setProjectData({
+          name: projectName,
+          clientName: clientName,
+          clientEmail: clientEmail
+        });
+        
+      } catch (error) {
+        console.error('Erreur lors de la récupération des données du projet:', error);
+      }
+    };
+
+    fetchProjectData();
+  }, [resolvedProjectId]);
 
   const getStatusStyle = (status: ProjectPayment["status"]) => {
     switch (status) {
@@ -123,6 +181,308 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
   const handleViewDetails = (request: ProjectPayment) => {
     setSelectedRequest(request);
     setIsDetailModalOpen(true);
+  };
+
+  const handleReminder = async (request: ProjectPayment) => {
+    setReminderLoading(request.id);
+    setReminderStatus(null);
+    
+    try {
+      console.log('Envoi de relance pour:', request.title);
+      
+      // Template d'email de relance professionnel personnalisé
+      const clientName = projectData?.clientName || 'Cher client';
+      const projectName = projectData?.name || 'votre projet';
+      const clientEmail = projectData?.clientEmail || 'client@example.com';
+      
+      const reminderEmailHtml = `
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Relance - Demande d'acompte - ${projectName}</title>
+  <style>
+    /* Reset styles */
+    * { box-sizing: border-box; }
+    body, table, td, p, h1, h2, h3, h4 { margin: 0; padding: 0; }
+    
+    /* Responsive styles */
+    @media only screen and (max-width: 600px) {
+      .container {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+      }
+      
+      .header-content {
+        padding: 24px 20px !important;
+      }
+      
+      .main-content {
+        padding: 24px 20px !important;
+      }
+      
+      .footer-content {
+        padding: 20px !important;
+      }
+      
+      .header-flex {
+        display: block !important;
+      }
+      
+      .header-badge {
+        margin-top: 16px !important;
+        text-align: left !important;
+      }
+      
+      .header-title {
+        font-size: 20px !important;
+        line-height: 1.2 !important;
+      }
+      
+      .button {
+        display: block !important;
+        width: 100% !important;
+        margin: 8px 0 !important;
+        text-align: center !important;
+        box-sizing: border-box !important;
+      }
+      
+      .info-row {
+        display: block !important;
+        margin-bottom: 12px !important;
+      }
+      
+      .info-label {
+        display: block !important;
+        padding: 4px 0 !important;
+        width: 100% !important;
+      }
+      
+      .info-value {
+        display: block !important;
+        padding: 4px 0 !important;
+        width: 100% !important;
+      }
+      
+      .section-padding {
+        padding: 16px !important;
+        margin: 16px 0 !important;
+      }
+    }
+    
+    @media only screen and (max-width: 480px) {
+      .header-title {
+        font-size: 18px !important;
+      }
+      
+      .main-content {
+        padding: 20px 16px !important;
+      }
+      
+      .section-padding {
+        padding: 12px !important;
+      }
+    }
+  </style>
+</head>
+<body style="margin: 0; padding: 20px; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;">
+
+<div class="container" style="max-width: 600px; 
+          margin: 0 auto; 
+          background: white; 
+          border-radius: 8px; 
+          overflow: hidden; 
+          box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+          border: 1px solid #e9ecef;">
+
+<!-- Header professionnel -->
+<div class="header-content" style="background: #2c3e50; 
+            padding: 32px 40px; 
+            text-align: left;">
+  
+  <div class="header-flex" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
+    <div style="color: #f26755; 
+                font-size: 24px; 
+                font-weight: 700; 
+                letter-spacing: -0.5px;">
+      AXIMOTRAVO
+    </div>
+    <div class="header-badge" style="background: rgba(242, 103, 85, 0.1); 
+                color: #f26755; 
+                padding: 6px 12px; 
+                border-radius: 4px; 
+                font-size: 12px; 
+                font-weight: 600; 
+                text-transform: uppercase; 
+                letter-spacing: 0.5px;">
+      RELANCE ACOMPTE
+    </div>
+  </div>
+  
+  <h1 class="header-title" style="color: white; 
+             margin: 0; 
+             font-size: 24px; 
+             font-weight: 600; 
+             line-height: 1.3;">
+    Relance - Demande d'acompte en attente
+  </h1>
+  
+  <p style="color: #bdc3c7; 
+            margin: 8px 0 0 0; 
+            font-size: 16px; 
+            font-weight: 400;
+            line-height: 1.4;">
+    Projet: ${projectName} • Réf: ${request.id} • ${new Date().toLocaleDateString('fr-FR')}
+  </p>
+</div>
+
+<!-- Contenu principal -->
+<div class="main-content" style="padding: 40px;">
+  
+  <!-- Salutation -->
+  <div style="margin-bottom: 32px;">
+    <p style="font-size: 16px; 
+              color: #2c3e50; 
+              margin: 0 0 16px 0; 
+              line-height: 1.5;">
+      ${clientName},
+    </p>
+    
+    <p style="font-size: 16px; 
+              color: #495057; 
+              margin: 0; 
+              line-height: 1.6;">
+      Nous vous contactons concernant votre projet "${projectName}" et plus spécifiquement la demande d'acompte qui est actuellement en attente de traitement.
+    </p>
+  </div>
+  
+  <!-- Informations de la demande -->
+  <div class="section-padding" style="background: #f8f9fa; 
+              border: 1px solid #e9ecef; 
+              border-radius: 6px; 
+              padding: 24px; 
+              margin: 32px 0;">
+    <h3 style="color: #2c3e50; 
+               margin: 0 0 20px 0; 
+               font-size: 18px; 
+               font-weight: 600;">
+      Détails de votre demande
+    </h3>
+    
+    <div style="width: 100%;">
+      <div class="info-row" style="display: flex; margin-bottom: 8px;">
+        <div class="info-label" style="color: #6c757d; font-weight: 500; width: 30%; font-size: 14px;">Type :</div>
+        <div class="info-value" style="color: #2c3e50; font-weight: 600; flex: 1; font-size: 14px; word-break: break-word;">${request.title}</div>
+      </div>
+      <div class="info-row" style="display: flex; margin-bottom: 8px;">
+        <div class="info-label" style="color: #6c757d; font-weight: 500; width: 30%; font-size: 14px;">Montant :</div>
+        <div class="info-value" style="color: #2c3e50; font-weight: 600; flex: 1; font-size: 14px;">${request.amount.toLocaleString('fr-FR')} €</div>
+      </div>
+      <div class="info-row" style="display: flex; margin-bottom: 8px;">
+        <div class="info-label" style="color: #6c757d; font-weight: 500; width: 30%; font-size: 14px;">Date de demande :</div>
+        <div class="info-value" style="color: #2c3e50; font-weight: 600; flex: 1; font-size: 14px;">${new Date(request.date).toLocaleDateString('fr-FR')}</div>
+      </div>
+      <div class="info-row" style="display: flex;">
+        <div class="info-label" style="color: #6c757d; font-weight: 500; width: 30%; font-size: 14px;">Statut :</div>
+        <div class="info-value" style="color: #2c3e50; font-weight: 600; flex: 1; font-size: 14px;">
+          <span style="background: #fff3cd; color: #856404; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">En attente</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Message de relance -->
+  <div class="section-padding" style="border-left: 4px solid #f26755; 
+              background: #fafafa; 
+              padding: 24px; 
+              margin: 32px 0;">
+    <h4 style="color: #2c3e50; 
+               margin: 0 0 12px 0; 
+               font-size: 16px; 
+               font-weight: 600;">
+      Action requise
+    </h4>
+    <p style="font-size: 15px; 
+              color: #495057; 
+              margin: 0; 
+              line-height: 1.6; 
+              word-break: break-word;">
+      Nous vous rappelons que votre demande d'acompte nécessite une validation de votre part. 
+      Merci de bien vouloir examiner les détails et de procéder à la validation dans les plus brefs délais.
+    </p>
+    <p style="font-size: 14px; 
+              color: #6c757d; 
+              margin: 12px 0 0 0; 
+              font-weight: 500;">
+      — Votre équipe Aximotravo
+    </p>
+  </div>
+  
+  <!-- Bouton d'action -->
+  <div style="text-align: center; margin: 40px 0;">
+    <div style="display: inline-block;">
+      <a href="https://app.secureacomptetravaux.com/auth/login" 
+         class="button"
+         style="display: inline-block; 
+                background: #f26755; 
+                color: white; 
+                padding: 14px 28px; 
+                text-decoration: none; 
+                border-radius: 4px; 
+                font-weight: 600; 
+                font-size: 14px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                border: none;
+                min-width: 200px;">
+        ACCÉDER À MON ESPACE
+      </a>
+    </div>
+  </div>
+  
+</div>
+
+</div>
+
+</body>
+</html>
+`;
+      
+      // Appel à l'API d'envoi d'email
+      const response = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          to: clientEmail,
+          subject: `Relance - ${projectName} - Demande d'acompte en attente (${request.title})`,
+          html: reminderEmailHtml
+        })
+      });
+      
+      if (response.ok) {
+        setReminderStatus({
+          type: 'success',
+          message: 'Relance envoyée avec succès !'
+        });
+      } else {
+        throw new Error('Erreur lors de l\'envoi de l\'email');
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'envoi de la relance:', error);
+      setReminderStatus({
+        type: 'error',
+        message: 'Erreur lors de l\'envoi de la relance'
+      });
+    } finally {
+      setReminderLoading(null);
+      // Auto-hide notification after 3 seconds
+      setTimeout(() => {
+        setReminderStatus(null);
+      }, 3000);
+    }
   };
 
   const handleSubmitValidation = async (e: React.FormEvent) => {
@@ -305,6 +665,50 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
 
   return (
     <div className="space-y-6">
+      {/* Toast Notifications */}
+      {reminderStatus && (
+        <div className={`fixed top-4 right-4 z-50 max-w-md w-full transform transition-all duration-300 ease-in-out ${
+          reminderStatus ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
+        }`}>
+          <div className={`rounded-lg shadow-lg border-l-4 p-4 ${
+            reminderStatus.type === 'success' 
+              ? 'bg-emerald-50 border-emerald-400 text-emerald-800' 
+              : 'bg-red-50 border-red-400 text-red-800'
+          }`}>
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                {reminderStatus.type === 'success' ? (
+                  <div className="w-5 h-5 rounded-full bg-emerald-400 flex items-center justify-center">
+                    <Check className="h-3 w-3 text-white" />
+                  </div>
+                ) : (
+                  <div className="w-5 h-5 rounded-full bg-red-400 flex items-center justify-center">
+                    <X className="h-3 w-3 text-white" />
+                  </div>
+                )}
+              </div>
+              <div className="ml-3 flex-1">
+                <p className="text-sm font-medium">
+                  {reminderStatus.message}
+                </p>
+              </div>
+              <div className="ml-4 flex-shrink-0">
+                <button
+                  className={`inline-flex rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                    reminderStatus.type === 'success'
+                      ? 'text-emerald-500 hover:bg-emerald-100 focus:ring-emerald-600'
+                      : 'text-red-500 hover:bg-red-100 focus:ring-red-600'
+                  }`}
+                  onClick={() => setReminderStatus(null)}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Header */}
       <div className="w-full mb-6">
         <div className="flex flex-col items-center w-full">
@@ -505,9 +909,26 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
                 </button>
 
                 {request.status === 'en_attente' && (
-                  <button className="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 flex items-center gap-1 transition-colors">
-                    <Send className="h-3 w-3" />
-                    Relancer
+                  <button 
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg flex items-center gap-1 transition-colors ${
+                      reminderLoading === request.id 
+                        ? 'bg-[#f26755]/10 text-[#f26755] cursor-not-allowed' 
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                    onClick={() => handleReminder(request)}
+                    disabled={reminderLoading === request.id}
+                  >
+                    {reminderLoading === request.id ? (
+                      <>
+                        <div className="animate-spin rounded-full h-3 w-3 border border-[#f26755] border-t-transparent"></div>
+                        Envoi...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="h-3 w-3" />
+                        Relancer
+                      </>
+                    )}
                   </button>
                 )}
               </div>

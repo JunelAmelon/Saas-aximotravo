@@ -7,11 +7,11 @@ import { Devis } from "@/types/devis";
 
 export const GenerateFacturePDF = async ({
   devis,
-  artisanId,
+  userId,
   setLoading,
 }: {
   devis: Devis;
-  artisanId: string;
+  userId: string;
   setLoading?: (b: boolean) => void;
 }) => {
   if (!devis) return;
@@ -19,7 +19,7 @@ export const GenerateFacturePDF = async ({
 
   try {
     // 1. Récupérer artisan, project, client
-    const artisan = await getUserById(artisanId) as ArtisanUser;
+    const user = await getUserById(userId) as ArtisanUser;
     const project = devis.projectId ? await getProjectById(devis.projectId) : null;
     const client = project?.client_id ? await getUserById(project.client_id) : null;
 
@@ -37,13 +37,9 @@ export const GenerateFacturePDF = async ({
     const pdfBlob = await pdf(
       <FacturePDFDocument
         devis={devis}
-        artisan={artisan}
+        user={user}
         client={client}
         project={project}
-        totalHT={totalHT}
-        totalTVA={totalTVA}
-        totalTTC={totalTTC}
-        tvaRate={tvaRate}
       />
     ).toBlob();
     const fileName = `Facture_${devis.numero}_${new Date().toLocaleDateString('fr-FR').replace(/\//g, '-')}.pdf`;

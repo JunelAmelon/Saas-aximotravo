@@ -51,6 +51,7 @@ import {
   updateDoc,
   query,
   where,
+  orderBy,
   addDoc,
   serverTimestamp,
 } from "firebase/firestore";
@@ -62,6 +63,7 @@ import { DevisGenerationPage } from "@/components/DevisGenerationPage";
 import { useDevis } from "@/hooks/useDevis";
 import { DevisConfigProvider } from "@/components/DevisConfigContext";
 import { useAuth } from "@/lib/contexts/AuthContext";
+import { generateAndUploadDevisPDF } from "@/utils/generateAndUploadPDF";
 
 // --- TYPES & INTERFACES ---
 export interface User {
@@ -93,7 +95,7 @@ export interface ProjectDetails {
   startDate: string;
   estimatedEndDate: string;
   broker: {
-    id: string | number;
+    id: string;
     company: string;
     courtier: User;
   };
@@ -280,9 +282,28 @@ export default function ProjectDetails() {
   const getDevisForProject = async (projectId: string): Promise<any[]> => {
     try {
       const devisRef = collection(db, "devis");
-      const q = query(devisRef, where("projectId", "==", projectId));
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      // Essayer d'abord avec orderBy
+      try {
+        const q = query(
+          devisRef, 
+          where("projectId", "==", projectId),
+          orderBy("createdAt", "desc") // Tri par date de création (plus récent en premier)
+        );
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      } catch (orderError) {
+        console.warn("Erreur avec orderBy, récupération sans tri:", orderError);
+        // Fallback sans orderBy si l'index n'existe pas ou si certains docs n'ont pas createdAt
+        const q = query(devisRef, where("projectId", "==", projectId));
+        const snapshot = await getDocs(q);
+        const docs = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        // Tri côté client si possible
+        return docs.sort((a: any, b: any) => {
+          const aDate = a.createdAt?.toDate?.() || a.createdAt || new Date(0);
+          const bDate = b.createdAt?.toDate?.() || b.createdAt || new Date(0);
+          return new Date(bDate).getTime() - new Date(aDate).getTime();
+        });
+      }
     } catch (error) {
       console.error("Erreur lors de la récupération des devis:", error);
       return [];
@@ -294,9 +315,28 @@ export default function ProjectDetails() {
   ): Promise<any[]> => {
     try {
       const devisConfigRef = collection(db, "devisConfig");
-      const q = query(devisConfigRef, where("projectId", "==", projectId));
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      // Essayer d'abord avec orderBy
+      try {
+        const q = query(
+          devisConfigRef, 
+          where("projectId", "==", projectId),
+          orderBy("createdAt", "desc") // Tri par date de création (plus récent en premier)
+        );
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      } catch (orderError) {
+        console.warn("Erreur avec orderBy, récupération sans tri:", orderError);
+        // Fallback sans orderBy si l'index n'existe pas ou si certains docs n'ont pas createdAt
+        const q = query(devisConfigRef, where("projectId", "==", projectId));
+        const snapshot = await getDocs(q);
+        const docs = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        // Tri côté client si possible
+        return docs.sort((a: any, b: any) => {
+          const aDate = a.createdAt?.toDate?.() || a.createdAt || new Date(0);
+          const bDate = b.createdAt?.toDate?.() || b.createdAt || new Date(0);
+          return new Date(bDate).getTime() - new Date(aDate).getTime();
+        });
+      }
     } catch (error) {
       console.error("Erreur lors de la récupération des devisConfig:", error);
       return [];
@@ -412,7 +452,39 @@ export default function ProjectDetails() {
     setUpdatingStatusId(docId);
     try {
       const ref = doc(db, type, docId);
-      await updateDoc(ref, { status: newstatus });
+      const updateData: any = { status: newstatus };
+      
+      // Si l'artisan envoie le devis au client, s'assurer que le PDF existe (sinon le générer puis l'enregistrer)
+      if (newstatus.toLowerCase() === "envoyé au client") {
+        try {
+          const docsRef = collection(db, "documents");
+          const qDocs = query(
+            docsRef,
+            where("projectId", "==", id!),
+            where("devisConfigId", "==", docId)
+          );
+          const docsSnap = await getDocs(qDocs);
+          const hasPdf = !docsSnap.empty;
+
+          if (!hasPdf) {
+            const devisSnap = await getDoc(ref);
+            if (devisSnap.exists()) {
+              const devisData = devisSnap.data() as any;
+              await generateAndUploadDevisPDF(devisData, id as string, currentUser?.uid || "");
+            }
+          }
+        } catch (pdfErr) {
+          console.error("Erreur lors de la vérification/génération du PDF avant l'envoi:", pdfErr);
+          // On ne bloque pas l'action utilisateur
+        }
+      }
+      
+      // Mettre à jour updatedAt quand le statut passe à "Validé"
+      if (newstatus.toLowerCase() === "validé") {
+        updateData.updatedAt = new Date();
+      }
+      
+      await updateDoc(ref, updateData);
 
       if (type === "devis") {
         setDevisImportes((prev) =>
@@ -482,7 +554,7 @@ export default function ProjectDetails() {
     { id: string; artisan: User | null; status: string }[]
   >([]);
 
-  // Récupérer l'ID de l'utilisateur connecté (artisan)
+  // Récupérer l'ID de l'utilisateur connecté 
   const currentUserId = useCurrentUserId();
   // Vérifier s'il y a une invitation pending pour cet artisan sur ce projet
   const pendingInvitation = usePendingArtisanInvitation(
@@ -491,6 +563,45 @@ export default function ProjectDetails() {
   );
   const router = useRouter();
 
+
+
+  // Fonction pour recharger toutes les données
+  const reloadAllData = async () => {
+    if (!id || !currentUser?.uid) return;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Recharger les données du projet
+      const projectData = await getProjectDetail(id);
+      setProject(projectData);
+      if (!projectData) setError("Projet introuvable");
+      
+      // Recharger les devis
+      const devisData = await getDevisForProject(id);
+      setDevisImportes(devisData);
+      
+      // Recharger les devis générés
+      const devisConfigData = await getDevisConfigForProject(id);
+      setDevisGeneres(devisConfigData);
+      setDevisFactures(
+        devisConfigData.filter((d) => d.status?.toLowerCase() === "validé")
+      );
+      
+    } catch (err) {
+      setError("Erreur lors du chargement du projet");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Effet principal pour charger les données
+  useEffect(() => {
+    reloadAllData();
+  }, [id, currentUser?.uid]);
+
+  // Ancien useEffect simplifié pour la compatibilité
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -595,7 +706,7 @@ export default function ProjectDetails() {
     }
   };
   // Redirection après refus
-  React.useEffect(() => {
+  useEffect(() => {
     if (pendingInvitation.refused) {
       const timeout = setTimeout(() => {
         router.push("/artisan/projects");
@@ -603,6 +714,76 @@ export default function ProjectDetails() {
       return () => clearTimeout(timeout);
     }
   }, [pendingInvitation.refused, router]);
+
+  // Rechargement automatique après acceptation d'invitation
+  useEffect(() => {
+    if (pendingInvitation.accepted) {
+      console.log('🔄 Invitation acceptée - rechargement automatique de la page');
+      // Recharger toutes les données pour afficher les infos client
+      reloadAllData();
+      
+      // Forcer la re-vérification du statut d'invitation
+      const recheckInvitationStatus = async () => {
+        if (!id || !currentUserId) return;
+        
+        // Vérifier invitationAccepted
+        const qAccepted = query(
+          collection(db, "artisan_projet"),
+          where("projetId", "==", id),
+          where("artisanId", "==", currentUserId),
+          where("status", "==", "accepté")
+        );
+        const snapshotAccepted = await getDocs(qAccepted);
+        setInvitationAccepted(snapshotAccepted.docs.length > 0);
+        
+        // Vérifier invitationstatus
+        const qStatus = query(
+          collection(db, "artisan_projet"),
+          where("projetId", "==", id),
+          where("artisanId", "==", currentUserId),
+          where("status", "in", ["pending", "accepté"])
+        );
+        const snapshotStatus = await getDocs(qStatus);
+        if (snapshotStatus.empty) {
+          setInvitationstatus("none");
+        } else {
+          const status = snapshotStatus.docs[0].data().status;
+          if (status === "pending") setInvitationstatus("pending");
+          else if (status === "accepté") setInvitationstatus("accepted");
+          else setInvitationstatus("none");
+        }
+      };
+      
+      // Recharger la liste des artisans acceptés
+      const reloadArtisansList = async () => {
+        if (!id) return;
+        
+        const q = query(
+          collection(db, "artisan_projet"),
+          where("projetId", "==", id),
+          where("status", "==", "accepté")
+        );
+        const snapshot = await getDocs(q);
+        const artisanIds = snapshot.docs.map((doc) => doc.data().artisanId);
+        
+        // Récupérer les infos utilisateur pour chaque artisan
+        const users = await Promise.all(
+          artisanIds.map(async (uid) => {
+            const userDoc = await getDoc(doc(db, "users", uid));
+            return userDoc.exists() ? userDoc.data() : null;
+          })
+        );
+        const filteredUsers = users.filter(Boolean) as User[];
+        setProjectArtisans(filteredUsers);
+      };
+      
+      // Exécuter les re-vérifications avec un petit délai
+      setTimeout(() => {
+        recheckInvitationStatus();
+        reloadArtisansList();
+      }, 500);
+    }
+  }, [pendingInvitation.accepted, id, currentUserId]);
 
   const handleSendRequest = async () => {
     if (!selectedArtisanIds.length || !project?.id) return;
@@ -1109,6 +1290,7 @@ export default function ProjectDetails() {
             itemId={selectedDevisId}
             onNext={handleCalculStep}
             onBack={handleBackToCreate}
+            onSkip={handleGenerationStep}
           />
 
           <CalculSurfaceModal
@@ -1119,7 +1301,10 @@ export default function ProjectDetails() {
           <DevisGenerationPage
             open={step === "generation"}
             onOpenChange={(open) => {
-              if (!open) setStep(null); // ou "pieces" ou autre selon ton workflow
+              if (!open) {
+                setStep(null);
+                
+              }
             }}
             onBack={handleBackToHome}
           />

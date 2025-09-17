@@ -10,6 +10,7 @@ export interface Devis {
   surfaceData: SurfaceData[];
   selectedItems: DevisItem[];
   createdAt: Date;
+  updatedAt?: Date;
   clientInfo?: ClientInfo;
   companyInfo?: CompanyInfo;
   attribution?: {
@@ -63,7 +64,8 @@ export interface DevisItem {
   quantite: number;
   pieces: string[];
   isOffered?: boolean;
-  customImage?: string;
+  customImage?: string; // Gardé pour la rétrocompatibilité
+  images?: string[];    // Nouveau champ pour stocker plusieurs images
   customUnit?: string;
   originalPrix?: number;
   tva?: number; // TVA spécifique à cette prestation
@@ -89,7 +91,16 @@ export const PIECES_DISPONIBLES = [
   'Salle d\'eau',
   'Salle de bain',
   'Salon',
-  'WC'
+  'WC',
+  'Comble',
+  'Sous-sol',
+  'Balcon',
+  'Terrasse',
+  'Garage',
+  'Verranda',
+  'Abri de jardin',
+  'Salle de jeu',
+  'Piscine'
 ];
 
 export const TVA_OPTIONS = [

@@ -25,6 +25,8 @@ import {
   X,
   Send,
   Check,
+  Edit,
+  Save,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -55,11 +57,16 @@ import {
   where,
   addDoc,
   serverTimestamp,
+  onSnapshot,
+  orderBy,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 import { DevisConfigProvider } from "@/components/DevisConfigContext";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { ModernDevisSection } from "@/components/ModernDevisSection";
+import { createAutomaticAcompte } from "@/utils/createAutomaticAcompte";
+import { auditAndCreateAcompte } from "@/utils/auditAndCreateAcompte";
+import { generateAndUploadDevisPDF } from "@/utils/generateAndUploadPDF";
 
 // --- TYPES & INTERFACES ---
 export interface User {
@@ -356,12 +363,40 @@ export default function ProjectDetails() {
     status: "",
   });
 
-  const getDevisForProject = async (projectId: string): Promise<any[]> => {
+  const getDevisForProject = async (projectId: string) => {
     try {
-      const devisRef = collection(db, "devis");
-      const q = query(devisRef, where("projectId", "==", projectId));
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      // Essayer d'abord avec orderBy
+      try {
+        const q = query(
+          collection(db, "devis"),
+          where("projectId", "==", projectId),
+          orderBy("createdAt", "desc")
+        );
+        const querySnapshot = await getDocs(q);
+        const devis = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        return devis;
+      } catch (orderByError) {
+        console.log("Erreur avec orderBy, récupération sans tri:", orderByError);
+        // Fallback sans orderBy
+        const q = query(
+          collection(db, "devis"),
+          where("projectId", "==", projectId)
+        );
+        const querySnapshot = await getDocs(q);
+        const devis = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        // Tri côté client si possible
+        return devis.sort((a: any, b: any) => {
+          const dateA = a.createdAt?.toDate?.() || a.createdAt || new Date(0);
+          const dateB = b.createdAt?.toDate?.() || b.createdAt || new Date(0);
+          return dateB.getTime() - dateA.getTime();
+        });
+      }
     } catch (error) {
       console.error("Erreur lors de la récupération des devis:", error);
       return [];
@@ -372,29 +407,247 @@ export default function ProjectDetails() {
     projectId: string
   ): Promise<any[]> => {
     try {
-      const devisConfigRef = collection(db, "devisConfig");
-      const q = query(devisConfigRef, where("projectId", "==", projectId));
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      // Essayer d'abord avec orderBy
+      try {
+        const q = query(
+          collection(db, "devisConfig"),
+          where("projectId", "==", projectId),
+          orderBy("createdAt", "desc")
+        );
+        const querySnapshot = await getDocs(q);
+        const devisConfig = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        return devisConfig;
+      } catch (orderByError) {
+        console.log("Erreur avec orderBy, récupération sans tri:", orderByError);
+        // Fallback sans orderBy
+        const q = query(
+          collection(db, "devisConfig"),
+          where("projectId", "==", projectId)
+        );
+        const querySnapshot = await getDocs(q);
+        const devisConfig = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        // Tri côté client si possible
+        return devisConfig.sort((a: any, b: any) => {
+          const dateA = a.createdAt?.toDate?.() || a.createdAt || new Date(0);
+          const dateB = b.createdAt?.toDate?.() || b.createdAt || new Date(0);
+          return dateB.getTime() - dateA.getTime();
+        });
+      }
     } catch (error) {
       console.error("Erreur lors de la récupération des devisConfig:", error);
       return [];
     }
   };
 
-  // --- Récupération des devis Firestore ---
+
+
+  // --- Écoute temps réel des devis Firestore ---
   const { currentUser } = useAuth();
   useEffect(() => {
     if (!id || !currentUser?.uid) return;
-    getDevisForProject(id).then(setDevisImportes);
-    getDevisConfigForProject(id).then((allDevisGeneres) => {
-      setDevisGeneres(allDevisGeneres);
-      setDevisFactures(
-        allDevisGeneres.filter((d) => d.status?.toLowerCase() === "validé")
+
+    console.log('🔄 Initialisation de l\'\u00e9coute temps réel des devis pour le projet:', id);
+
+    // 1. Écoute temps réel des devis importés (collection 'devis')
+    // Essayer d'abord avec orderBy, puis fallback sans orderBy si erreur d'index
+    let unsubscribeDevis: () => void;
+    
+    try {
+      const devisQueryWithOrder = query(
+        collection(db, 'devis'),
+        where('projectId', '==', id),
+        orderBy('createdAt', 'desc')
       );
-    });
+      
+      unsubscribeDevis = onSnapshot(devisQueryWithOrder, (snapshot) => {
+        console.log('📎 Mise à jour des devis importés (avec tri):', snapshot.size, 'documents');
+        const devisData = snapshot.docs.map(doc => {
+          const data = { id: doc.id, ...doc.data() } as any;
+          console.log('📎 Devis importé:', data);
+          return data;
+        });
+        console.log('📎 Tous les devis importés:', devisData);
+        setDevisImportes(devisData);
+      }, (error) => {
+        console.error('❌ Erreur écoute devis importés (avec orderBy):', error);
+        // Fallback: essayer sans orderBy
+        console.log('🔄 Tentative de fallback sans orderBy pour devis importés...');
+        const devisQueryFallback = query(
+          collection(db, 'devis'),
+          where('projectId', '==', id)
+        );
+        
+        unsubscribeDevis = onSnapshot(devisQueryFallback, (snapshot) => {
+          console.log('📎 Mise à jour des devis importés (sans tri):', snapshot.size, 'documents');
+          let devisData = snapshot.docs.map(doc => {
+            const data = { id: doc.id, ...doc.data() } as any;
+            return data;
+          });
+          
+          // Tri côté client
+          devisData = devisData.sort((a: any, b: any) => {
+            const dateA = a.createdAt?.toDate?.() || a.createdAt || new Date(0);
+            const dateB = b.createdAt?.toDate?.() || b.createdAt || new Date(0);
+            return dateB.getTime() - dateA.getTime();
+          });
+          
+          console.log('📎 Tous les devis importés (tri client):', devisData);
+          setDevisImportes(devisData);
+        }, (fallbackError) => {
+          console.error('❌ Erreur écoute devis importés (fallback):', fallbackError);
+          setDevisImportes([]);
+        });
+      });
+    } catch (initialError) {
+      console.error('❌ Erreur initialisation écoute devis importés:', initialError);
+      // Fallback direct
+      const devisQueryFallback = query(
+        collection(db, 'devis'),
+        where('projectId', '==', id)
+      );
+      
+      unsubscribeDevis = onSnapshot(devisQueryFallback, (snapshot) => {
+        console.log('📎 Mise à jour des devis importés (fallback direct):', snapshot.size, 'documents');
+        let devisData = snapshot.docs.map(doc => {
+          const data = { id: doc.id, ...doc.data() } as any;
+          return data;
+        });
+        
+        // Tri côté client
+        devisData = devisData.sort((a: any, b: any) => {
+          const dateA = a.createdAt?.toDate?.() || a.createdAt || new Date(0);
+          const dateB = b.createdAt?.toDate?.() || b.createdAt || new Date(0);
+          return dateB.getTime() - dateA.getTime();
+        });
+        
+        setDevisImportes(devisData);
+      }, (fallbackError) => {
+        console.error('❌ Erreur écoute devis importés (fallback direct):', fallbackError);
+        setDevisImportes([]);
+      });
+    }
+
+    // 2. Écoute temps réel des devis générés (collection 'devisConfig')
+    // Essayer d'abord avec orderBy, puis fallback sans orderBy si erreur d'index
+    let unsubscribeDevisConfig: () => void;
+    
+    try {
+      const devisConfigQueryWithOrder = query(
+        collection(db, 'devisConfig'),
+        where('projectId', '==', id),
+        orderBy('createdAt', 'desc')
+      );
+      
+      unsubscribeDevisConfig = onSnapshot(devisConfigQueryWithOrder, (snapshot) => {
+        console.log('📎 Mise à jour des devis générés (avec tri):', snapshot.size, 'documents');
+        const devisConfigData = snapshot.docs.map(doc => {
+          const data = { id: doc.id, ...doc.data() } as any;
+          console.log('📎 Devis généré:', data);
+          return data;
+        });
+        console.log('📎 Tous les devis générés:', devisConfigData);
+        setDevisGeneres(devisConfigData);
+        
+        // Mettre à jour les factures (devis validés)
+        const factures = devisConfigData.filter((d: any) => d.status?.toLowerCase() === "validé");
+        console.log('📎 Factures filtrées:', factures);
+        setDevisFactures(factures);
+      }, (error) => {
+        console.error('❌ Erreur écoute devis générés (avec orderBy):', error);
+        // Fallback: essayer sans orderBy
+        console.log('🔄 Tentative de fallback sans orderBy pour devis générés...');
+        const devisConfigQueryFallback = query(
+          collection(db, 'devisConfig'),
+          where('projectId', '==', id)
+        );
+        
+        unsubscribeDevisConfig = onSnapshot(devisConfigQueryFallback, (snapshot) => {
+          console.log('📎 Mise à jour des devis générés (sans tri):', snapshot.size, 'documents');
+          let devisConfigData = snapshot.docs.map(doc => {
+            const data = { id: doc.id, ...doc.data() } as any;
+            return data;
+          });
+          
+          // Tri côté client
+          devisConfigData = devisConfigData.sort((a: any, b: any) => {
+            const dateA = a.createdAt?.toDate?.() || a.createdAt || new Date(0);
+            const dateB = b.createdAt?.toDate?.() || b.createdAt || new Date(0);
+            return dateB.getTime() - dateA.getTime();
+          });
+          
+          console.log('📎 Tous les devis générés (tri client):', devisConfigData);
+          setDevisGeneres(devisConfigData);
+          
+          // Mettre à jour les factures (devis validés)
+          const factures = devisConfigData.filter((d: any) => d.status?.toLowerCase() === "validé");
+          console.log('📎 Factures filtrées (tri client):', factures);
+          setDevisFactures(factures);
+        }, (fallbackError) => {
+          console.error('❌ Erreur écoute devis générés (fallback):', fallbackError);
+          setDevisGeneres([]);
+          setDevisFactures([]);
+        });
+      });
+    } catch (initialError) {
+      console.error('❌ Erreur initialisation écoute devis générés:', initialError);
+      // Fallback direct
+      const devisConfigQueryFallback = query(
+        collection(db, 'devisConfig'),
+        where('projectId', '==', id)
+      );
+      
+      unsubscribeDevisConfig = onSnapshot(devisConfigQueryFallback, (snapshot) => {
+        console.log('📎 Mise à jour des devis générés (fallback direct):', snapshot.size, 'documents');
+        let devisConfigData = snapshot.docs.map(doc => {
+          const data = { id: doc.id, ...doc.data() } as any;
+          return data;
+        });
+        
+        // Tri côté client
+        devisConfigData = devisConfigData.sort((a: any, b: any) => {
+          const dateA = a.createdAt?.toDate?.() || a.createdAt || new Date(0);
+          const dateB = b.createdAt?.toDate?.() || b.createdAt || new Date(0);
+          return dateB.getTime() - dateA.getTime();
+        });
+        
+        setDevisGeneres(devisConfigData);
+        
+        // Mettre à jour les factures (devis validés)
+        const factures = devisConfigData.filter((d: any) => d.status?.toLowerCase() === "validé");
+        setDevisFactures(factures);
+      }, (fallbackError) => {
+        console.error('❌ Erreur écoute devis générés (fallback direct):', fallbackError);
+        setDevisGeneres([]);
+        setDevisFactures([]);
+      });
+    }
+
+    // Cleanup function
+    return () => {
+      console.log('🧹 Nettoyage des listeners temps réel');
+      unsubscribeDevis();
+      unsubscribeDevisConfig();
+    };
   }, [id, currentUser?.uid]);
 
+  // 🆕 Audit automatique des acomptes au chargement du projet
+  useEffect(() => {
+    if (!id) return;
+    
+    // Délai pour laisser le temps aux listeners de se mettre en place
+    const auditTimer = setTimeout(async () => {
+      console.log('🔍 Lancement de l\'audit automatique des acomptes...');
+      await auditAndCreateAcompte(id);
+    }, 2000); // 2 secondes de délai
+    
+    return () => clearTimeout(auditTimer);
+  }, [id]);
 
   // --- Filtres et pagination mutualisés ---
   const filterDevis = (items: any[]) =>
@@ -489,8 +742,38 @@ export default function ProjectDetails() {
       setUpdatingStatusId(docId);
       try {
         const ref = doc(db, type, docId);
-        await updateDoc(ref, { status: newstatus });
-  
+        const updateData: any = { status: newstatus };
+        
+        // Réserver l'envoi au client à l'artisan uniquement
+        if (newstatus.toLowerCase() === "envoyé au client") {
+          alert("Seul l'artisan peut envoyer le devis au client.");
+          setUpdatingStatusId(null);
+          return;
+        }
+       
+        // Mettre à jour updatedAt quand le statut passe à "Validé"
+        if (newstatus.toLowerCase() === "validé") {
+          updateData.updatedAt = new Date();
+        }
+        
+        await updateDoc(ref, updateData);
+
+        // 🆕 Création automatique d'acompte si c'est le premier devis validé par le client
+        if (newstatus.toLowerCase() === "validé") {
+          try {
+            console.log('🔄 Tentative de création automatique d\'acompte pour le devis validé:', {
+              type,
+              docId,
+              projectId: id
+            });
+            
+            await createAutomaticAcompte(id!, docId, type);
+          } catch (acompteError) {
+            console.error('❌ Erreur lors de la création automatique de l\'acompte (n\'affecte pas la validation du devis):', acompteError);
+            // L'erreur de création d'acompte ne doit pas empêcher la validation du devis
+          }
+        }
+
         if (type === "devis") {
           setDevisImportes((prev) =>
             prev.map((item) =>
@@ -567,7 +850,7 @@ export default function ProjectDetails() {
       setArtisanInvitations(invitations);
     }
     fetchArtisanInvitations();
-  }, [id, isRequestSent]);
+  }, [id]); // Suppression de isRequestSent pour éviter le rechargement automatique
 
   useEffect(() => {
     const fetchArtisans = async () => {
@@ -579,6 +862,7 @@ export default function ProjectDetails() {
     fetchArtisans();
   }, [courtierId, id]);
 
+  // Ancien useEffect simplifié pour la compatibilité
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -655,6 +939,36 @@ export default function ProjectDetails() {
         setIsRequestSent(false);
       }, 3000);
       setSelectedArtisanIds([]);
+      
+      // Recharger manuellement les invitations sans déclencher le useEffect
+      const refreshInvitations = async () => {
+        if (!id) return;
+        const q = query(
+          collection(db, "artisan_projet"),
+          where("projetId", "==", id),
+          where("status", "in", ["pending", "refusé", "rejeté"])
+        );
+        const snapshot = await getDocs(q);
+        const invitations = await Promise.all(
+          snapshot.docs.map(async (docSnap) => {
+            const data = docSnap.data();
+            let artisan: User | null = null;
+            try {
+              const userDoc = await getDoc(doc(db, "users", data.artisanId));
+              artisan = userDoc.exists() ? (userDoc.data() as User) : null;
+            } catch {}
+            return {
+              id: docSnap.id,
+              artisan,
+              status: data.status,
+            };
+          })
+        );
+        setArtisanInvitations(invitations);
+      };
+      
+      // Exécuter le rechargement avec un petit délai
+      setTimeout(refreshInvitations, 500);
     }
     if (failCount > 0) {
       setError(`Erreur lors de l'envoi de ${failCount} invitation(s).`);
@@ -674,6 +988,112 @@ export default function ProjectDetails() {
     { id: "documents", icon: FileBox, label: "Documents" },
     { id: "payment-requests", icon: Scale, label: "Demandes d'acompte" },
   ];
+
+  // Fonctions pour l'édition du projet
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    description: "",
+    type: "",
+    location: "",
+    addressDetails: "",
+    budget: 0,
+    startDate: "",
+    estimatedEndDate: "",
+  });
+
+  const initializeEditForm = (projectData: ProjectDetails) => {
+    setEditForm({
+      name: projectData.name || "",
+      description: projectData.description || "",
+      type: projectData.type || "",
+      location: projectData.location || "",
+      addressDetails: projectData.addressDetails || "",
+      budget: projectData.budget || 0,
+      startDate: projectData.startDate || "",
+      estimatedEndDate: projectData.estimatedEndDate || "",
+    });
+  };
+
+  const handleEditFormChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    const { name, value, type } = e.target;
+    setEditForm(prev => ({
+      ...prev,
+      [name]: type === "number" ? Number(value) : value,
+    }));
+  };
+
+  const handleSaveProject = async () => {
+    if (!project?.id) return;
+    
+    setIsSaving(true);
+    try {
+      // Créer un objet avec seulement les champs modifiés
+      const updates: any = {};
+      
+      // Comparer chaque champ et n'ajouter que ceux qui ont changé
+      if (editForm.name !== (project.name || "")) {
+        updates.name = editForm.name;
+      }
+      if (editForm.description !== (project.description || "")) {
+        updates.description = editForm.description;
+      }
+      if (editForm.type !== (project.type || "")) {
+        updates.type = editForm.type;
+      }
+      if (editForm.location !== (project.location || "")) {
+        updates.location = editForm.location;
+      }
+      if (editForm.addressDetails !== (project.addressDetails || "")) {
+        updates.addressDetails = editForm.addressDetails;
+      }
+      if (editForm.budget !== (project.budget || 0)) {
+        updates.budget = editForm.budget;
+      }
+      if (editForm.startDate !== (project.startDate || "")) {
+        updates.startDate = editForm.startDate;
+      }
+      if (editForm.estimatedEndDate !== (project.estimatedEndDate || "")) {
+        updates.estimatedEndDate = editForm.estimatedEndDate;
+      }
+
+      // Si aucun changement n'a été détecté, sortir sans sauvegarder
+      if (Object.keys(updates).length === 0) {
+        setIsEditing(false);
+        return;
+      }
+
+      // Ajouter la date de mise à jour seulement s'il y a des changements
+      updates.updatedAt = serverTimestamp();
+
+      const projectRef = doc(db, "projects", project.id);
+      await updateDoc(projectRef, updates);
+
+      // Mettre à jour l'état local seulement avec les champs modifiés
+      setProject(prev => prev ? {
+        ...prev,
+        ...updates,
+      } : null);
+
+      setIsEditing(false);
+      setError(null);
+    } catch (err) {
+      console.error("Erreur lors de la sauvegarde:", err);
+      setError("Erreur lors de la sauvegarde du projet");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    if (project) {
+      initializeEditForm(project);
+    }
+  };
 
   if (loading) {
     return (
@@ -748,32 +1168,174 @@ export default function ProjectDetails() {
 
             <div className="flex-1 w-full md:w-auto">
               <div className="flex flex-col md:flex-row items-start justify-between gap-4 mb-4">
+                <div className="flex-1">
+                  {isEditing ? (
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Nom du projet
+                        </label>
+                        <input
+                          type="text"
+                          name="name"
+                          value={editForm.name}
+                          onChange={handleEditFormChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#f26755] focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Type de projet
+                        </label>
+                        <input
+                          type="text"
+                          name="type"
+                          value={editForm.type}
+                          onChange={handleEditFormChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#f26755] focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Localisation
+                        </label>
+                        <input
+                          type="text"
+                          name="location"
+                          value={editForm.location}
+                          onChange={handleEditFormChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#f26755] focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Budget (€)
+                        </label>
+                        <input
+                          type="number"
+                          name="budget"
+                          value={editForm.budget}
+                          onChange={handleEditFormChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#f26755] focus:border-transparent"
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Date de début
+                          </label>
+                          <input
+                            type="date"
+                            name="startDate"
+                            value={editForm.startDate}
+                            onChange={handleEditFormChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#f26755] focus:border-transparent"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Date de fin estimée
+                          </label>
+                          <input
+                            type="date"
+                            name="estimatedEndDate"
+                            value={editForm.estimatedEndDate}
+                            onChange={handleEditFormChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#f26755] focus:border-transparent"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Description
+                        </label>
+                        <textarea
+                          name="description"
+                          value={editForm.description}
+                          onChange={handleEditFormChange}
+                          rows={3}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#f26755] focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Détails d'adresse
+                        </label>
+                        <textarea
+                          name="addressDetails"
+                          value={editForm.addressDetails}
+                          onChange={handleEditFormChange}
+                          rows={2}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#f26755] focus:border-transparent"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <h2 className="text-xl font-medium text-gray-900 flex items-center gap-2">
+                        {project?.name}
+                        {project?.amoIncluded && <BadgeAmo />}
+                      </h2>
+
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex px-3 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">
+                    {project?.status}
+                  </span>
+                  
+                  {isEditing ? (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleSaveProject}
+                        disabled={isSaving}
+                        className="inline-flex items-center px-3 py-1 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
+                      >
+                        <Save className="h-4 w-4 mr-1" />
+                        {isSaving ? "Sauvegarde..." : "Sauvegarder"}
+                      </button>
+                      <button
+                        onClick={handleCancelEdit}
+                        disabled={isSaving}
+                        className="inline-flex items-center px-3 py-1 bg-gray-500 text-white rounded-md text-sm font-medium hover:bg-gray-600 transition-colors disabled:opacity-50"
+                      >
+                        <X className="h-4 w-4 mr-1" />
+                        Annuler
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        if (project) {
+                          initializeEditForm(project);
+                        }
+                        setIsEditing(true);
+                      }}
+                      className="inline-flex items-center px-3 py-1 bg-[#f26755] text-white rounded-md text-sm font-medium hover:bg-[#e55a47] transition-colors"
+                    >
+                      <Edit className="h-4 w-4 mr-1" />
+                      Modifier
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {!isEditing && (
                 <div>
-                  <h2 className="text-xl font-medium text-gray-900 flex items-center gap-2">
-                    {project?.name}
-                    {project?.amoIncluded && <BadgeAmo />}
-                  </h2>
-                  <p className="text-sm text-gray-600">
-                    {project?.broker.company}
+                  <p className="text-sm text-gray-500">Montant prospecté</p>
+                  <p className="text-xl font-semibold">
+                    {project?.budget.toLocaleString("fr-FR", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}{" "}
+                    €
                   </p>
                 </div>
-                <span className="inline-flex px-3 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">
-                  {project?.status}
-                </span>
-              </div>
+              )}
 
-              <div>
-                <p className="text-sm text-gray-500">Montant prospecté</p>
-                <p className="text-xl font-semibold">
-                  {project?.budget.toLocaleString("fr-FR", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}{" "}
-                  €
-                </p>
-              </div>
-
-              {project?.startDate && project?.estimatedEndDate && (
+              {!isEditing && project?.startDate && project?.estimatedEndDate && (
                 <div className="flex gap-2 mt-4">
                   <button className="inline-flex items-center px-2.5 py-1 bg-emerald-500 text-white rounded text-xs font-medium hover:bg-emerald-600 transition-colors">
                     <Calendar className="h-3 w-3 mr-1" />
@@ -792,7 +1354,6 @@ export default function ProjectDetails() {
             </div>
           </div>
         </div>
-
         <div className="border-t border-gray-200">
           <div className="flex overflow-x-auto">
             {tabs.map((tab) => (
@@ -827,7 +1388,7 @@ export default function ProjectDetails() {
                     <Image
                       src={
                         project?.client.photoURL ||
-                        "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg"
+                        "https://cdn-icons-png.flaticon.com/128/17932/17932409.png"
                       }
                       alt={
                         project?.client.firstName +
@@ -1102,7 +1663,8 @@ export default function ProjectDetails() {
               handleUpdateDevisStatus={handleUpdateDevisStatus}
               updatingStatusId={updatingStatusId}
               userRole={"courtier"}
-              currentUserId={currentUser?.uid ?? null}
+              currentUserId={currentUser?.uid ?? ""}
+
             />
 
       {/* Modals */}
@@ -1123,6 +1685,7 @@ export default function ProjectDetails() {
             itemId={selectedDevisId}
             onNext={handleCalculStep}
             onBack={handleBackToCreate}
+            onSkip={handleGenerationStep}
           />
 
           <CalculSurfaceModal
@@ -1134,7 +1697,9 @@ export default function ProjectDetails() {
           <DevisGenerationPage
             open={step === "generation"}
             onOpenChange={(open) => {
-              if (!open) setStep(null); // ou "pieces" ou autre selon ton workflow
+              if (!open) {
+                setStep(null);
+              }
             }}
             onBack={handleBackToHome}
           />

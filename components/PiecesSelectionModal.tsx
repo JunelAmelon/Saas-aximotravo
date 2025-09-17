@@ -15,6 +15,7 @@ interface PiecesSelectionModalProps {
   open: boolean;
   itemId: string;
   onNext: () => void;
+  onSkip?: () => void;
   onBack: () => void;
 }
 
@@ -22,7 +23,8 @@ export function PiecesSelectionModal({
   open, 
   itemId, 
   onNext, 
-  onBack 
+  onBack,
+  onSkip 
 }: PiecesSelectionModalProps) {
   const { devisConfig, setDevisConfigField } = useDevisConfig();
   const defaultPieces: PieceSelection[] = PIECES_DISPONIBLES.map(nom => ({
@@ -214,18 +216,31 @@ export function PiecesSelectionModal({
                 )}
               </div>
               
-              <Button 
-                onClick={handleProceed}
-                disabled={!canProceed || loading}
-                className={`w-full sm:w-auto h-9 sm:h-10 px-4 sm:px-6 font-medium rounded-lg transition-all duration-200 text-sm ${
-                  canProceed && !loading
-                    ? 'bg-[#f26755] hover:bg-[#e55a4a] text-white shadow-sm hover:shadow-md' 
-                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                }`}
-              >
-                {loading ? <Loader size={20} /> : <><span>Continuer</span>
-                <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4 ml-2" /></>}
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+                {/* Bouton Passer cette étape */}
+                <Button 
+                  onClick={onSkip}
+                  disabled={false}
+                  variant="outline"
+                  className="w-full sm:w-auto h-9 sm:h-10 px-4 sm:px-6 font-medium rounded-lg transition-all duration-200 text-sm border-[#f26755]/30 text-[#f26755] hover:bg-[#f26755]/10 hover:border-[#f26755]/50 hover:text-[#f26755]"
+                >
+                  Passer
+                </Button>
+                
+                {/* Bouton Continuer */}
+                <Button 
+                  onClick={handleProceed}
+                  disabled={!canProceed || loading}
+                  className={`w-full sm:w-auto h-9 sm:h-10 px-4 sm:px-6 font-medium rounded-lg transition-all duration-200 text-sm ${
+                    canProceed && !loading
+                      ? 'bg-[#f26755] hover:bg-[#e55a4a] text-white shadow-sm hover:shadow-md' 
+                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  }`}
+                >
+                  {loading ? <Loader size={20} /> : <><span>Continuer</span>
+                  <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4 ml-2" /></>}
+                </Button>
+              </div>
             </div>
           </div>
         </div>

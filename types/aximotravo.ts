@@ -1,0 +1,15 @@
+export const entreprise = {
+    logoUrl: "/Logo-2025.png",
+    nom: "AXIMOTRAVO",
+    statut: "SAS au capital de 5000 €",
+    site: "https://www.aximotravo.com",
+    email: "contact@aximotravo.com",
+    ville: "ASPIN-AURE France",
+    codePostal: "65240",
+    adresse: "1 place du village",
+    tel: "0811386565",
+    rcs: "RCS TARBES",
+    siren: "815247812",
+    ape: "7112B",
+    tva: "FR95815247812",
+  };
