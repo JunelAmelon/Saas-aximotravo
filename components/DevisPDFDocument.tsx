@@ -519,42 +519,43 @@ export const DevisPDFDocument = ({ devis, client, project, isArtisan = false }: 
           </Text>
         </View>
 
-        {/* Carte client premium */}
-
-        <View style={styles.card}>
-          <View style={styles.row}>
-            <Text style={styles.title}>CLIENT</Text>
+        {/* Carte client premium (affichée uniquement pour les artisans) */}
+        {isArtisan && (
+          <View style={styles.card}>
+            <View style={styles.row}>
+              <Text style={styles.title}>CLIENT</Text>
+            </View>
+            <Text style={styles.name}>
+              {client.displayName ||
+                `${client.firstName ?? ""} ${client.lastName ?? ""}`.trim() ||
+                "Nom du client"}
+            </Text>
+            {project?.location && (
+              <View style={styles.row}>
+                <Text>
+                  {project.location}, {project?.addressDetails}
+                </Text>
+              </View>
+            )}
+            {(project?.postalCode || project?.city) && (
+              <View style={styles.row}>
+                <Text>
+                  {project?.postalCode} {project?.city}
+                </Text>
+              </View>
+            )}
+            {client.email && (
+              <View style={styles.row}>
+                <Text>{client.email}</Text>
+              </View>
+            )}
+            {(client.phone || client.phoneNumber) && (
+              <View style={styles.row}>
+                <Text>{client.phone || client.phoneNumber}</Text>
+              </View>
+            )}
           </View>
-          <Text style={styles.name}>
-            {client.displayName ||
-              `${client.firstName ?? ""} ${client.lastName ?? ""}`.trim() ||
-              "Nom du client"}
-          </Text>
-          {project?.location && (
-            <View style={styles.row}>
-              <Text>
-                {project.location}, {project?.addressDetails}
-              </Text>
-            </View>
-          )}
-          {(project?.postalCode || project?.city) && (
-            <View style={styles.row}>
-              <Text>
-                {project?.postalCode} {project?.city}
-              </Text>
-            </View>
-          )}
-          {client.email && (
-            <View style={styles.row}>
-              <Text>{client.email}</Text>
-            </View>
-          )}
-          {(client.phone || client.phoneNumber) && (
-            <View style={styles.row}>
-              <Text>{client.phone || client.phoneNumber}</Text>
-            </View>
-          )}
-        </View>
+        )}
 
         {/* Message d'intro avec bordure stylée */}
         <View style={styles.introSection}>

@@ -43,12 +43,30 @@ export async function addProjectDocument({ projectId, name, category, date, size
     status,
     url,
   });
-  // Si c'est un devis, ajoute aussi dans la table devis
-  if (category.toLowerCase() === "devis") {
+  // Si c'est un devis, ajoute aussi dans la collection 'devis' avec un mapping par catégorie
+  const cat = category.toLowerCase();
+  let devisType: string | null = null;
+  let devisStatut: string | null = null;
+
+  if (cat === "devis") {
+    devisType = "Devis";
+    devisStatut = status === "signé" ? "Validé" : "En attente";
+  } else if (cat === "devis_estimatif") {
+    devisType = "Devis estimatif";
+    devisStatut = status === "signé" ? "Validé" : "En attente";
+  } else if (cat === "devis_artisan") {
+    devisType = "Devis artisan";
+    devisStatut = status === "signé" ? "Validé" : "En attente";
+  } else if (cat === "devis_signe" || cat === "devis_signé") {
+    devisType = "Devis signé";
+    devisStatut = "Validé";
+  }
+
+  if (devisType && devisStatut) {
     await addDoc(collection(db, "devis"), {
       titre: name,
-      type: "Devis",
-      statut: status === "signé" ? "Validé" : "En attente",
+      type: devisType,
+      statut: devisStatut,
       montant: montant ?? null,
       pdfUrl: url,
       projectId,

@@ -130,6 +130,7 @@ const totalPages = Math.ceil(documents.length / documentsPerPage);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Montant actuellement obligatoire uniquement pour le type 'devis' classique (on laisse optionnel pour les autres)
     if (documentType.toLowerCase() === 'devis' && !montant) {
       setError('Le montant est obligatoire pour un devis');
       return;
@@ -158,6 +159,7 @@ const totalPages = Math.ceil(documents.length / documentsPerPage);
       const data = await res.json();
       const uploadedUrl = data.secure_url;
 
+      const isDevisCategory = ['devis','devis_estimatif','devis_artisan','devis_signe','devis_signé'].includes(documentType.toLowerCase());
       const documentData = {
         projectId,
         name: selectedFile.name,
@@ -167,7 +169,7 @@ const totalPages = Math.ceil(documents.length / documentsPerPage);
         status: "en attente" as "en attente" | "signé",
         url: uploadedUrl,
         createdAt: new Date().toISOString(),
-        ...(documentType.toLowerCase() === 'devis' && {
+        ...(isDevisCategory && {
           montant: Number(montant),
           devisConfigId: ""
         })
@@ -438,6 +440,9 @@ const totalPages = Math.ceil(documents.length / documentsPerPage);
               >
                 <option value="">Sélectionner...</option>
                 <option value="devis">Devis</option>
+                <option value="devis_estimatif">Devis estimatif</option>
+                <option value="devis_artisan">Devis artisan</option>
+                <option value="devis_signe">Devis signé</option>
                 <option value="facture">Facture</option>
                 <option value="contrat">Contrat</option>
                 <option value="autre">Autre</option>
@@ -473,7 +478,7 @@ const totalPages = Math.ceil(documents.length / documentsPerPage);
                 </span>
               </label>
             </div>
-            {documentType.toLowerCase() === 'devis' && (
+            {['devis','devis_estimatif','devis_artisan','devis_signe','devis_signé'].includes(documentType.toLowerCase()) && (
               <div>
                 <label htmlFor="montant" className="block text-sm font-medium text-gray-700 mb-2">Montant du devis (€)</label>
                 <input

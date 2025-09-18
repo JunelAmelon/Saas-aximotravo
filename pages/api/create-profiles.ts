@@ -37,12 +37,42 @@ export default async function handler(
     console.log('Request body:', req.body);
     const { email, password, name, role, company, postalCode, city, geographicArea } = req.body;
 
-    if (!email || !password || !name || !role) {
+    if (!email || !password || !role) {
       console.log('Validation failed - missing fields');
       return res.status(400).json({
         success: false,
         error: 'Champs obligatoires manquants'
       });
+    }
+
+    // Déterminer le nom à utiliser (auto-nommage pour profils démo)
+    console.log('Determining profile name...');
+    const db = getFirestore();
+    let finalName: string | undefined = name;
+    const isDemoProfile = (role && String(role).toLowerCase() === 'demo') || !name || String(name).trim().toLowerCase() === 'demo';
+    if (isDemoProfile) {
+      // Chercher les utilisateurs existants dont le champ name ressemble à demo<number>
+      // Utilise une plage lexicographique pour récupérer les noms commençant par "demo"
+      const usersRef = db.collection('users');
+      const snapshot = await usersRef
+        .where('name', '>=', 'demo')
+        .where('name', '<=', 'demo\uf8ff')
+        .get();
+
+      let maxN = 0;
+      snapshot.forEach(doc => {
+        const n = String(doc.data().name || '').match(/^demo(\d+)$/i);
+        if (n && n[1]) {
+          const num = parseInt(n[1], 10);
+          if (!Number.isNaN(num)) maxN = Math.max(maxN, num);
+        }
+      });
+      finalName = `demo${maxN + 1}`;
+      console.log('Auto-generated demo name:', finalName);
+    }
+
+    if (!finalName) {
+      return res.status(400).json({ success: false, error: 'Nom manquant' });
     }
 
     // Création de l'utilisateur
@@ -51,16 +81,15 @@ export default async function handler(
     const userRecord = await auth.createUser({
       email,
       password,
-      displayName: name
+      displayName: finalName
     });
     console.log('User created:', userRecord.uid);
 
     // Enregistrement dans Firestore
     console.log('Saving to Firestore...');
-    const db = getFirestore();
     await db.collection('users').doc(userRecord.uid).set({
       email,
-      name,
+      name: finalName,
       role,
       ...(role === 'courtier' && { company, postalCode, city, geographicArea }),
       createdAt: new Date().toISOString()

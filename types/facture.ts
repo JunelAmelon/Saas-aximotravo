@@ -1,6 +1,10 @@
 import { Devis } from "./devis";
 
-export type FactureType = 'devis' | 'commission_courtier' | 'commission_aximotravo';
+export type FactureType = 
+  | 'devis' 
+  | 'commission_courtier'
+  | 'commission_aximotravo'
+  | 'notice_comptable';
 
 export interface Facture {
   id: string;
@@ -15,10 +19,11 @@ export interface Facture {
 }
 
 export const FACTURE_TYPE_OPTIONS = [
-  { value: 'devis' as FactureType, label: 'Facture Devis' },
-  { value: 'commission_courtier' as FactureType, label: 'Commission Courtier' },
-  { value: 'commission_aximotravo' as FactureType, label: 'Commission Aximotravo' }
-];
+  { value: 'devis', label: 'Facture Devis' },
+  { value: 'commission_courtier', label: 'Commission Courtier' },
+  { value: 'commission_aximotravo', label: 'Commission Aximotravo' },
+  { value: 'notice_comptable', label: 'Notice Comptable' },
+] as const;
 
 export const COMMISSION_RATES = {
   commission_courtier: 12, // 12% pour le courtier

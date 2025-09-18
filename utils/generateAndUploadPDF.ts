@@ -13,6 +13,9 @@ async function uploadPDFToCloudinary(pdfBlob: Blob, fileName: string): Promise<s
   const formData = new FormData();
   formData.append('file', pdfBlob, fileName);
   formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!);
+  formData.append('folder', 'devis');
+  // Tags utiles pour le tri dans Cloudinary (optionnel)
+  // formData.append('tags', 'devis');
   
   // Spécifier le nom du fichier dans l'URL Cloudinary (sans l'extension)
   const publicId = fileName.replace('.pdf', '');
@@ -45,7 +48,7 @@ export async function generateAndUploadDevisPDF(
   userId: string
 ): Promise<string> {
   try {
-    console.log('🔄 Génération et upload du PDF pour le devis:', devis.id);
+    console.log(' Génération et upload du PDF pour le devis:', devis.id);
 
     // 1. Récupérer les données du projet et du client
     const projectRef = doc(db, 'projects', projectId);
@@ -68,11 +71,24 @@ export async function generateAndUploadDevisPDF(
       throw new Error(`Client non trouvé avec l'ID: ${projectData.client_id}`);
     }
 
-    // 2. Générer le PDF
+    // 1.b Récupérer l'utilisateur courant pour déterminer le rôle
+    let isArtisan = false;
+    try {
+      const currentUserRef = doc(db, 'users', userId);
+      const currentUserSnap = await getDoc(currentUserRef);
+      const currentUserData = currentUserSnap.data();
+      isArtisan = (currentUserData?.role || '').toLowerCase() === 'artisan';
+    } catch (e) {
+      // Par défaut, considérer non-artisan si erreur
+      isArtisan = false;
+    }
+
+    // 2. Générer le PDF (masquer l'entête client si non-artisan)
     const pdfDoc = pdf(DevisPDFDocument({ 
       devis, 
       client: clientData as any, 
-      project: projectData as any 
+      project: projectData as any,
+      isArtisan
     }));
     const pdfBlob = await pdfDoc.toBlob();
     
@@ -83,7 +99,7 @@ export async function generateAndUploadDevisPDF(
     
     // 3. Upload vers Cloudinary
     const pdfUrl = await uploadPDFToCloudinary(pdfBlob, fileName);
-    console.log('✅ PDF uploadé sur Cloudinary:', pdfUrl);
+    console.log(' PDF uploadé sur Cloudinary:', pdfUrl);
     
     // 4. Calculer le montant TTC
     const selectedItems = devis.selectedItems || [];
@@ -93,12 +109,12 @@ export async function generateAndUploadDevisPDF(
     // 5. Mettre à jour la base de données
     await updateDevisWithPDFUrl(devis.id, pdfUrl, montantTTC, projectId, devis.titre || 'Devis', pdfBlob.size, devis);
     
-    console.log('✅ Base de données mise à jour avec l\'URL PDF');
+    console.log(' Base de données mise à jour avec l\'URL PDF');
     
     return pdfUrl;
     
   } catch (error) {
-    console.error('❌ Erreur lors de la génération/upload du PDF:', error);
+    console.error(' Erreur lors de la génération/upload du PDF:', error);
     throw error;
   }
 }

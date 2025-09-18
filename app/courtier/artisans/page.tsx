@@ -17,6 +17,7 @@ import {
   Loader2,
   FileText,
   X,
+  Send,
 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useCreateArtisan } from "@/hooks/useCreateArtisan";
@@ -28,6 +29,7 @@ import {
   assignArtisanToCourtier,
   ArtisanUser,
 } from "@/lib/firebase/users";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export default function CourtierArtisans() {
   const [cloudinaryLoading, setCloudinaryLoading] = useState(false);
@@ -281,16 +283,28 @@ export default function CourtierArtisans() {
           <h1 className="text-2xl font-bold text-gray-900 w-full text-center sm:w-auto sm:text-left sm:mb-0 mb-2">
             Gestion des artisans
           </h1>
-          <button
-            onClick={() => setOpenAddModal(true)}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-[#f26755] text-white rounded-md font-semibold shadow hover:opacity-90 transition-colors disabled:opacity-50"
-            type="button"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Ajouter un artisan</span>
-          </button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={(e) => e.preventDefault()}
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-gray-300 text-gray-600 rounded-md font-semibold shadow cursor-not-allowed"
+                  type="button"
+                  disabled
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>Ajouter un artisan</span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                Prochainement disponible
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
+
+
 
       {/* Modal d'ajout */}
       <Dialog open={openAddModal} onOpenChange={setOpenAddModal}>
@@ -948,7 +962,7 @@ export default function CourtierArtisans() {
 
                 <div className="space-y-1">
                   <label className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">
-                    Charte/Obligations*
+                    Charte qualité/Obligations*
                   </label>
                   <div className="flex items-center justify-center w-full">
                     <label className="flex flex-col w-full border border-dashed border-gray-200 hover:border-[#f26755] rounded-xl cursor-pointer transition-all p-4 bg-gray-50 hover:bg-orange-50 group">

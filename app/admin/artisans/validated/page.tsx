@@ -486,7 +486,7 @@ export default function ValidatedArtisansPage() {
                     { key: 'fiscalUrl', label: 'Document fiscal' },
                     { key: 'kbisUrl', label: 'KBIS' },
                     { key: 'idCardUrl', label: "Carte d'identité" },
-                    { key: 'charter', label: 'Charte/Obligations' }
+                    { key: 'charter', label: 'Charte qualité/Obligations' }
                   ].map(({ key, label }) => (
                     <div key={key} className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
                       <span className="text-xs sm:text-sm font-medium text-gray-700 truncate mr-2">{label}</span>

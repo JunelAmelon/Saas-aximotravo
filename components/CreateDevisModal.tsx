@@ -120,8 +120,8 @@ export function CreateDevisModal({ open, onOpenChange, onCreateDevis }: CreateDe
                   <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                 </div>
                 <div>
-                  <DialogTitle className="text-base sm:text-lg font-semibold">Nouveau devis</DialogTitle>
-                  <p className="text-xs sm:text-sm text-white/90">Créer un devis professionnel</p>
+                  <DialogTitle className="text-base sm:text-lg font-semibold">Nouvel estimatif</DialogTitle>
+                  <p className="text-xs sm:text-sm text-white/90">Créer un estimatif professionnel</p>
                 </div>
               </div>
               <Button
@@ -140,7 +140,7 @@ export function CreateDevisModal({ open, onOpenChange, onCreateDevis }: CreateDe
             <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
               <div className="space-y-2">
                 <Label htmlFor="titre" className="text-sm font-medium text-gray-700">
-                  Titre du devis
+                  Titre de l'estimatif
                 </Label>
                 <Input
                   id="titre"
@@ -203,7 +203,7 @@ export function CreateDevisModal({ open, onOpenChange, onCreateDevis }: CreateDe
                   className="w-full h-10 sm:h-11 bg-[#f26755] hover:bg-[#e55a4a] text-white font-medium rounded-lg shadow-sm hover:shadow-md transition-all duration-200 text-sm sm:text-base"
                   disabled={loading}
                 >
-                  {loading ? <Loader size={22} /> : 'Créer le devis'}
+                  {loading ? <Loader size={22} /> : "Créer l'estimatif"}
                 </Button>
               </div>
             </form>
