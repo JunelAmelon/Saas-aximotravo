@@ -66,6 +66,7 @@ import { useAuth } from "@/lib/contexts/AuthContext";
 import { ModernDevisSection } from "@/components/ModernDevisSection";
 import { createAutomaticAcompte } from "@/utils/createAutomaticAcompte";
 import { auditAndCreateAcompte } from "@/utils/auditAndCreateAcompte";
+import { generateAndUploadDevisPDF } from "@/utils/generateAndUploadPDF";
 
 // --- TYPES & INTERFACES ---
 export interface User {
@@ -743,6 +744,13 @@ export default function ProjectDetails() {
         const ref = doc(db, type, docId);
         const updateData: any = { status: newstatus };
         
+        // Réserver l'envoi au client à l'artisan uniquement
+        if (newstatus.toLowerCase() === "envoyé au client") {
+          alert("Seul l'artisan peut envoyer le devis au client.");
+          setUpdatingStatusId(null);
+          return;
+        }
+       
         // Mettre à jour updatedAt quand le statut passe à "Validé"
         if (newstatus.toLowerCase() === "validé") {
           updateData.updatedAt = new Date();
@@ -1379,26 +1387,21 @@ export default function ProjectDetails() {
                   <div className="relative w-16 h-16 rounded-full overflow-hidden ring-2 ring-[#f26755] ring-offset-2">
                     <Image
                       src={
-                        project?.client.photoURL ||
+                        project?.client?.photoURL ||
                         "https://cdn-icons-png.flaticon.com/128/17932/17932409.png"
                       }
-                      alt={
-                        project?.client.firstName +
-                          " " +
-                          project?.client.lastName || ""
-                      }
+                      alt={`${project?.client?.firstName || ""} ${project?.client?.lastName || ""}`.trim()}
                       fill
                       className="object-cover"
                     />
                   </div>
+
                   <div>
                     <h4 className="font-medium text-gray-900">
-                      {project?.client.firstName +
-                        " " +
-                        project?.client.lastName}
+                      {(project?.client?.firstName || "") + " " + (project?.client?.lastName || "")}
                     </h4>
                     <p className="text-sm text-[#f26755]">
-                      {project?.client.company}
+                      {project?.client?.company}
                     </p>
                   </div>
                 </div>
@@ -1409,16 +1412,18 @@ export default function ProjectDetails() {
                       <Phone className="h-5 w-5 text-[#f26755]" />
                     </div>
                     <span className="text-sm text-gray-600">
-                      {project?.client.phone}
+                      {project?.client?.phone}
                     </span>
+
                   </div>
                   <div className="flex items-center gap-3 group">
                     <div className="p-2 rounded-full bg-[#f26755]/10 group-hover:bg-[#f26755]/20 transition-colors">
                       <Mail className="h-5 w-5 text-[#f26755]" />
                     </div>
                     <span className="text-sm text-gray-600">
-                      {project?.client.email}
+                      {project?.client?.email}
                     </span>
+
                   </div>
                   <div
                     className="flex items-center gap-3 group cursor-pointer select-none"

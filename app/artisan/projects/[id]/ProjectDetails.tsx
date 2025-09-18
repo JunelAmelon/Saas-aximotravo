@@ -63,6 +63,7 @@ import { DevisGenerationPage } from "@/components/DevisGenerationPage";
 import { useDevis } from "@/hooks/useDevis";
 import { DevisConfigProvider } from "@/components/DevisConfigContext";
 import { useAuth } from "@/lib/contexts/AuthContext";
+import { generateAndUploadDevisPDF } from "@/utils/generateAndUploadPDF";
 
 // --- TYPES & INTERFACES ---
 export interface User {
@@ -452,6 +453,31 @@ export default function ProjectDetails() {
     try {
       const ref = doc(db, type, docId);
       const updateData: any = { status: newstatus };
+      
+      // Si l'artisan envoie le devis au client, s'assurer que le PDF existe (sinon le générer puis l'enregistrer)
+      if (newstatus.toLowerCase() === "envoyé au client") {
+        try {
+          const docsRef = collection(db, "documents");
+          const qDocs = query(
+            docsRef,
+            where("projectId", "==", id!),
+            where("devisConfigId", "==", docId)
+          );
+          const docsSnap = await getDocs(qDocs);
+          const hasPdf = !docsSnap.empty;
+
+          if (!hasPdf) {
+            const devisSnap = await getDoc(ref);
+            if (devisSnap.exists()) {
+              const devisData = devisSnap.data() as any;
+              await generateAndUploadDevisPDF(devisData, id as string, currentUser?.uid || "");
+            }
+          }
+        } catch (pdfErr) {
+          console.error("Erreur lors de la vérification/génération du PDF avant l'envoi:", pdfErr);
+          // On ne bloque pas l'action utilisateur
+        }
+      }
       
       // Mettre à jour updatedAt quand le statut passe à "Validé"
       if (newstatus.toLowerCase() === "validé") {

@@ -28,6 +28,7 @@ import {
   assignArtisanToCourtier,
   ArtisanUser,
 } from "@/lib/firebase/users";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export default function CourtierArtisans() {
   const [cloudinaryLoading, setCloudinaryLoading] = useState(false);
@@ -281,14 +282,24 @@ export default function CourtierArtisans() {
           <h1 className="text-2xl font-bold text-gray-900 w-full text-center sm:w-auto sm:text-left sm:mb-0 mb-2">
             Gestion des artisans
           </h1>
-          <button
-            onClick={() => setOpenAddModal(true)}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-[#f26755] text-white rounded-md font-semibold shadow hover:opacity-90 transition-colors disabled:opacity-50"
-            type="button"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Ajouter un artisan</span>
-          </button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={(e) => e.preventDefault()}
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-gray-300 text-gray-600 rounded-md font-semibold shadow cursor-not-allowed"
+                  type="button"
+                  disabled
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>Ajouter un artisan</span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                Prochainement disponible
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
 
