@@ -1586,29 +1586,19 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                                 </DropdownMenuItem>
                               </>
                             )}
-                            {userRole === "artisan" && (
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  handleOpenCommentModal(
-                                    devisItem.id,
-                                    "devis",
-                                    projectId || ""
-                                  )
-                                }
-                                disabled={sendingEmailId === devisItem.id}
-                              >
-                                <Send className="w-4 h-4 mr-2" />
-                                Envoyer au client
-                              </DropdownMenuItem>
-                            )}
-                            {userRole === "artisan" && (devisItem.status === "Validé") && (
-                              <DropdownMenuItem
-                                onClick={() => handleSendForSignature(devisItem.id, "devis", projectId || "")}
-                                disabled={sendingSignatureId === devisItem.id}
-                              >
-                                <Send className="w-4 h-4 mr-2" /> Envoyer pour signature
-                              </DropdownMenuItem>
-                            )}
+                            <DropdownMenuItem
+                              onClick={() =>
+                                handleOpenCommentModal(
+                                  devisItem.id,
+                                  "devis",
+                                  projectId || ""
+                                )
+                              }
+                              disabled={sendingEmailId === devisItem.id}
+                            >
+                              <Send className="w-4 h-4 mr-2" />
+                              Envoyer au client
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </td>
@@ -1802,8 +1792,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                                     setShowAssignModal(true);
                                   }}
                                 >
-                                  <UserCheck className="w-4 h-4 mr-2" />{" "}
-                                  Attribuer
+                                  <UserCheck className="w-4 h-4 mr-2" /> Attribuer
                                 </DropdownMenuItem>
                               )}
                             {userRole === "artisan" && (
@@ -1817,11 +1806,10 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                                 }
                                 disabled={sendingEmailId === doc.id}
                               >
-                                <Send className="w-4 h-4 mr-2" /> Envoyer au
-                                client
+                                <Send className="w-4 h-4 mr-2" /> Envoyer au client
                               </DropdownMenuItem>
                             )}
-                            {userRole === "artisan" && (doc.status === "Validé") && (
+                            {userRole === "artisan" && doc.status === "Validé" && (
                               <DropdownMenuItem
                                 onClick={() => handleSendForSignature(doc.id, "devisConfig", projectId || "")}
                                 disabled={sendingSignatureId === doc.id}
@@ -1869,6 +1857,260 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
           )}
         </div>
       )}
+      {/*
+          ====================
+          Section : Factures validées
+          ====================
+        */}
+      {activeDevisTab === "Factures" && (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-lg font-bold text-gray-900">Devis signé</h4>
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                  showFilters
+                    ? "bg-[#f26755] text-white shadow-sm"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                <Filter className="h-4 w-4" />
+                Filtres
+              </button>
+            </div>
+            {/* Filtres */}
+            <div
+              className={`transition-all duration-300 overflow-hidden ${
+                showFilters ? "max-h-32 opacity-100" : "max-h-0 opacity-0"
+              }`}
+            >
+              <div className="grid grid-cols-1 gap-4 pt-4 border-t border-gray-100">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Rechercher par titre..."
+                    name="titre"
+                    value={filters.titre}
+                    onChange={handleFilterChange}
+                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f26755]/20 focus:border-[#f26755] transition-colors"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Numéro
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Titre
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Attribué
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Statut
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Montant
+                  </th>
+                  <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {paginatedFactures.length > 0 ? (
+                  paginatedFactures.map((doc) => (
+                    <tr
+                      key={doc.id}
+                      className="hover:bg-gray-50 transition-colors"
+                    >
+                      <td className="px-6 py-4">
+                        <span className="font-mono text-sm font-medium text-gray-900">
+                          {doc.numero || "-"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="font-medium text-gray-900">
+                          {doc.titre || "-"}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="font-medium text-gray-900">
+                          {doc.attribution?.artisanName || "-"}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">{doc.status}</td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-1">
+                          <Euro className="h-4 w-4 text-gray-400" />
+                          <span className="font-semibold text-gray-900">
+                            {Array.isArray(doc.selectedItems) &&
+                            doc.selectedItems.length > 0
+                              ? doc.selectedItems
+                                  .reduce((sum: number, item: any) => {
+                                    const tva =
+                                      typeof item.tva === "number"
+                                        ? item.tva
+                                        : parseFloat(item.tva as string) || 20;
+                                    return (
+                                      sum +
+                                      item.quantite *
+                                        item.prix_ht *
+                                        (1 + tva / 100)
+                                    );
+                                  }, 0)
+                                  .toLocaleString("fr-FR", {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                  })
+                              : "-"}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              aria-label="bouton"
+                              className="inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100"
+                            >
+                              <MoreVertical className="w-5 h-5 text-gray-500" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {
+                              <>
+                                {userRole === "artisan" && (
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setFacturePreview(doc);
+                                    }}
+                                  >
+                                    <FileText className="w-4 h-4 mr-2" />
+                                    Visualiser la facture
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuItem asChild>
+                                  <a
+                                    href="#"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      GenerateFacturePDF({
+                                        devis: doc,
+                                        userId: currentUserId || "",
+                                      });
+                                    }}
+                                    className="flex items-center gap-3 w-full"
+                                  >
+                                    <Download className="w-4 h-4 mr-2" />{" "}
+                                    Télécharger PDF
+                                  </a>
+                                </DropdownMenuItem>
+                                {doc.status === "Validé" && (
+                                  <>
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        handleSendToClient(
+                                          doc.id,
+                                          "devis", // Les factures sont stockées comme devis avec un flag
+                                          projectId || ""
+                                        )
+                                      }
+                                      disabled={sendingEmailId === doc.id}
+                                    >
+                                      <Send className="w-4 h-4 mr-2" />
+                                      Envoyer au client
+                                    </DropdownMenuItem>
+                                    {/* Options de factures de commission - Uniquement pour devis validés */}
+                                    {/* Pour les artisans : seulement commission courtier */}
+                                    {userRole === "artisan" && (
+                                      <>
+                                        <DropdownMenuItem
+                                          onClick={() =>
+                                            setFactureCommissionPreview({
+                                              devis: doc,
+                                              factureType:
+                                                "commission_courtier",
+                                            })
+                                          }
+                                        >
+                                          <Euro className="w-4 h-4 mr-2" />
+                                          Facture Commission Courtier
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() =>
+                                            setFactureCommissionPreview({
+                                              devis: doc,
+                                              factureType:
+                                                "commission_aximotravo",
+                                            })
+                                          }
+                                        >
+                                          <Euro className="w-4 h-4 mr-2" />
+                                          Facture Commission Aximotravo
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() =>
+                                            setNoticeComptablePreview(doc)
+                                          }
+                                        >
+                                          <FileText className="w-4 h-4 mr-2" />
+                                          Voir la notice comptable
+                                        </DropdownMenuItem>
+                                      </>
+                                    )}
+                                  </>
+                                )}
+                              </>
+                            }
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center">
+                      <div className="flex flex-col items-center gap-3">
+                        <Calendar className="h-12 w-12 text-gray-300" />
+                        <p className="text-gray-500 font-medium">Aucun devis signé</p>
+                        <p className="text-sm text-gray-400">Les devis signés apparaîtront ici</p>
+                        <button
+                          type="button"
+                          disabled
+                          className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-200 text-gray-500 cursor-not-allowed"
+                          title="Prochainement disponible"
+                        >
+                          Uploader un devis signé
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          {/* --- Pagination des devis signés --- */}
+          {paginatedFactures.length > 0 && (
+            <Pagination
+              currentPage={devisTabsData["Factures"].currentPage}
+              totalPages={totalPagesFactures}
+              onPageChange={devisTabsData["Factures"].setCurrentPage}
+              totalItems={totalItemsFactures}
+              itemsPerPage={devisTabsData["Factures"].itemsPerPage}
+            />
+          )}
+        </div>
+      )}
+
       {/* Modal de la notice comptable */}
       <NoticeComptableModal
         noticeComptablePreview={noticeComptablePreview}
