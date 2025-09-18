@@ -35,6 +35,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { CreateDevisModal } from "@/components/CreateDevisModal";
 import { PiecesSelectionModal } from "@/components/PiecesSelectionModal";
 import { CalculSurfaceModal } from "@/components/CalculSurfaceModal";
@@ -1515,94 +1516,88 @@ export default function ProjectDetails() {
                 </div>
 
                 <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
-                  <h4 className="text-sm font-medium mb-4 flex items-center text-gray-900">
-                    Inviter
-                    <span className="ml-2 p-2 rounded-full bg-[#f26755]/10">
-                      <User className="h-4 w-4 text-[#f26755]" />
-                    </span>
-                  </h4>
-                  <Select
-                    onValueChange={(selectedVal) =>
-                      handleArtisanSelect(selectedVal ? [selectedVal] : [])
-                    }
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Sélectionner un ou plusieurs artisans à inviter" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableArtisans.length === 0 ? (
-                        <div className="p-2 text-sm text-gray-500">
-                          Aucun artisan trouvé pour ce courtier.
-                        </div>
-                      ) : (
-                        availableArtisans.map((artisan) => (
-                          <SelectItem key={artisan.uid} value={artisan.uid}>
-                            {artisan.displayName}
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                  {/* Badges des artisans sélectionnés */}
-                  {selectedArtisanIds.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {selectedArtisanIds.map((id) => {
-                        const artisan = availableArtisans.find(
-                          (a) => a.uid === id
-                        );
-                        if (!artisan) return null;
-                        return (
-                          <span
-                            key={id}
-                            className="flex items-center bg-[#f26755]/10 text-[#f26755] px-3 py-1 rounded-full text-xs font-medium"
+                  <div className="flex items-start justify-between mb-4">
+                    <h4 className="text-sm font-medium flex items-center text-gray-900">
+                      Inviter un artisan
+                      <span className="ml-2 p-2 rounded-full bg-[#f26755]/10">
+                        <User className="h-4 w-4 text-[#f26755]" />
+                      </span>
+                    </h4>
+                  </div>
+
+                  <TooltipProvider>
+                    <Tooltip>
+                      <div className="opacity-60 pointer-events-none select-none" aria-disabled>
+                          <Select
+                            onValueChange={(selectedVal) =>
+                              handleArtisanSelect(selectedVal ? [selectedVal] : [])
+                            }
                           >
-                            {artisan.displayName}
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Sélectionner un ou plusieurs artisans à inviter" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {availableArtisans.length === 0 ? (
+                                <div className="p-2 text-sm text-gray-500">
+                                  Aucun artisan trouvé pour ce courtier.
+                                </div>
+                              ) : (
+                                availableArtisans.map((artisan) => (
+                                  <SelectItem key={artisan.uid} value={artisan.uid}>
+                                    {artisan.displayName}
+                                  </SelectItem>
+                                ))
+                              )}
+                            </SelectContent>
+                          </Select>
+                          {/* Badges des artisans sélectionnés */}
+                          {selectedArtisanIds.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {selectedArtisanIds.map((id) => {
+                                const artisan = availableArtisans.find(
+                                  (a) => a.uid === id
+                                );
+                                if (!artisan) return null;
+                                return (
+                                  <span
+                                    key={id}
+                                    className="flex items-center bg-[#f26755]/10 text-[#f26755] px-3 py-1 rounded-full text-xs font-medium"
+                                  >
+                                    {artisan.displayName}
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleArtisanSelect(
+                                          selectedArtisanIds.filter((aid) => aid !== id)
+                                        )
+                                      }
+                                      className="ml-2 text-[#f26755] hover:text-red-600 focus:outline-none"
+                                      title="Retirer"
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </button>
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          )}
+                          <TooltipTrigger asChild>
                             <button
-                              type="button"
-                              onClick={() =>
-                                handleArtisanSelect(
-                                  selectedArtisanIds.filter((aid) => aid !== id)
-                                )
-                              }
-                              className="ml-2 text-[#f26755] hover:text-red-600 focus:outline-none"
-                              title="Retirer"
+                              onClick={handleSendRequest}
+                              disabled
+                              className={cn(
+                                "w-full px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2 mt-4 pointer-events-auto",
+                                "bg-gray-200 text-gray-500 cursor-not-allowed"
+                              )}
                             >
-                              <X className="h-3 w-3" />
+                              <Send className="h-4 w-4" />
+                              Envoyer la demande
                             </button>
-                          </span>
-                        );
-                      })}
-                    </div>
-                  )}
-                  <button
-                    onClick={handleSendRequest}
-                    disabled={
-                      isRequestSent || loading || !selectedArtisanIds.length
-                    }
-                    className={cn(
-                      "w-full px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2 mt-4",
-                      isRequestSent
-                        ? "bg-green-100 text-green-700 cursor-not-allowed"
-                        : "bg-[#f26755] text-white hover:bg-[#f26755]/90"
-                    )}
-                  >
-                    {isRequestSent ? (
-                      <>
-                        <Check className="h-4 w-4" />
-                        Demande envoyée
-                      </>
-                    ) : loading ? (
-                      <>
-                        <span className="loader mr-2"></span>
-                        Envoi en cours...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="h-4 w-4" />
-                        Envoyer la demande
-                      </>
-                    )}
-                  </button>
+                          </TooltipTrigger>
+                        </div>
+                      <TooltipContent>Prochainement disponible</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                   {/* Liste des invitations envoyées (hors acceptés) */}
                   {artisanInvitations.length > 0 && (
                     <div className="mb-4 mt-4">

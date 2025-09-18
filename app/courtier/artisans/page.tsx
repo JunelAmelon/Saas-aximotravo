@@ -17,6 +17,7 @@ import {
   Loader2,
   FileText,
   X,
+  Send,
 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useCreateArtisan } from "@/hooks/useCreateArtisan";
@@ -302,6 +303,8 @@ export default function CourtierArtisans() {
           </TooltipProvider>
         </div>
       </div>
+
+
 
       {/* Modal d'ajout */}
       <Dialog open={openAddModal} onOpenChange={setOpenAddModal}>
