@@ -187,15 +187,17 @@ const { createAdmin, loading: loadingAdmin, error: errorAdmin, success: successA
         {/* Boutons - ligne sur desktop, colonne sur mobile */}
         <div className="flex flex-col sm:flex-row gap-3">
           <Button
-            onClick={() => openModal("admin")}
-            className="bg-[#f26755] hover:bg-[#f26755]/90 whitespace-nowrap"
+            disabled
+            className="bg-gray-400 cursor-not-allowed whitespace-nowrap"
+            title="Prochainement disponible"
           >
             <PlusCircle className="h-4 w-4 mr-2" />
             Créer un admin
           </Button>
           <Button
-            onClick={() => openModal("courtier")}
-            className="bg-[#f26755] hover:bg-[#f26755]/90 whitespace-nowrap"
+            disabled
+            className="bg-gray-400 cursor-not-allowed whitespace-nowrap"
+            title="Prochainement disponible"
           >
             <PlusCircle className="h-4 w-4 mr-2" />
             Créer un courtier

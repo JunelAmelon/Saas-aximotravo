@@ -1379,12 +1379,12 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
     <div className="mt-8">
       {/*
           ====================
-          Onglets principaux (Estimatif créé, Devis artisan, Devis signé)
+          Onglets principaux (Estimatif créé , Devis artisan, Devis signé)
           ====================
         */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div className="flex bg-gray-100 rounded-xl p-1 w-full sm:w-auto">
-          {/* Estimatif créé (generes) en premier */}
+          {/* Estimatif créé  (generes) en premier */}
           <button
             className={`flex-1 sm:flex-none px-4 sm:px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
               activeDevisTab === "generes"
@@ -1395,7 +1395,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
           >
             <div className="flex items-center justify-center sm:justify-start gap-2">
               <Calendar className="h-4 w-4" />
-              <span className="hidden sm:inline">Estimatif créé</span>
+              <span className="hidden sm:inline">Estimatif créé </span>
               <span className="sm:hidden">Estimatif</span>
             </div>
           </button>
@@ -1712,7 +1712,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="p-6 border-b border-gray-200">
             <div className="flex items-center justify-between mb-4">
-              <h4 className="text-lg font-bold text-gray-900">Estimatif créé</h4>
+              <h4 className="text-lg font-bold text-gray-900">Estimatif créé </h4>
               <div className="flex items-center gap-2 ml-auto">
                 <button
                   onClick={() => setShowFilters(!showFilters)}
@@ -1917,7 +1917,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                     <td colSpan={6} className="px-6 py-12 text-center">
                       <div className="flex flex-col items-center gap-3">
                         <Calendar className="h-12 w-12 text-gray-300" />
-                        <p className="text-gray-500 font-medium">Aucun estimatif créé</p>
+                        <p className="text-gray-500 font-medium">Aucun Estimatif créé </p>
                         <p className="text-sm text-gray-400">Commencez par créer votre premier estimatif</p>
                         <button
                           type="button"
