@@ -555,8 +555,8 @@ export default function ProjectDetails() {
         console.log('📎 Tous les devis générés:', devisConfigData);
         setDevisGeneres(devisConfigData);
         
-        // Mettre à jour les factures (devis validés)
-        const factures = devisConfigData.filter((d: any) => d.status?.toLowerCase() === "validé");
+        // Mettre à jour les factures (devis signés)
+        const factures = devisConfigData.filter((d: any) => d.status?.toLowerCase() === "signé");
         console.log('📎 Factures filtrées:', factures);
         setDevisFactures(factures);
       }, (error) => {
@@ -585,8 +585,8 @@ export default function ProjectDetails() {
           console.log('📎 Tous les devis générés (tri client):', devisConfigData);
           setDevisGeneres(devisConfigData);
           
-          // Mettre à jour les factures (devis validés)
-          const factures = devisConfigData.filter((d: any) => d.status?.toLowerCase() === "validé");
+          // Mettre à jour les factures (devis signés)
+          const factures = devisConfigData.filter((d: any) => d.status?.toLowerCase() === "signé");
           console.log('📎 Factures filtrées (tri client):', factures);
           setDevisFactures(factures);
         }, (fallbackError) => {
@@ -619,8 +619,8 @@ export default function ProjectDetails() {
         
         setDevisGeneres(devisConfigData);
         
-        // Mettre à jour les factures (devis validés)
-        const factures = devisConfigData.filter((d: any) => d.status?.toLowerCase() === "validé");
+        // Mettre à jour les factures (devis signés)
+        const factures = devisConfigData.filter((d: any) => d.status?.toLowerCase() === "signé");
         setDevisFactures(factures);
       }, (fallbackError) => {
         console.error('❌ Erreur écoute devis générés (fallback direct):', fallbackError);
@@ -661,25 +661,49 @@ export default function ProjectDetails() {
       );
     });
 
+  // Fonction de tri par date décroissante (plus récent en haut)
+  const sortByDateDesc = (items: any[]) => {
+    return items.sort((a, b) => {
+      const dateA = a.createdAt?.toDate?.() || a.createdAt || new Date(0);
+      const dateB = b.createdAt?.toDate?.() || b.createdAt || new Date(0);
+      return new Date(dateB).getTime() - new Date(dateA).getTime();
+    });
+  };
+
   // Regrouper les devis importés (collection 'devis') par type
-  const uploadedEstimatif = devisImportes
-    .filter((d) => (d.type || "").toLowerCase() === "devis estimatif")
-    .map((d) => ({ ...d, status: d.status || d.statut }));
-  const uploadedArtisan = devisImportes
-    .filter((d) => (d.type || "").toLowerCase() === "devis artisan")
-    .map((d) => ({ ...d, status: d.status || d.statut }));
-  const uploadedSignes = devisImportes
-    .filter((d) => (d.type || "").toLowerCase() === "devis signé")
-    .map((d) => ({ ...d, status: d.status || d.statut }));
+  const uploadedEstimatif = sortByDateDesc(
+    devisImportes
+      .filter((d) => (d.type || "").toLowerCase() === "devis estimatif" && (d.status || d.statut || "").toLowerCase() !== "signé")
+      .map((d) => ({ ...d, status: d.status || d.statut }))
+  );
+  const uploadedArtisan = sortByDateDesc(
+    devisImportes
+      .filter((d) => (d.type || "").toLowerCase() === "devis artisan" && (d.status || d.statut || "").toLowerCase() !== "signé")
+      .map((d) => ({ ...d, status: d.status || d.statut }))
+  );
 
-  // Estimatif créé = devis générés (devisConfig) + devis uploadés 'Devis estimatif'
-  const generesMerged = [...devisGeneres, ...uploadedEstimatif];
-
-  // Devis signés = devis générés validés + devis uploadés 'Devis signé'
-  const filteredFactures = filterDevis([
-    ...devisGeneres.filter((d) => (d.status || "").toLowerCase() === "validé"),
-    ...uploadedSignes,
+  // Tous les devis signés (peu importe le type)
+  const allSignedDevis = sortByDateDesc([
+    // Devis générés avec statut "signé"
+    ...devisGeneres.filter((d) => (d.status || "").toLowerCase() === "signé"),
+    // Devis importés avec statut "signé" (tous types confondus)
+    ...devisImportes
+      .filter((d) => (d.status || d.statut || "").toLowerCase() === "signé")
+      .map((d) => ({ ...d, status: d.status || d.statut })),
+    // Devis importés de type "devis signé" (pour compatibilité)
+    ...devisImportes
+      .filter((d) => (d.type || "").toLowerCase() === "devis signé" && (d.status || d.statut || "").toLowerCase() !== "signé")
+      .map((d) => ({ ...d, status: d.status || d.statut }))
   ]);
+
+  // Estimatif créé = devis générés (non signés) + devis uploadés 'Devis estimatif' (non signés)
+  const generesMerged = sortByDateDesc([
+    ...devisGeneres.filter((d) => (d.status || "").toLowerCase() !== "signé"), 
+    ...uploadedEstimatif
+  ]);
+
+  // Devis signés = tous les devis avec statut "signé"
+  const filteredFactures = sortByDateDesc(filterDevis(allSignedDevis));
 
   const paginatedFactures = filteredFactures.slice(
     (currentPageFactures - 1) * itemsPerPage,
@@ -771,17 +795,17 @@ export default function ProjectDetails() {
           return;
         }
        
-        // Mettre à jour updatedAt quand le statut passe à "Validé"
-        if (newstatus.toLowerCase() === "validé") {
+        // Mettre à jour updatedAt quand le statut passe à "Signé"
+        if (newstatus.toLowerCase() === "signé") {
           updateData.updatedAt = new Date();
         }
         
         await updateDoc(ref, updateData);
 
-        // 🆕 Création automatique d'acompte si c'est le premier devis validé par le client
-        if (newstatus.toLowerCase() === "validé") {
+        // 🆕 Création automatique d'acompte si c'est le premier devis signé par le client
+        if (newstatus.toLowerCase() === "signé") {
           try {
-            console.log('🔄 Tentative de création automatique d\'acompte pour le devis validé:', {
+            console.log('🔄 Tentative de création automatique d\'acompte pour le devis signé:', {
               type,
               docId,
               projectId: id

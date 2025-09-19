@@ -249,21 +249,20 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
   if (!requests || requests.length === 0) {
     return (
       <div className="py-12 text-center">
-        <div className="mx-auto max-w-md p-6 bg-white rounded-xl shadow-sm border border-gray-100">
-          <div className="flex flex-col items-center justify-center space-y-3">
-            <Euro className="h-12 w-12 text-gray-400" />
-            <h3 className="text-lg font-medium text-gray-900">Aucun acompte enregistré</h3>
-            <p className="text-sm text-gray-500">Aucune demande d&apos;acompte n&apos;a été effectuée pour ce projet.</p>
-            {userRole === 'artisan' && project?.amoIncluded === false && (
-              <button
-                className="mt-4 inline-flex items-center px-4 py-2 bg-[#f26755] text-white rounded-lg font-medium hover:bg-[#f26755]/90 transition-colors"
-                onClick={() => setOpenAddModal(true)}
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                Faire une demande
-              </button>
-            )}
-          </div>
+        <div className="flex flex-col items-center justify-center space-y-3">
+          <Euro className="h-12 w-12 text-gray-400" />
+          <h3 className="text-lg font-medium text-gray-900">Aucun acompte enregistré</h3>
+          <p className="text-sm text-gray-500">Aucune demande d&apos;acompte n&apos;a été effectuée pour ce projet.</p>
+          {userRole === 'artisan' && project?.amoIncluded === false && (
+            <button
+              className="mt-4 inline-flex items-center px-4 py-2 bg-gray-400 text-gray-600 rounded-lg font-medium cursor-not-allowed opacity-60"
+              disabled
+              title="Prochainement disponible"
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Faire une demande
+            </button>
+          )}
         </div>
       </div>
     );
@@ -408,9 +407,10 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
         <div className="flex items-center flex-shrink-0">
           {userRole !== 'admin' && project?.amoIncluded === false && (
             <button
-              className="flex items-center gap-2 px-4 py-2 bg-[#f26755] text-white rounded-lg font-semibold shadow hover:opacity-90 transition"
-              onClick={() => setOpenAddModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-400 text-gray-600 rounded-lg font-semibold shadow cursor-not-allowed opacity-60"
+              disabled
               type="button"
+              title="Prochainement disponible"
             >
               <Upload className="h-4 w-4" /> Demande d&apos;acompte
             </button>

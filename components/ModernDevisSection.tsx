@@ -1136,6 +1136,13 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
         text: "text-purple-700",
         border: "border-purple-200",
       },
+      {
+        value: "Signé",
+        label: "Signé",
+        bg: "bg-green-50",
+        text: "text-green-700",
+        border: "border-green-200",
+      },
     ];
 
     if (updatingStatusId === docId) {
