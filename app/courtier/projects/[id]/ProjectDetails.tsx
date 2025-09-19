@@ -652,64 +652,83 @@ export default function ProjectDetails() {
 
   // --- Filtres et pagination mutualisés ---
   const filterDevis = (items: any[]) =>
-    items.filter(
-      (item) =>
-        (!filters.titre ||
-          item.titre?.toLowerCase().includes(filters.titre.toLowerCase())) &&
-        (!filters.status || item.status === filters.status)
-    );
-    const filteredFactures = filterDevis(
-      devisGeneres.filter((d) => d.status?.toLowerCase() === "validé")
-    );
-  
-    const paginatedFactures = filteredFactures.slice(
-      (currentPageFactures - 1) * itemsPerPage,
-      currentPageFactures * itemsPerPage
-    );
-  
-    // --- Centralisation pour ModernDevisSection ---
-    const devisTabsData = {
-      uploades: {
-        items: devisImportes,
-        setItems: setDevisImportes,
-        currentPage: currentPageImportes,
-        setCurrentPage: setCurrentPageImportes,
-        itemsPerPage,
-        type: "devis",
-      },
-      generes: {
-        items: devisGeneres,
-        setItems: setDevisGeneres,
-        currentPage: currentPageGeneres,
-        setCurrentPage: setCurrentPageGeneres,
-        itemsPerPage,
-        type: "devisConfig",
-      },
-      Factures: {
-        items: filteredFactures,
-        setItems: setDevisFactures,
-        currentPage: currentPageFactures,
-        setCurrentPage: setCurrentPageFactures,
-        itemsPerPage,
-        type: "devisConfig",
-      },
-    } as const;
+    items.filter((item) => {
+      const statusNorm = (item.status || item.statut || "");
+      const titreNorm = (item.titre || "").toLowerCase();
+      return (
+        (!filters.titre || titreNorm.includes(filters.titre.toLowerCase())) &&
+        (!filters.status || statusNorm === filters.status)
+      );
+    });
 
-    useEffect(() => {
-      switch (activeDevisTab) {
-        case "uploades":
-          setCurrentPageImportes(1);
-          break;
-        case "generes":
-          setCurrentPageGeneres(1);
-          break;
-        case "Factures":
-          setCurrentPageFactures(1);
-          break;
-        default:
-          break;
-      }
-    }, [activeDevisTab]);
+  // Regrouper les devis importés (collection 'devis') par type
+  const uploadedEstimatif = devisImportes
+    .filter((d) => (d.type || "").toLowerCase() === "devis estimatif")
+    .map((d) => ({ ...d, status: d.status || d.statut }));
+  const uploadedArtisan = devisImportes
+    .filter((d) => (d.type || "").toLowerCase() === "devis artisan")
+    .map((d) => ({ ...d, status: d.status || d.statut }));
+  const uploadedSignes = devisImportes
+    .filter((d) => (d.type || "").toLowerCase() === "devis signé")
+    .map((d) => ({ ...d, status: d.status || d.statut }));
+
+  // Estimatif créé = devis générés (devisConfig) + devis uploadés 'Devis estimatif'
+  const generesMerged = [...devisGeneres, ...uploadedEstimatif];
+
+  // Devis signés = devis générés validés + devis uploadés 'Devis signé'
+  const filteredFactures = filterDevis([
+    ...devisGeneres.filter((d) => (d.status || "").toLowerCase() === "validé"),
+    ...uploadedSignes,
+  ]);
+
+  const paginatedFactures = filteredFactures.slice(
+    (currentPageFactures - 1) * itemsPerPage,
+    currentPageFactures * itemsPerPage
+  );
+
+  // --- Centralisation pour ModernDevisSection ---
+  const devisTabsData = {
+    uploades: {
+      items: uploadedArtisan,
+      setItems: setDevisImportes,
+      currentPage: currentPageImportes,
+      setCurrentPage: setCurrentPageImportes,
+      itemsPerPage,
+      type: "devis",
+    },
+    generes: {
+      items: generesMerged,
+      setItems: setDevisGeneres,
+      currentPage: currentPageGeneres,
+      setCurrentPage: setCurrentPageGeneres,
+      itemsPerPage,
+      type: "devisConfig",
+    },
+    Factures: {
+      items: filteredFactures,
+      setItems: setDevisFactures,
+      currentPage: currentPageFactures,
+      setCurrentPage: setCurrentPageFactures,
+      itemsPerPage,
+      type: "devisConfig",
+    },
+  } as const;
+
+  useEffect(() => {
+    switch (activeDevisTab) {
+      case "uploades":
+        setCurrentPageImportes(1);
+        break;
+      case "generes":
+        setCurrentPageGeneres(1);
+        break;
+      case "Factures":
+        setCurrentPageFactures(1);
+        break;
+      default:
+        break;
+    }
+  }, [activeDevisTab]);
   
     const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
   

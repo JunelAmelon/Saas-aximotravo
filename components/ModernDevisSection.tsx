@@ -1014,35 +1014,11 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
         url: uploadedUrl,
       });
 
-      // 3) Retrieve created devis by documentId to update UI immediately
-      const devisCol = collection(db, "devis");
-      const q = query(devisCol, where("documentId", "==", documentId));
-      const snap = await getDocs(q);
-      if (!snap.empty) {
-        const created = { id: snap.docs[0].id, ...(snap.docs[0].data() as any) } as any;
-        // Map to DevisItem minimal fields
-        const newItem: any = {
-          id: created.id,
-          titre: created.titre,
-          status: created.statut || created.status,
-          url: created.pdfUrl,
-          numero: created.numero,
-        };
-        // Determine which tab to inject
-        const tabKey =
-          pendingCategory === "devis_estimatif"
-            ? "generes"
-            : pendingCategory === "devis_artisan"
-            ? "uploades"
-            : "Factures";
-        if (devisTabsData[tabKey] && typeof devisTabsData[tabKey].setItems === "function") {
-          devisTabsData[tabKey].setItems((prev: any[]) => [newItem, ...prev]);
-        }
-        toast({
-          title: "Document importé",
-          description: "Le devis a été ajouté et classé dans l'onglet correspondant.",
-        });
-      }
+      // Succès: informer l'utilisateur. L'affichage se fera via la synchro Firestore.
+      toast({
+        title: "Document importé",
+        description: "Le devis a été ajouté. Il apparaîtra après synchronisation.",
+      });
     } catch (err: any) {
       toast({ variant: "destructive", title: "Upload échoué", description: err?.message || "Erreur inconnue" });
     } finally {
@@ -1459,13 +1435,6 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
               <span className="sm:hidden">Créer</span>
             </button>
           )}
-          <button
-            onClick={() => triggerUpload("devis_estimatif")}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#f26755] hover:bg-[#e55a4a] text-white rounded-xl font-semibold text-sm shadow-lg hover:shadow-xl transition-all duration-200"
-          >
-            <Download className="h-4 w-4" />
-            Upload devis estimatif
-          </button>
         </div>
       </div>
 
@@ -1545,16 +1514,16 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Titre
+                    Numéro
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Type
+                    Titre
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                     Attribué
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    status
+                    Statut
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                     Montant
@@ -1591,13 +1560,13 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                     >
                       <td className="px-6 py-4">
                         <div className="font-medium text-gray-900">
-                          {devisItem.titre || "-"}
+                          {devisItem.numero || "-"}
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="text-gray-600">
-                          {devisItem.type || "-"}
-                        </span>
+                        <div className="font-medium text-gray-900">
+                          {devisItem.titre || "-"}
+                        </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="font-medium text-gray-900">
@@ -2071,7 +2040,11 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                           {doc.attribution?.artisanName || "-"}
                         </div>
                       </td>
-                      <td className="px-6 py-4">{doc.status}</td>
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          {doc.status || "Validé"}
+                        </span>
+                      </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-1">
                           <Euro className="h-4 w-4 text-gray-400" />
