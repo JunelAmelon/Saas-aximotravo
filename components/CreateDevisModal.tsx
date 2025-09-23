@@ -40,7 +40,7 @@ export function CreateDevisModal({ open, onOpenChange, onCreateDevis }: CreateDe
   const generateDevisNumber = useCallback(() => {
     const year = new Date().getFullYear();
     const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-    return `DEV-${year}-${random}`;
+    return `EST-${year}-${random}`;
   }, []);
 
   useEffect(() => {
