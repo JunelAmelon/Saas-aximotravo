@@ -4,7 +4,7 @@ export const MAINTENANCE_CONFIG = {
   enabled: true,
   
   // Message personnalisé (optionnel)
-  message: "🚀 Notre plateforme est actuellement en cours de maintenance pour vous apporter de nouvelles fonctionnalités passionnantes ! Nous serons de retour dans quelques heures avec des améliorations qui vont révolutionner votre expérience.",
+  message: "Notre plateforme est actuellement en cours de maintenance pour vous apporter de nouvelles fonctionnalités passionnantes ! Nous serons de retour dans quelques heures avec de nouvelles améliorations.",
   
   // Estimation de retour (optionnel)
   estimatedReturn: null, // ex: "2024-01-15T10:00:00Z"
