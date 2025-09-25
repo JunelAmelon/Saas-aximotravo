@@ -513,7 +513,7 @@ export const DevisPDFDocument = ({ devis, client, project, isArtisan = false }: 
       <Page size="A4" style={styles.page}>
         {/* Header élégant */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>DEVIS N°{devis.numero}</Text>
+          <Text style={styles.headerTitle}>ESTIMATIF N°{devis.numero}</Text>
           <Text style={styles.headerSubtitle}>
             {devis.titre} • Valable 30 jours
           </Text>

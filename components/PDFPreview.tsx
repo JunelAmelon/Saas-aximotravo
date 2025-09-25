@@ -145,7 +145,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ devis }) => {
         {/* Header élégant */}
         <div className="mb-6 relative">
           <h1 className="text-xl md:text-6xl font-bold text-[#F26755] mb-1">
-            DEVIS N°{devis.numero}
+            ESTIMATIF N°{devis.numero}
           </h1>
           <p className="text-sm md:text-3xl text-gray-500">
             {devis.titre} • Valable 30 jours
