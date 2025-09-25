@@ -515,12 +515,12 @@ export const DevisPDFDocument = ({ devis, client, project, isArtisan = false }: 
         <View style={styles.header}>
           <Text style={styles.headerTitle}>ESTIMATIF N°{devis.numero}</Text>
           <Text style={styles.headerSubtitle}>
-            {devis.titre} • Valable 30 jours
+            {devis.titre} 
           </Text>
         </View>
 
         {/* Carte client premium (affichée uniquement pour les artisans) */}
-        {isArtisan && (
+        {/* {isArtisan && (
           <View style={styles.card}>
             <View style={styles.row}>
               <Text style={styles.title}>CLIENT</Text>
@@ -555,7 +555,7 @@ export const DevisPDFDocument = ({ devis, client, project, isArtisan = false }: 
               </View>
             )}
           </View>
-        )}
+        )} */}
 
         {/* Message d'intro avec bordure stylée */}
         <View style={styles.introSection}>
