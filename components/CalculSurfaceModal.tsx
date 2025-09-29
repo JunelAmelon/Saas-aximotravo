@@ -127,48 +127,68 @@ export const CalculSurfaceModal: React.FC<CalculSurfaceModalProps> = ({
     };
   };
 
+  // Fonction pour vérifier si une pièce est une terrasse ou véranda
+  const isOutdoorSpace = (pieceName: string) => {
+    const lowerPieceName = pieceName.toLowerCase();
+    return lowerPieceName.includes('terrasse') || 
+           lowerPieceName.includes('véranda') || 
+           lowerPieceName.includes('verranda');
+  };
+
   const updatePiece = (index: number, field: keyof SurfaceData, value: string) => {
     const updated = [...localData];
     const numValue = parseFloat(value) || 0;
+    const isOutdoor = isOutdoorSpace(updated[index].piece);
     
     updated[index] = { ...updated[index], [field]: numValue };
     
-    // Calculs automatiques selon le champ modifié
-    if (field === 'surfaceAuSol') {
-      const { longueur, surfaceMurs, hauteur } = calculateFromSurface(numValue, updated[index].hauteurSousPlafond);
-      updated[index].longueurMurs = longueur;
-      updated[index].surfaceMurs = surfaceMurs;
-      if (!updated[index].hauteurSousPlafond) {
-        updated[index].hauteurSousPlafond = hauteur;
+    // Pour les espaces extérieurs (terrasse/véranda), on ne calcule pas automatiquement les murs
+    if (isOutdoor) {
+      // Seule la surface au sol est pertinente pour les terrasses/vérandas
+      if (field === 'surfaceAuSol') {
+        // Pas de calculs automatiques pour les murs sur les espaces extérieurs
+        updated[index].longueurMurs = 0;
+        updated[index].surfaceMurs = 0;
+        updated[index].hauteurSousPlafond = 0;
       }
-    } else if (field === 'hauteurSousPlafond') {
-      if (updated[index].surfaceAuSol > 0) {
-        const { longueur, surfaceMurs } = calculateFromSurface(updated[index].surfaceAuSol, numValue);
+    } else {
+      // Calculs automatiques selon le champ modifié pour les espaces intérieurs
+      if (field === 'surfaceAuSol') {
+        const { longueur, surfaceMurs, hauteur } = calculateFromSurface(numValue, updated[index].hauteurSousPlafond);
         updated[index].longueurMurs = longueur;
         updated[index].surfaceMurs = surfaceMurs;
-      } else if (updated[index].longueurMurs > 0) {
-        updated[index].surfaceMurs = updated[index].longueurMurs * numValue;
-      }
-    } else if (field === 'longueurMurs') {
-      const { surface, surfaceMurs } = calculateFromPerimetre(numValue, updated[index].hauteurSousPlafond || 2.5);
-      if (!updated[index].surfaceAuSol) {
-        updated[index].surfaceAuSol = surface;
-      }
-      updated[index].surfaceMurs = surfaceMurs;
-      if (!updated[index].hauteurSousPlafond) {
-        updated[index].hauteurSousPlafond = 2.5;
-      }
-    } else if (field === 'surfaceMurs') {
-      const hauteur = updated[index].hauteurSousPlafond || 2.5;
-      const { surface, longueur } = calculateFromSurfaceMurs(numValue, hauteur);
-      if (!updated[index].surfaceAuSol) {
-        updated[index].surfaceAuSol = surface;
-      }
-      if (!updated[index].longueurMurs) {
-        updated[index].longueurMurs = longueur;
-      }
-      if (!updated[index].hauteurSousPlafond) {
-        updated[index].hauteurSousPlafond = 2.5;
+        if (!updated[index].hauteurSousPlafond) {
+          updated[index].hauteurSousPlafond = hauteur;
+        }
+      } else if (field === 'hauteurSousPlafond') {
+        if (updated[index].surfaceAuSol > 0) {
+          const { longueur, surfaceMurs } = calculateFromSurface(updated[index].surfaceAuSol, numValue);
+          updated[index].longueurMurs = longueur;
+          updated[index].surfaceMurs = surfaceMurs;
+        } else if (updated[index].longueurMurs > 0) {
+          updated[index].surfaceMurs = updated[index].longueurMurs * numValue;
+        }
+      } else if (field === 'longueurMurs') {
+        const { surface, surfaceMurs } = calculateFromPerimetre(numValue, updated[index].hauteurSousPlafond || 2.5);
+        if (!updated[index].surfaceAuSol) {
+          updated[index].surfaceAuSol = surface;
+        }
+        updated[index].surfaceMurs = surfaceMurs;
+        if (!updated[index].hauteurSousPlafond) {
+          updated[index].hauteurSousPlafond = 2.5;
+        }
+      } else if (field === 'surfaceMurs') {
+        const hauteur = updated[index].hauteurSousPlafond || 2.5;
+        const { surface, longueur } = calculateFromSurfaceMurs(numValue, hauteur);
+        if (!updated[index].surfaceAuSol) {
+          updated[index].surfaceAuSol = surface;
+        }
+        if (!updated[index].longueurMurs) {
+          updated[index].longueurMurs = longueur;
+        }
+        if (!updated[index].hauteurSousPlafond) {
+          updated[index].hauteurSousPlafond = 2.5;
+        }
       }
     }
     
@@ -229,13 +249,18 @@ export const CalculSurfaceModal: React.FC<CalculSurfaceModalProps> = ({
               </div>
               
               <div className="divide-y divide-gray-100">
-                {localData.map((item, index) => (
+                {localData.map((item, index) => {
+                  const isOutdoor = isOutdoorSpace(item.piece);
+                  return (
                   <div key={index} className="p-3 sm:p-6 hover:bg-gray-50 transition-colors">
                     {/* Version desktop */}
                     <div className="hidden lg:grid lg:grid-cols-5 gap-4 items-center">
                       <div className="font-medium text-gray-800 flex items-center gap-2">
                         <div className="w-2 h-2 bg-[#f26755] rounded-full" />
                         {item.piece}
+                        {isOutdoor && (
+                          <span className="text-xs text-gray-500 ml-2">(Espace extérieur)</span>
+                        )}
                       </div>
                       <div>
                         <Input
@@ -251,34 +276,49 @@ export const CalculSurfaceModal: React.FC<CalculSurfaceModalProps> = ({
                       <div>
                         <Input
                           type="number"
-                          value={item.hauteurSousPlafond || ''}
+                          value={isOutdoor ? '' : (item.hauteurSousPlafond || '')}
                           onChange={(e) => updatePiece(index, 'hauteurSousPlafond', e.target.value)}
-                          placeholder="2.5"
+                          placeholder={isOutdoor ? "N/A" : "2.5"}
                           min="0"
                           step="0.1"
-                          className="h-10 text-center border-gray-200 focus:border-[#f26755] focus:ring-[#f26755]/20 rounded-lg"
+                          disabled={isOutdoor}
+                          className={`h-10 text-center rounded-lg ${
+                            isOutdoor 
+                              ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' 
+                              : 'border-gray-200 focus:border-[#f26755] focus:ring-[#f26755]/20'
+                          }`}
                         />
                       </div>
                       <div>
                         <Input
                           type="number"
-                          value={item.longueurMurs || ''}
+                          value={isOutdoor ? '' : (item.longueurMurs || '')}
                           onChange={(e) => updatePiece(index, 'longueurMurs', e.target.value)}
-                          placeholder="0"
+                          placeholder={isOutdoor ? "N/A" : "0"}
                           min="0"
                           step="0.1"
-                          className="h-10 text-center border-gray-200 focus:border-[#f26755] focus:ring-[#f26755]/20 rounded-lg"
+                          disabled={isOutdoor}
+                          className={`h-10 text-center rounded-lg ${
+                            isOutdoor 
+                              ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' 
+                              : 'border-gray-200 focus:border-[#f26755] focus:ring-[#f26755]/20'
+                          }`}
                         />
                       </div>
                       <div>
                         <Input
                           type="number"
-                          value={item.surfaceMurs || ''}
+                          value={isOutdoor ? '' : (item.surfaceMurs || '')}
                           onChange={(e) => updatePiece(index, 'surfaceMurs', e.target.value)}
-                          placeholder="0"
+                          placeholder={isOutdoor ? "N/A" : "0"}
                           min="0"
                           step="0.1"
-                          className="h-10 text-center border-gray-200 focus:border-[#f26755] focus:ring-[#f26755]/20 rounded-lg"
+                          disabled={isOutdoor}
+                          className={`h-10 text-center rounded-lg ${
+                            isOutdoor 
+                              ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' 
+                              : 'border-gray-200 focus:border-[#f26755] focus:ring-[#f26755]/20'
+                          }`}
                         />
                       </div>
                     </div>
@@ -288,6 +328,9 @@ export const CalculSurfaceModal: React.FC<CalculSurfaceModalProps> = ({
                       <div className="font-medium text-gray-800 flex items-center gap-2 pb-2 border-b border-gray-100">
                         <div className="w-2 h-2 bg-[#f26755] rounded-full" />
                         {item.piece}
+                        {isOutdoor && (
+                          <span className="text-xs text-gray-500 ml-2">(Espace extérieur)</span>
+                        )}
                       </div>
                       
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -304,45 +347,67 @@ export const CalculSurfaceModal: React.FC<CalculSurfaceModalProps> = ({
                           />
                         </div>
                         <div>
-                          <label className="text-xs font-medium text-gray-600 mb-1 block">Hauteur (m)</label>
+                          <label className={`text-xs font-medium mb-1 block ${
+                            isOutdoor ? 'text-gray-400' : 'text-gray-600'
+                          }`}>Hauteur (m)</label>
                           <Input
                             type="number"
-                            value={item.hauteurSousPlafond || ''}
+                            value={isOutdoor ? '' : (item.hauteurSousPlafond || '')}
                             onChange={(e) => updatePiece(index, 'hauteurSousPlafond', e.target.value)}
-                            placeholder="2.5"
+                            placeholder={isOutdoor ? "N/A" : "2.5"}
                             min="0"
                             step="0.1"
-                            className="h-9 text-center border-gray-200 focus:border-[#f26755] focus:ring-[#f26755]/20 rounded-lg"
+                            disabled={isOutdoor}
+                            className={`h-9 text-center rounded-lg ${
+                              isOutdoor 
+                                ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' 
+                                : 'border-gray-200 focus:border-[#f26755] focus:ring-[#f26755]/20'
+                            }`}
                           />
                         </div>
                         <div>
-                          <label className="text-xs font-medium text-gray-600 mb-1 block">Longueur murs (m)</label>
+                          <label className={`text-xs font-medium mb-1 block ${
+                            isOutdoor ? 'text-gray-400' : 'text-gray-600'
+                          }`}>Longueur murs (m)</label>
                           <Input
                             type="number"
-                            value={item.longueurMurs || ''}
+                            value={isOutdoor ? '' : (item.longueurMurs || '')}
                             onChange={(e) => updatePiece(index, 'longueurMurs', e.target.value)}
-                            placeholder="0"
+                            placeholder={isOutdoor ? "N/A" : "0"}
                             min="0"
                             step="0.1"
-                            className="h-9 text-center border-gray-200 focus:border-[#f26755] focus:ring-[#f26755]/20 rounded-lg"
+                            disabled={isOutdoor}
+                            className={`h-9 text-center rounded-lg ${
+                              isOutdoor 
+                                ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' 
+                                : 'border-gray-200 focus:border-[#f26755] focus:ring-[#f26755]/20'
+                            }`}
                           />
                         </div>
                         <div>
-                          <label className="text-xs font-medium text-gray-600 mb-1 block">Surface murs (m²)</label>
+                          <label className={`text-xs font-medium mb-1 block ${
+                            isOutdoor ? 'text-gray-400' : 'text-gray-600'
+                          }`}>Surface murs (m²)</label>
                           <Input
                             type="number"
-                            value={item.surfaceMurs || ''}
+                            value={isOutdoor ? '' : (item.surfaceMurs || '')}
                             onChange={(e) => updatePiece(index, 'surfaceMurs', e.target.value)}
-                            placeholder="0"
+                            placeholder={isOutdoor ? "N/A" : "0"}
                             min="0"
                             step="0.1"
-                            className="h-9 text-center border-gray-200 focus:border-[#f26755] focus:ring-[#f26755]/20 rounded-lg"
+                            disabled={isOutdoor}
+                            className={`h-9 text-center rounded-lg ${
+                              isOutdoor 
+                                ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' 
+                                : 'border-gray-200 focus:border-[#f26755] focus:ring-[#f26755]/20'
+                            }`}
                           />
                         </div>
                       </div>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
