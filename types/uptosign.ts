@@ -10,7 +10,8 @@ export interface UpToSignSigner {
 
 // Our internal payload (frontend -> API route)
 export interface UpToSignStartPayload {
-  fileBase64: string; // PDF base64 without data: prefix
+  // In the current flow we pass a URL that the API route fetches and converts to base64
+  pdfUrl: string; // URL of the PDF to fetch server-side
   signers: UpToSignSigner[]; // for now we use first signer as `to`
   subject?: string; // will be mapped to pdf.title
   message?: string;
@@ -30,4 +31,38 @@ export interface UpToSignDocumentsResponse {
 export interface UpToSignStartResponse {
   processId: string; // mapped from response.id
   signUrl?: string; // not provided by this endpoint, reserved for future
+}
+
+// Normalized status structure used across the app
+export interface UpToSignStatusSigner {
+  email: string;
+  status: 'pending' | 'in_progress' | 'signed' | 'refused' | 'expired' | string;
+  signedAt?: Date;
+}
+
+export interface UpToSignStatusNormalizedResponse {
+  processId: string;
+  status: 'pending' | 'in_progress' | 'signed' | 'completed' | 'refused' | 'expired' | string;
+  isCompleted: boolean;
+  createdAt: Date;
+  completedAt?: Date;
+  signers: UpToSignStatusSigner[];
+}
+
+// Download response returned by our API route
+export interface UpToSignDownloadResponse {
+  base64Content?: string; // PDF base64 content
+  documentUrl?: string;   // Alternative: direct URL
+}
+
+// Configuration used by UI/hooks to start a devis signature
+export interface DevisSignatureConfig {
+  devisId: string;
+  clientEmail: string;
+  clientName: string;
+  clientPhone?: string;
+  artisanEmail?: string;
+  artisanName?: string;
+  subject?: string;
+  message?: string;
 }
