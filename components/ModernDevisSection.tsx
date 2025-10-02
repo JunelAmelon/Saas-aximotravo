@@ -889,7 +889,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
     setSendingSignatureId(devisId);
 
     const loadingToast = toast({
-      title: "Signature: préparation...",
+      title: "📝 Signature: préparation...",
       description: "Vérification/génération du PDF et démarrage du processus",
       className: "border-blue-200 bg-blue-50 text-blue-800",
     });
@@ -905,10 +905,27 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
       const projectSnap = await getDoc(projectRef);
       const projectData: any = projectSnap.data();
       if (!projectData?.client_id) throw new Error("Client introuvable sur le projet");
+      
       const clientRef = doc(db, "users", projectData.client_id);
       const clientSnap = await getDoc(clientRef);
       const clientData: any = clientSnap.data();
       if (!clientData?.email) throw new Error("Email du client introuvable");
+
+      // Charger les informations du courtier (si différent de l'artisan actuel)
+      let courtierData: any = null;
+      if (projectData.courtier_id && projectData.courtier_id !== currentUserId) {
+        const courtierRef = doc(db, "users", projectData.courtier_id);
+        const courtierSnap = await getDoc(courtierRef);
+        courtierData = courtierSnap.data();
+      }
+
+      // Charger les informations de l'artisan actuel
+      let artisanData: any = null;
+      if (currentUserId) {
+        const artisanRef = doc(db, "users", currentUserId);
+        const artisanSnap = await getDoc(artisanRef);
+        artisanData = artisanSnap.data();
+      }
 
       // Vérifier s'il existe déjà un document PDF
       const docsRef = collection(db, "documents");
@@ -928,43 +945,137 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
 
       if (!pdfUrl) throw new Error("PDF introuvable ou non généré");
 
-      // Démarrer le process de signature via API interne
-      const signer = {
-        email: clientData.email,
-        firstName: clientData.firstName || "",
-        lastName: clientData.lastName || "",
-        mobile: clientData.phoneNumber || clientData.mobile || "",
-        page: 1,
-        posX: 50,
-        posY: 80,
-      };
+      // Préparer les signataires (client principal + notifications aux autres)
+      const signers = [
+        {
+          email: clientData.email,
+          firstName: clientData.firstName || "",
+          lastName: clientData.lastName || "",
+          mobile: clientData.phoneNumber || clientData.mobile || "",
+          page: 1,
+          posX: 100,
+          posY: 700,
+        }
+      ];
 
+      // Démarrer le processus de signature via API UpToSign
       const res = await fetch("/api/uptosign-start-process", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pdfUrl, signers: [signer], subject: `Signature devis ${projectData.name}`, message: "Merci de procéder à la signature de votre devis." }),
+        body: JSON.stringify({ 
+          pdfUrl, 
+          signers, 
+          subject: `Signature électronique - Devis ${devisData?.numero || projectData.name}`, 
+          message: `Bonjour,\n\nVotre devis pour le projet "${projectData.name}" est prêt pour signature électronique.\n\nMerci de procéder à la signature en cliquant sur le lien ci-dessous.\n\nCordialement,\nL'équipe Aximotravo`,
+          filename: `Devis_${devisData?.numero || 'DEV'}_${projectData.name?.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`
+        }),
       });
-
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`Erreur démarrage signature: ${text}`);
-      }
 
       const data = await res.json();
-      console.log("UpToSign started:", data);
+      console.log("UpToSign réponse complète:", data);
+
+      if (!res.ok) {
+        // Afficher la réponse brute d'UpToSign
+        throw new Error(JSON.stringify(data, null, 2));
+      }
+
+      // Envoyer des emails de notification aux autres parties prenantes
+      const notifications = [];
+      
+      // Notification au courtier (si différent de l'artisan)
+      if (courtierData?.email && courtierData.email !== artisanData?.email) {
+        notifications.push({
+          to: courtierData.email,
+          subject: `🔔 Signature en cours - Devis ${devisData?.numero || projectData.name}`,
+          message: `Le devis pour le projet "${projectData.name}" a été envoyé en signature électronique au client ${clientData.firstName} ${clientData.lastName} (${clientData.email}).`
+        });
+      }
+
+      // Notification à l'artisan (confirmation)
+      if (artisanData?.email) {
+        notifications.push({
+          to: artisanData.email,
+          subject: `✅ Signature envoyée - Devis ${devisData?.numero || projectData.name}`,
+          message: `Votre devis pour le projet "${projectData.name}" a été envoyé avec succès en signature électronique au client ${clientData.firstName} ${clientData.lastName} (${clientData.email}).\n\nVous recevrez une notification dès que le client aura signé le document.`
+        });
+      }
+
+      // Envoyer les notifications (en parallèle, sans bloquer)
+      if (notifications.length > 0) {
+        Promise.all(
+          notifications.map(async (notif) => {
+            try {
+              await fetch("/api/send-email", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  to: notif.to,
+                  subject: notif.subject,
+                  html: `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                      <h2 style="color: #f26755;">Aximotravo - Notification</h2>
+                      <p>${notif.message.replace(/\n/g, '<br>')}</p>
+                      <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
+                      <p style="font-size: 12px; color: #666;">
+                        Cette notification est automatique, merci de ne pas y répondre.
+                      </p>
+                    </div>
+                  `
+                }),
+              });
+            } catch (error) {
+              console.error(`Erreur envoi notification à ${notif.to}:`, error);
+            }
+          })
+        ).catch(console.error);
+      }
+
+      // Mettre à jour le statut du devis si nécessaire
+      try {
+        await updateDoc(devisRef, {
+          status: "Envoyé pour signature",
+          uptoSignProcessId: data.processId,
+          uptoSignStatus: "pending",
+          uptoSignSentAt: new Date()
+        });
+      } catch (updateError) {
+        console.error("Erreur mise à jour statut devis:", updateError);
+      }
 
       loadingToast.dismiss();
       toast({
-        title: "Invitation envoyée",
-        description: "Le client a reçu l'email de signature",
+        title: "✅ Invitations envoyées",
+        description: (
+          <div>
+            <p>Le client a reçu l'email de signature.</p>
+            <details className="mt-2">
+              <summary className="cursor-pointer text-xs text-green-700">Voir réponse UpToSign</summary>
+              <pre className="text-xs bg-green-100 p-2 rounded mt-1 overflow-auto max-h-32">
+                {JSON.stringify(data, null, 2)}
+              </pre>
+            </details>
+          </div>
+        ),
         className: "border-green-200 bg-green-50 text-green-800",
       });
+
     } catch (err: any) {
       loadingToast.dismiss();
+      
+      // Afficher la réponse brute d'UpToSign dans la console
+      console.error("Erreur UpToSign complète:", err);
+      
       toast({
         variant: "destructive",
-        title: "Erreur signature",
-        description: err?.message || "Echec de l'envoi pour signature",
+        title: "❌ Erreur signature",
+        description: (
+          <div className="max-w-md">
+            <p className="font-semibold mb-2">Réponse UpToSign:</p>
+            <pre className="text-xs bg-red-100 p-2 rounded overflow-auto max-h-32">
+              {err?.message || "Erreur inconnue"}
+            </pre>
+          </div>
+        ),
       });
     } finally {
       setSendingSignatureId(null);
