@@ -9,7 +9,7 @@ export const MAINTENANCE_CONFIG = {
   // Estimation de retour (optionnel)
   estimatedReturn: null, // ex: "2024-01-15T10:00:00Z"
   
-  // Contact d'urgence (optionnel)
+  // Contact d'urgence 
   emergencyContact: null, // ex: "support@aximotravo.com"
 };
 
