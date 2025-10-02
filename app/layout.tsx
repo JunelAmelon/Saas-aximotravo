@@ -2,6 +2,8 @@ import './globals.css';
 import type { Metadata } from 'next';
 import { Inter, DM_Sans } from 'next/font/google';
 import { Providers } from './providers';
+import MaintenancePage from '@/components/MaintenancePage';
+import { MAINTENANCE_CONFIG } from '@/config/maintenance';
 
 // Configure DM Sans font
 const dmSans = DM_Sans({ 
@@ -12,8 +14,10 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: 'SAAS AXIMOTRAVO',
-  description: 'Votre allié pour une gestion de projets BTP simple, fluide et performante.',
+  title: MAINTENANCE_CONFIG.enabled ? 'SAAS AXIMOTRAVO - Maintenance en cours' : 'SAAS AXIMOTRAVO',
+  description: MAINTENANCE_CONFIG.enabled 
+    ? 'Site temporairement indisponible pour maintenance. Nous effectuons des améliorations et serons bientôt de retour.'
+    : 'Votre allié pour une gestion de projets BTP simple, fluide et performante.',
 };
 
 export default function RootLayout({
@@ -25,7 +29,7 @@ export default function RootLayout({
     <html lang="fr" className={dmSans.variable} suppressHydrationWarning={true} translate="no">
       <body className={dmSans.className} suppressHydrationWarning={true}>
         <Providers>
-          {children}
+          {MAINTENANCE_CONFIG.enabled ? <MaintenancePage /> : children}
         </Providers>
       </body>
     </html>

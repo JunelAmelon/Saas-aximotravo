@@ -145,15 +145,15 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ devis }) => {
         {/* Header élégant */}
         <div className="mb-6 relative">
           <h1 className="text-xl md:text-6xl font-bold text-[#F26755] mb-1">
-            DEVIS N°{devis.numero}
+            ESTIMATIF N°{devis.numero}
           </h1>
           <p className="text-sm md:text-3xl text-gray-500">
-            {devis.titre} • Valable 30 jours
+            {devis.titre}
           </p>
         </div>
 
         {/* Carte client premium dynamique */}
-        {client && (
+        {/* {client && (
           <div className="bg-[#F26755] text-white p-6 rounded-2xl mb-6 shadow-lg w-full flex flex-col gap-2">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-base md:text-2xl font-extrabold tracking-wide">
@@ -171,7 +171,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ devis }) => {
             )}
             {project?.location && (
               <div className="flex items-center gap-2 text-base md:text-lg">
-                {/* MapPin icon Lucide */}
+                
                 <MapPin className="h-5 w-5 text-white/70" />
                 <span>{project.location},</span>
                 <span>{project?.addressDetails}</span>
@@ -179,7 +179,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ devis }) => {
             )}
             {(project?.postalCode || project?.city) && (
               <div className="flex items-center gap-2 text-base md:text-lg">
-                {/* Building icon Lucide */}
+                
                 <svg
                   className="w-5 h-5 text-white/70"
                   fill="none"
@@ -197,7 +197,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ devis }) => {
             )}
             {client.email && (
               <div className="flex items-center gap-2 bg-white/10 rounded px-2 py-1 mt-1 text-xs md:text-base break-all truncate">
-                {/* Mail icon Lucide */}
+                
                 <svg
                   className="w-4 h-4 text-white/70"
                   fill="none"
@@ -213,7 +213,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ devis }) => {
             )}
             {(client.phone || client.phoneNumber) && (
               <div className="flex items-center gap-2 text-base md:text-lg">
-                {/* Phone icon Lucide */}
+                
                 <svg
                   className="w-5 h-5 text-white/70"
                   fill="none"
@@ -227,7 +227,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ devis }) => {
               </div>
             )}
           </div>
-        )}
+        )} */}
 
         {/* Message d'intro avec bordure stylée */}
         <div className="mb-6 p-3 md:p-5 border-l-4 border-[#F26755] bg-gray-50 rounded-r-lg">

@@ -228,18 +228,12 @@ export default function ProjectPlans() {
               setFormError(null);
               setUploading(true);
               try {
-                if (
-                  !planForm.title ||
-                  !planForm.files[0] ||
-                  !planForm.files[1]
-                ) {
-                  setFormError(
-                    "Tous les champs et les deux images sont obligatoires."
-                  );
+                if (!planForm.title) {
+                  setFormError("Le titre du plan est obligatoire.");
                   setUploading(false);
                   return;
                 }
-                // Upload des deux images sur Cloudinary
+                // Upload des images sur Cloudinary (si présentes)
                 const uploadImage = async (file: File) => {
                   const data = new FormData();
                   data.append("file", file);
@@ -259,10 +253,14 @@ export default function ProjectPlans() {
                     throw new Error("Erreur upload Cloudinary");
                   return result.secure_url as string;
                 };
-                const [urlExistant, urlExecution] = await Promise.all([
-                  uploadImage(planForm.files[0]),
-                  uploadImage(planForm.files[1]),
-                ]);
+                
+                const uploadPromises: Promise<string>[] = [];
+                if (planForm.files[0]) uploadPromises.push(uploadImage(planForm.files[0] as File));
+                if (planForm.files[1]) uploadPromises.push(uploadImage(planForm.files[1] as File));
+                
+                const uploadedUrls = await Promise.all(uploadPromises);
+                const urlExistant = planForm.files[0] ? uploadedUrls[0] : "";
+                const urlExecution = planForm.files[1] ? (planForm.files[0] ? uploadedUrls[1] : uploadedUrls[0]) : "";
                 // Ajout du plan en base
                 const { addPlan } = await import("@/hooks/useProjectPlans");
                 const author = await getUserById(currentUser?.uid as string);

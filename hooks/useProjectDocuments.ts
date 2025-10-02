@@ -7,6 +7,7 @@ import {
   orderBy,
   getDocs,
   addDoc,
+  serverTimestamp,
 } from "firebase/firestore";
 
 export interface ProjectDocument {
@@ -63,16 +64,53 @@ export async function addProjectDocument({ projectId, name, category, date, size
   }
 
   if (devisType && devisStatut) {
-    await addDoc(collection(db, "devis"), {
+    // Générer un numéro de devis unique selon la convention DEV-YYYY-XXX
+    const generateUniqueDevisNumber = async (): Promise<string> => {
+      const year = new Date().getFullYear();
+      let attempts = 0;
+      const maxAttempts = 100;
+
+      while (attempts < maxAttempts) {
+        const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+        const numero = `DEV-${year}-${random}`;
+
+        // Vérifier l'unicité dans les collections 'devis' et 'devisConfig'
+        const [devisQuery, devisConfigQuery] = await Promise.all([
+          getDocs(query(collection(db, "devis"), where("numero", "==", numero))),
+          getDocs(query(collection(db, "devisConfig"), where("numero", "==", numero)))
+        ]);
+
+        if (devisQuery.empty && devisConfigQuery.empty) {
+          return numero;
+        }
+
+        attempts++;
+      }
+
+      // Fallback avec timestamp si on n'arrive pas à générer un numéro unique
+      const timestamp = Date.now().toString().slice(-3);
+      return `DEV-${year}-${timestamp}`;
+    };
+
+    const uniqueNumero = await generateUniqueDevisNumber();
+
+    // Construire le payload en excluant explicitement les champs undefined
+    const devisPayload: any = {
       titre: name,
       type: devisType,
       statut: devisStatut,
-      montant: montant ?? null,
+      numero: uniqueNumero,
+      montant: typeof montant === "number" ? montant : null,
       pdfUrl: url,
       projectId,
-      devisConfigId,
       documentId: docRef.id,
-    });
+      createdAt: serverTimestamp(),
+    };
+    if (typeof devisConfigId === "string" && devisConfigId.trim().length > 0) {
+      devisPayload.devisConfigId = devisConfigId;
+    }
+
+    await addDoc(collection(db, "devis"), devisPayload);
   }
   return docRef.id;
 }

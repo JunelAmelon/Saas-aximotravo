@@ -49,7 +49,7 @@ export default function NewProject() {
     } else {
       setForm((prev) => ({
         ...prev,
-        [name]: type === "number" ? Number(value) : value,
+        [name]: name === "budget" ? parseFloat(value.replace(/[^\d.,]/g, '').replace(',', '.')) || 0 : (type === "number" ? Number(value) : value),
       }));
     }
   };
@@ -322,12 +322,10 @@ export default function NewProject() {
                 €
               </span>
               <input
-                type="number"
+                type="text"
                 name="budget"
                 value={form.budget}
                 onChange={handleChange}
-                step="0.01"
-                min="0"
                 className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f26755] focus:border-transparent transition-all shadow-sm"
                 placeholder="10000.50"
                 required

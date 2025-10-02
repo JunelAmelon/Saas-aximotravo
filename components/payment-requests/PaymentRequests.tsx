@@ -627,9 +627,10 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
               </button>
               {userRole !== 'admin' && (
                 <button
-                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-[#f26755] text-white rounded-lg font-semibold shadow hover:bg-[#f26755]/90 transition"
-                  onClick={() => setOpenAddModal(true)}
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-gray-400 text-gray-600 rounded-lg font-semibold shadow cursor-not-allowed opacity-60"
+                  disabled
                   type="button"
+                  title="Prochainement disponible"
                 >
                   <Upload className="h-4 w-4" /> Demande d&apos;acompte
                 </button>
@@ -651,7 +652,11 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
                 Aucune demande d'acompte n'a été effectuée pour ce projet.
               </p>
               {userRole !== 'admin' && (
-                <Button onClick={() => setOpenAddModal(true)} className="bg-[#f26755] hover:bg-[#e55a4a]">
+                <Button 
+                  disabled
+                  className="bg-gray-400 text-gray-600 cursor-not-allowed opacity-60 hover:bg-gray-400"
+                  title="Prochainement disponible"
+                >
                   <Upload className="h-4 w-4" />
                   Faire une demande
                 </Button>
@@ -724,9 +729,10 @@ export default function PaymentRequests({ projectId }: PaymentRequestsProps) {
             </button>
             {userRole !== 'admin' && (
               <button
-                className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-[#f26755] text-white rounded-lg font-semibold shadow hover:bg-[#f26755]/90 transition"
-                onClick={() => setOpenAddModal(true)}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-gray-400 text-gray-600 rounded-lg font-semibold shadow cursor-not-allowed opacity-60"
+                disabled
                 type="button"
+                title="Prochainement disponible"
               >
                 <Upload className="h-4 w-4" /> Nouvelle demande
               </button>

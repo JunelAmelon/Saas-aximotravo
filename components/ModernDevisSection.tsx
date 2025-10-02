@@ -889,7 +889,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
     setSendingSignatureId(devisId);
 
     const loadingToast = toast({
-      title: "Signature: préparation...",
+      title: "📝 Signature: préparation...",
       description: "Vérification/génération du PDF et démarrage du processus",
       className: "border-blue-200 bg-blue-50 text-blue-800",
     });
@@ -905,10 +905,27 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
       const projectSnap = await getDoc(projectRef);
       const projectData: any = projectSnap.data();
       if (!projectData?.client_id) throw new Error("Client introuvable sur le projet");
+      
       const clientRef = doc(db, "users", projectData.client_id);
       const clientSnap = await getDoc(clientRef);
       const clientData: any = clientSnap.data();
       if (!clientData?.email) throw new Error("Email du client introuvable");
+
+      // Charger les informations du courtier (si différent de l'artisan actuel)
+      let courtierData: any = null;
+      if (projectData.courtier_id && projectData.courtier_id !== currentUserId) {
+        const courtierRef = doc(db, "users", projectData.courtier_id);
+        const courtierSnap = await getDoc(courtierRef);
+        courtierData = courtierSnap.data();
+      }
+
+      // Charger les informations de l'artisan actuel
+      let artisanData: any = null;
+      if (currentUserId) {
+        const artisanRef = doc(db, "users", currentUserId);
+        const artisanSnap = await getDoc(artisanRef);
+        artisanData = artisanSnap.data();
+      }
 
       // Vérifier s'il existe déjà un document PDF
       const docsRef = collection(db, "documents");
@@ -928,43 +945,137 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
 
       if (!pdfUrl) throw new Error("PDF introuvable ou non généré");
 
-      // Démarrer le process de signature via API interne
-      const signer = {
-        email: clientData.email,
-        firstName: clientData.firstName || "",
-        lastName: clientData.lastName || "",
-        mobile: clientData.phoneNumber || clientData.mobile || "",
-        page: 1,
-        posX: 50,
-        posY: 80,
-      };
+      // Préparer les signataires (client principal + notifications aux autres)
+      const signers = [
+        {
+          email: clientData.email,
+          firstName: clientData.firstName || "",
+          lastName: clientData.lastName || "",
+          mobile: clientData.phoneNumber || clientData.mobile || "",
+          page: 1,
+          posX: 100,
+          posY: 700,
+        }
+      ];
 
+      // Démarrer le processus de signature via API UpToSign
       const res = await fetch("/api/uptosign-start-process", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pdfUrl, signers: [signer], subject: `Signature devis ${projectData.name}`, message: "Merci de procéder à la signature de votre devis." }),
+        body: JSON.stringify({ 
+          pdfUrl, 
+          signers, 
+          subject: `Signature électronique - Devis ${devisData?.numero || projectData.name}`, 
+          message: `Bonjour,\n\nVotre devis pour le projet "${projectData.name}" est prêt pour signature électronique.\n\nMerci de procéder à la signature en cliquant sur le lien ci-dessous.\n\nCordialement,\nL'équipe Aximotravo`,
+          filename: `Devis_${devisData?.numero || 'DEV'}_${projectData.name?.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`
+        }),
       });
-
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`Erreur démarrage signature: ${text}`);
-      }
 
       const data = await res.json();
-      console.log("UpToSign started:", data);
+      console.log("UpToSign réponse complète:", data);
+
+      if (!res.ok) {
+        // Afficher la réponse brute d'UpToSign
+        throw new Error(JSON.stringify(data, null, 2));
+      }
+
+      // Envoyer des emails de notification aux autres parties prenantes
+      const notifications = [];
+      
+      // Notification au courtier (si différent de l'artisan)
+      if (courtierData?.email && courtierData.email !== artisanData?.email) {
+        notifications.push({
+          to: courtierData.email,
+          subject: `🔔 Signature en cours - Devis ${devisData?.numero || projectData.name}`,
+          message: `Le devis pour le projet "${projectData.name}" a été envoyé en signature électronique au client ${clientData.firstName} ${clientData.lastName} (${clientData.email}).`
+        });
+      }
+
+      // Notification à l'artisan (confirmation)
+      if (artisanData?.email) {
+        notifications.push({
+          to: artisanData.email,
+          subject: `✅ Signature envoyée - Devis ${devisData?.numero || projectData.name}`,
+          message: `Votre devis pour le projet "${projectData.name}" a été envoyé avec succès en signature électronique au client ${clientData.firstName} ${clientData.lastName} (${clientData.email}).\n\nVous recevrez une notification dès que le client aura signé le document.`
+        });
+      }
+
+      // Envoyer les notifications (en parallèle, sans bloquer)
+      if (notifications.length > 0) {
+        Promise.all(
+          notifications.map(async (notif) => {
+            try {
+              await fetch("/api/send-email", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  to: notif.to,
+                  subject: notif.subject,
+                  html: `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                      <h2 style="color: #f26755;">Aximotravo - Notification</h2>
+                      <p>${notif.message.replace(/\n/g, '<br>')}</p>
+                      <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
+                      <p style="font-size: 12px; color: #666;">
+                        Cette notification est automatique, merci de ne pas y répondre.
+                      </p>
+                    </div>
+                  `
+                }),
+              });
+            } catch (error) {
+              console.error(`Erreur envoi notification à ${notif.to}:`, error);
+            }
+          })
+        ).catch(console.error);
+      }
+
+      // Mettre à jour le statut du devis si nécessaire
+      try {
+        await updateDoc(devisRef, {
+          status: "Envoyé pour signature",
+          uptoSignProcessId: data.processId,
+          uptoSignStatus: "pending",
+          uptoSignSentAt: new Date()
+        });
+      } catch (updateError) {
+        console.error("Erreur mise à jour statut devis:", updateError);
+      }
 
       loadingToast.dismiss();
       toast({
-        title: "Invitation envoyée",
-        description: "Le client a reçu l'email de signature",
+        title: "✅ Invitations envoyées",
+        description: (
+          <div>
+            <p>Le client a reçu l'email de signature.</p>
+            <details className="mt-2">
+              <summary className="cursor-pointer text-xs text-green-700">Voir réponse UpToSign</summary>
+              <pre className="text-xs bg-green-100 p-2 rounded mt-1 overflow-auto max-h-32">
+                {JSON.stringify(data, null, 2)}
+              </pre>
+            </details>
+          </div>
+        ),
         className: "border-green-200 bg-green-50 text-green-800",
       });
+
     } catch (err: any) {
       loadingToast.dismiss();
+      
+      // Afficher la réponse brute d'UpToSign dans la console
+      console.error("Erreur UpToSign complète:", err);
+      
       toast({
         variant: "destructive",
-        title: "Erreur signature",
-        description: err?.message || "Echec de l'envoi pour signature",
+        title: "❌ Erreur signature",
+        description: (
+          <div className="max-w-md">
+            <p className="font-semibold mb-2">Réponse UpToSign:</p>
+            <pre className="text-xs bg-red-100 p-2 rounded overflow-auto max-h-32">
+              {err?.message || "Erreur inconnue"}
+            </pre>
+          </div>
+        ),
       });
     } finally {
       setSendingSignatureId(null);
@@ -1014,35 +1125,11 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
         url: uploadedUrl,
       });
 
-      // 3) Retrieve created devis by documentId to update UI immediately
-      const devisCol = collection(db, "devis");
-      const q = query(devisCol, where("documentId", "==", documentId));
-      const snap = await getDocs(q);
-      if (!snap.empty) {
-        const created = { id: snap.docs[0].id, ...(snap.docs[0].data() as any) } as any;
-        // Map to DevisItem minimal fields
-        const newItem: any = {
-          id: created.id,
-          titre: created.titre,
-          status: created.statut || created.status,
-          url: created.pdfUrl,
-          numero: created.numero,
-        };
-        // Determine which tab to inject
-        const tabKey =
-          pendingCategory === "devis_estimatif"
-            ? "generes"
-            : pendingCategory === "devis_artisan"
-            ? "uploades"
-            : "Factures";
-        if (devisTabsData[tabKey] && typeof devisTabsData[tabKey].setItems === "function") {
-          devisTabsData[tabKey].setItems((prev: any[]) => [newItem, ...prev]);
-        }
-        toast({
-          title: "Document importé",
-          description: "Le devis a été ajouté et classé dans l'onglet correspondant.",
-        });
-      }
+      // Succès: informer l'utilisateur. L'affichage se fera via la synchro Firestore.
+      toast({
+        title: "Document importé",
+        description: "Le devis a été ajouté. Il apparaîtra après synchronisation.",
+      });
     } catch (err: any) {
       toast({ variant: "destructive", title: "Upload échoué", description: err?.message || "Erreur inconnue" });
     } finally {
@@ -1159,6 +1246,13 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
         bg: "bg-purple-50",
         text: "text-purple-700",
         border: "border-purple-200",
+      },
+      {
+        value: "Signé",
+        label: "Signé",
+        bg: "bg-green-50",
+        text: "text-green-700",
+        border: "border-green-200",
       },
     ];
 
@@ -1396,12 +1490,12 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
     <div className="mt-8">
       {/*
           ====================
-          Onglets principaux (Estimatif créé, Devis artisan, Devis signé)
+          Onglets principaux (Estimatif créé , Devis artisan, Devis signé)
           ====================
         */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div className="flex bg-gray-100 rounded-xl p-1 w-full sm:w-auto">
-          {/* Estimatif créé (generes) en premier */}
+          {/* Estimatif créé  (generes) en premier */}
           <button
             className={`flex-1 sm:flex-none px-4 sm:px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
               activeDevisTab === "generes"
@@ -1412,7 +1506,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
           >
             <div className="flex items-center justify-center sm:justify-start gap-2">
               <Calendar className="h-4 w-4" />
-              <span className="hidden sm:inline">Estimatif créé</span>
+              <span className="hidden sm:inline">Estimatif créé </span>
               <span className="sm:hidden">Estimatif</span>
             </div>
           </button>
@@ -1459,13 +1553,6 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
               <span className="sm:hidden">Créer</span>
             </button>
           )}
-          <button
-            onClick={() => triggerUpload("devis_estimatif")}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#f26755] hover:bg-[#e55a4a] text-white rounded-xl font-semibold text-sm shadow-lg hover:shadow-xl transition-all duration-200"
-          >
-            <Download className="h-4 w-4" />
-            Upload devis estimatif
-          </button>
         </div>
       </div>
 
@@ -1545,16 +1632,16 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Titre
+                    Numéro
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Type
+                    Titre
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                     Attribué
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    status
+                    Statut
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                     Montant
@@ -1591,13 +1678,13 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                     >
                       <td className="px-6 py-4">
                         <div className="font-medium text-gray-900">
-                          {devisItem.titre || "-"}
+                          {devisItem.numero || "-"}
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="text-gray-600">
-                          {devisItem.type || "-"}
-                        </span>
+                        <div className="font-medium text-gray-900">
+                          {devisItem.titre || "-"}
+                        </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="font-medium text-gray-900">
@@ -1736,7 +1823,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="p-6 border-b border-gray-200">
             <div className="flex items-center justify-between mb-4">
-              <h4 className="text-lg font-bold text-gray-900">Estimatif créé</h4>
+              <h4 className="text-lg font-bold text-gray-900">Estimatif créé </h4>
               <div className="flex items-center gap-2 ml-auto">
                 <button
                   onClick={() => setShowFilters(!showFilters)}
@@ -1941,7 +2028,7 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                     <td colSpan={6} className="px-6 py-12 text-center">
                       <div className="flex flex-col items-center gap-3">
                         <Calendar className="h-12 w-12 text-gray-300" />
-                        <p className="text-gray-500 font-medium">Aucun estimatif créé</p>
+                        <p className="text-gray-500 font-medium">Aucun Estimatif créé </p>
                         <p className="text-sm text-gray-400">Commencez par créer votre premier estimatif</p>
                         <button
                           type="button"
@@ -2071,7 +2158,11 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
                           {doc.attribution?.artisanName || "-"}
                         </div>
                       </td>
-                      <td className="px-6 py-4">{doc.status}</td>
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          {doc.status || "Validé"}
+                        </span>
+                      </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-1">
                           <Euro className="h-4 w-4 text-gray-400" />
