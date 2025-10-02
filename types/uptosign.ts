@@ -51,6 +51,7 @@ export interface UpToSignStatusNormalizedResponse {
 
 // Download response returned by our API route
 export interface UpToSignDownloadResponse {
+  success?: boolean;
   base64Content?: string; // PDF base64 content
   documentUrl?: string;   // Alternative: direct URL
 }

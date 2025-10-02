@@ -1,4 +1,4 @@
-import type { UpToSignStartPayload, UpToSignStartResponse, UpToSignDocumentsResponse } from "@/types/uptosign";
+import type { UpToSignStartPayload, UpToSignStartResponse, UpToSignDocumentsResponse, UpToSignStatusNormalizedResponse } from "@/types/uptosign";
 
 // Constantes sans fonctions: base, url et headers prêts à l'emploi
 export const UPTOSIGN_BASE = (process.env.UPTOSIGN_BASE_URL || "https://dev.uptosign.com").replace(/\/$/, "");
@@ -77,3 +77,47 @@ export const UPTOSIGN_BODY_EXAMPLE: UpToSignRequestBody = {
     "multiSign[email]": "destinataire@example.com",
   },
 };
+
+// Configuration validation
+export function validateUpToSignConfig() {
+  const hasApiKey = !!process.env.UPTOSIGN_API_KEY;
+  const hasBaseUrl = !!process.env.UPTOSIGN_BASE_URL;
+  
+  return {
+    isValid: hasApiKey && hasBaseUrl,
+    error: !hasApiKey ? "UPTOSIGN_API_KEY manquante" : !hasBaseUrl ? "UPTOSIGN_BASE_URL manquante" : null
+  };
+}
+
+// Headers helper
+export function getUpToSignHeaders() {
+  return {
+    Authorization: `Bearer ${process.env.UPTOSIGN_API_KEY}`,
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  };
+}
+
+// Endpoints
+export const UPTOSIGN_ENDPOINTS = {
+  documents: `${UPTOSIGN_BASE}/api/documents`,
+  status: (processId: string) => `${UPTOSIGN_BASE}/api/status/${processId}`,
+  download: (processId: string) => `${UPTOSIGN_BASE}/api/download/${processId}`,
+  proof: (processId: string) => `${UPTOSIGN_BASE}/api/proof/${processId}`,
+};
+
+// Normalize status response from UpToSign API
+export function normalizeStatusResponse(rawResponse: any): UpToSignStatusNormalizedResponse {
+  return {
+    processId: rawResponse.id || rawResponse.processId || '',
+    status: rawResponse.status || 'pending',
+    isCompleted: ['signed', 'completed'].includes(rawResponse.status),
+    createdAt: rawResponse.createdAt ? new Date(rawResponse.createdAt) : new Date(),
+    completedAt: rawResponse.completedAt ? new Date(rawResponse.completedAt) : undefined,
+    signers: (rawResponse.signers || []).map((signer: any) => ({
+      email: signer.email || '',
+      status: signer.status || 'pending',
+      signedAt: signer.signedAt ? new Date(signer.signedAt) : undefined,
+    })),
+  };
+}
