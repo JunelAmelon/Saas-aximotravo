@@ -1049,10 +1049,12 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
           <div>
             <p>Le client a reçu l'email de signature.</p>
             <details className="mt-2">
-              <summary className="cursor-pointer text-xs text-green-700">Voir réponse UpToSign</summary>
-              <pre className="text-xs bg-green-100 p-2 rounded mt-1 overflow-auto max-h-32">
-                {JSON.stringify(data, null, 2)}
-              </pre>
+              <summary className="cursor-pointer text-xs text-green-700 hover:text-green-900 font-semibold">Voir réponse UpToSign</summary>
+              <div className="bg-gray-900 text-green-400 p-3 rounded border border-green-300 mt-1 overflow-auto max-h-32">
+                <pre className="text-sm font-mono whitespace-pre-wrap break-words">
+                  {JSON.stringify(data, null, 2)}
+                </pre>
+              </div>
             </details>
           </div>
         ),
@@ -1070,10 +1072,12 @@ export const ModernDevisSection: React.FC<ModernDevisSectionProps> = ({
         title: "❌ Erreur signature",
         description: (
           <div className="max-w-md">
-            <p className="font-semibold mb-2">Réponse UpToSign:</p>
-            <pre className="text-xs bg-red-100 p-2 rounded overflow-auto max-h-32">
-              {err?.message || "Erreur inconnue"}
-            </pre>
+            <p className="font-semibold mb-2 text-white">Réponse UpToSign:</p>
+            <div className="bg-gray-900 text-red-400 p-3 rounded border border-red-300 overflow-auto max-h-32">
+              <pre className="text-sm font-mono whitespace-pre-wrap break-words">
+                {err?.message || "Erreur inconnue"}
+              </pre>
+            </div>
           </div>
         ),
       });
